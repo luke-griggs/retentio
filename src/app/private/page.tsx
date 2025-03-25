@@ -1,10 +1,16 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
+import { readUserSession } from "../auth/actions";
+import { redirect } from "next/navigation";
+import ChatInterface from "@/components/ChatInterface";
+
 export default async function PrivatePage() {
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect('/login')
+  // Check authentication on the server
+  const { data } = await readUserSession();
+
+  // Redirect if not authenticated
+  if (!data.user) {
+    redirect("/auth/login");
   }
-  return <p>Hello {data.user.email}</p>
+
+  // User is authenticated, render the chat interface
+  return <ChatInterface />;
 }
