@@ -1,150 +1,174 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useChat } from "@ai-sdk/react";
+import { useEffect, useRef } from "react";
 
-// Message type definition
-type Message = {
-  id: string;
-  content: string;
-  role: "user" | "assistant";
-  timestamp: Date;
-  toolCall?: {
-    toolName: string;
-    toolData: any;
-  };
-};
-
-// Chat hook
-function useChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const sendMessage = async (message: string) => {
-    setIsLoading(true);
-    try {
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        content: message,
-        role: "user",
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, userMessage]);
-
-      // Simulate AI response
-      setTimeout(() => {
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          content:
-            "This is a mock response. The real AI integration will be implemented later.",
-          role: "assistant",
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-        setIsLoading(false);
-      }, 1000);
-    } catch (err) {
-      setError("Failed to send message");
-      setIsLoading(false);
-    }
-  };
-
-  const clearMessages = () => setMessages([]);
-
-  return { messages, isLoading, error, sendMessage, clearMessages };
+// Define the type for the tool result data structure
+interface DatabaseToolResult {
+  result?: any[];
+  rowCount?: number;
+  fields?: Array<{ name: string; dataTypeID: number }>;
+  error?: string;
+  query?: string;
+  message?: string;
 }
 
 export default function ChatInterface() {
-  const { messages, isLoading, error, sendMessage, clearMessages } = useChat();
-  const [input, setInput] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat({
+      api: "/api/chat",
+      maxSteps: 5,
+    });
 
+  // Reference to the chat container for auto-scrolling
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Debug output to see message structure
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0) {
+      console.log("Current messages:", messages);
+
+      // Auto-scroll to bottom when messages change
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop =
+          chatContainerRef.current.scrollHeight;
+      }
+    }
   }, [messages]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim() && !isLoading) {
-      sendMessage(input.trim());
-      setInput("");
+  // Helper function to check if a message has completed tool calls
+  const hasCompletedToolCall = (message: any, toolInvocationPart: any) => {
+    // Better logging to understand the issue
+    console.log("Checking if tool call is completed:", toolInvocationPart);
+
+    // Try to get the tool call ID from various possible structures
+    const toolCallId =
+      toolInvocationPart.toolInvocation?.id ||
+      toolInvocationPart.toolInvocation?.toolCallId ||
+      (toolInvocationPart.toolInvocation as any)?.toolCall?.id;
+
+    console.log("Tool call ID:", toolCallId);
+
+    if (!toolCallId) return false;
+
+    // Check if there's a tool result for this tool invocation
+    const hasResult = message.parts.some((part: any) => {
+      const isToolResult = part.type === "tool-result";
+      const matchesToolCallId =
+        part.toolCallId === toolCallId || part.id === toolCallId;
+
+      console.log(
+        "Part type:",
+        part.type,
+        "Part toolCallId:",
+        part.toolCallId,
+        "Part id:",
+        part.id
+      );
+
+      return isToolResult && matchesToolCallId;
+    });
+
+    console.log("Has result:", hasResult);
+
+    // If no direct match found, check if there are any tool-result parts that appear after this invocation
+    if (!hasResult) {
+      const currentPartIndex = message.parts.findIndex(
+        (p: any) => p === toolInvocationPart
+      );
+      const hasLaterToolResult = message.parts.some(
+        (part: any, index: number) =>
+          index > currentPartIndex && part.type === "tool-result"
+      );
+
+      console.log(
+        "Current part index:",
+        currentPartIndex,
+        "Has later tool result:",
+        hasLaterToolResult
+      );
+
+      return hasLaterToolResult;
     }
+
+    return hasResult;
   };
 
   return (
-    <main className="min-h-screen bg-[#4285f4] p-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-white text-center mb-8 italic">
-          RETENTIO
-        </h1>
+    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-slate-50 shadow-xl rounded-lg overflow-hidden">
+      {/* Header */}
+      <div className="bg-slate-50 p-4 shadow-md">
+        <div className="p-4">
+          <h1 className="text-4xl font-medium text-blue-600">Retentio Agent</h1>
+        </div>
+      </div>
 
-        <div className="bg-white rounded-xl shadow-xl p-4">
-          <form onSubmit={handleSubmit} className="mb-6">
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything about marketing strategy..."
-                className="w-full p-4 pr-20 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pl-12 text-black placeholder-gray-500"
-                disabled={isLoading}
-              />
-              <svg
-                className="absolute left-4 w-5 h-5 text-gray-400"
-                fill="none"
-                strokeWidth="2"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className="absolute right-2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
-              >
+      {/* Chat messages */}
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-auto p-6 bg-gradient-to-b from-slate-50 to-blue-50"
+      >
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="bg-white p-6 rounded-xl shadow-md max-w-lg border border-blue-100">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
-                  className="w-6 h-6"
+                  xmlns="http://www.w3.org/2000/svg"
                   fill="none"
-                  stroke="currentColor"
                   viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-8 h-8"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
                   />
                 </svg>
-              </button>
+              </div>
+              <h2 className="text-xl font-semibold text-blue-700 mb-3">
+                Ask me about your client data
+              </h2>
+              <p className="text-slate-800 mb-6">
+                I can help you analyze and understand your database information.
+              </p>
+              <div className="bg-blue-50 p-4 rounded-lg text-left">
+                <p className="font-medium text-blue-800 mb-2">
+                  Try these examples:
+                </p>
+                <ul className="space-y-2 text-slate-800">
+                  <li className="flex items-center">
+                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                      1
+                    </span>
+                    Show me all active clients
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                      2
+                    </span>
+                    What email conversations did we have with EcoGoods Store?
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                      3
+                    </span>
+                    Show me the most recent call transcripts
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                      4
+                    </span>
+                    Which clients have the most emails in our database?
+                  </li>
+                </ul>
+              </div>
             </div>
-          </form>
-
-          <div className="flex flex-wrap gap-2 mb-6">
-            {[
-              "Strategy",
-              "Client",
-              "Wireframing",
-              "Copywriting",
-              "Design",
-              "Technical Deployment",
-            ].map((category) => (
-              <button
-                key={category}
-                className="px-4 py-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-              >
-                {category}
-              </button>
-            ))}
           </div>
-
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {messages.map((message) => (
+        ) : (
+          <div className="space-y-6">
+            {messages.map((message, messageIndex) => (
               <div
                 key={message.id}
                 className={`flex ${
@@ -152,45 +176,384 @@ export default function ChatInterface() {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] p-4 rounded-lg ${
+                  className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
                     message.role === "user"
                       ? "bg-blue-600 text-white rounded-tr-none"
-                      : "bg-gray-100 rounded-tl-none"
+                      : "bg-white rounded-tl-none border border-blue-100 text-black"
                   }`}
                 >
-                  <div className="text-sm">{message.content}</div>
-                  <div
-                    className={`text-xs mt-1 ${
-                      message.role === "user"
-                        ? "text-blue-100"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
+                  {message.parts.map((part, i) => {
+                    // Handle different part types
+                    if (part.type === "text") {
+                      return (
+                        <div
+                          key={`text-${i}`}
+                          className={`whitespace-pre-wrap ${
+                            message.role === "user"
+                              ? "text-white"
+                              : "text-black"
+                          }`}
+                        >
+                          {part.text}
+                        </div>
+                      );
+                    }
+
+                    if (part.type === "tool-invocation") {
+                      // More reliable approach: check if there are any tool-result parts after this
+                      const toolResultsExist = message.parts.some(
+                        (p: any, idx: number) =>
+                          idx > i && p.type === "tool-result"
+                      );
+
+                      // Only show the tool invocation if there are no subsequent tool results
+                      if (!toolResultsExist && isLoading) {
+                        return (
+                          <div
+                            key={`tool-${i}`}
+                            className={`text-sm ${
+                              message.role === "user"
+                                ? "text-blue-100"
+                                : "text-slate-800"
+                            }`}
+                          >
+                            <div className="flex items-center mt-1 mb-2">
+                              <svg
+                                className="animate-spin -ml-1 mr-2 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Running SQL query...
+                            </div>
+                            <pre
+                              className={`p-2 rounded text-xs overflow-auto ${
+                                message.role === "user"
+                                  ? "bg-blue-700"
+                                  : "bg-slate-100"
+                              }`}
+                            >
+                              {(part.toolInvocation as any).parameters?.query ||
+                                JSON.stringify(part.toolInvocation, null, 2)}
+                            </pre>
+                          </div>
+                        );
+                      }
+                      return null; // Don't render completed tool invocations
+                    }
+
+                    // For all other part types, cast to any to check structure
+                    const anyPart = part as any;
+
+                    // Try to detect tool results regardless of exact structure
+                    if (
+                      anyPart.toolResult ||
+                      (anyPart.type &&
+                        typeof anyPart.type === "string" &&
+                        anyPart.type.includes("tool")) ||
+                      anyPart.tool
+                    ) {
+                      // Try to extract the result data, adjusting for different structures
+                      let toolResult: any = anyPart.toolResult;
+
+                      // If we don't have direct toolResult, look in other places
+                      if (!toolResult) {
+                        if (
+                          anyPart.content &&
+                          typeof anyPart.content === "object"
+                        ) {
+                          toolResult = anyPart.content;
+                        } else if (anyPart.result) {
+                          toolResult = anyPart.result;
+                        } else {
+                          // If still no luck, the part itself might be the result
+                          toolResult = anyPart;
+                        }
+                      }
+
+                      if (!toolResult || typeof toolResult !== "object") {
+                        return (
+                          <div key={`error-${i}`} className="mt-2 text-red-500">
+                            Unable to display result (invalid format)
+                          </div>
+                        );
+                      }
+
+                      if (toolResult.error) {
+                        return (
+                          <div
+                            key={`error-${i}`}
+                            className="mt-2 p-4 bg-red-50 rounded-lg border border-red-200"
+                          >
+                            <p className="font-semibold text-red-600">Error:</p>
+                            <p className="text-red-700">{toolResult.error}</p>
+                          </div>
+                        );
+                      }
+
+                      const results = toolResult.result || [];
+
+                      if (!Array.isArray(results) || results.length === 0) {
+                        return (
+                          <div
+                            key={`empty-${i}`}
+                            className="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-700"
+                          >
+                            <div className="flex items-center">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                className="w-5 h-5 mr-2"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                                />
+                              </svg>
+                              Query executed successfully, but returned no data.
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Calculate if this is the last part of the message
+                      const isLastPart = i === message.parts.length - 1;
+                      // Check if this is the last message
+                      const isLastMessage =
+                        messageIndex === messages.length - 1;
+
+                      const originalQuery = toolResult.query ? (
+                        <div className="mt-1 mb-3">
+                          <div className="flex items-center text-xs text-blue-600 mb-1">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                              className="w-4 h-4 mr-1"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                              />
+                            </svg>
+                            SQL QUERY
+                          </div>
+                          <code className="block p-3 bg-blue-50 text-xs rounded-lg overflow-x-auto border border-blue-100 text-blue-800 font-mono">
+                            {toolResult.query}
+                          </code>
+                        </div>
+                      ) : null;
+
+                      return (
+                        <div
+                          key={`result-${i}`}
+                          className="mt-4 overflow-hidden rounded-lg border border-blue-200 bg-white shadow-sm"
+                        >
+                          {originalQuery}
+                          <div className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                              className="w-5 h-5 mr-2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 0H9.75m0 0h10.5m-10.5 0H9.375c-.621 0-1.125.504-1.125 1.125M9.75 18.75h10.5c.621 0 1.125-.504 1.125-1.125m-12.75 0c0 .621.504 1.125 1.125 1.125"
+                              />
+                            </svg>
+                            Results ({toolResult.rowCount || results.length}{" "}
+                            rows)
+                          </div>
+                          <div className="max-h-64 overflow-y-auto">
+                            <table className="w-full text-sm border-collapse text-black">
+                              <thead className="sticky top-0">
+                                <tr>
+                                  {Object.keys(results[0]).map((column) => (
+                                    <th
+                                      key={column}
+                                      className="p-3 text-left bg-blue-50 text-blue-700 font-medium border-b border-blue-200"
+                                    >
+                                      {column}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {results.map((row: any, rowIndex: number) => (
+                                  <tr
+                                    key={rowIndex}
+                                    className={
+                                      rowIndex % 2 === 0
+                                        ? "bg-white"
+                                        : "bg-slate-50"
+                                    }
+                                  >
+                                    {Object.values(row).map(
+                                      (value: any, valueIndex: number) => (
+                                        <td
+                                          key={valueIndex}
+                                          className="p-3 border-b border-slate-100 text-black"
+                                        >
+                                          {value === null ? (
+                                            <span className="text-slate-400 italic">
+                                              null
+                                            </span>
+                                          ) : typeof value === "object" ? (
+                                            <span className="text-xs font-mono bg-slate-100 p-1 rounded">
+                                              {JSON.stringify(value)}
+                                            </span>
+                                          ) : (
+                                            String(value)
+                                          )}
+                                        </td>
+                                      )
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {isLastPart && isLastMessage && isLoading ? (
+                            <div className="p-3 bg-blue-50 border-t border-blue-100">
+                              <div className="flex items-center text-blue-700">
+                                <svg
+                                  className="animate-spin mr-2 h-4 w-4 text-blue-600"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                <span className="font-medium">
+                                  Analyzing your data...
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="px-3 py-2 text-xs text-blue-600 bg-blue-50 border-t border-blue-100">
+                              {isLastPart && isLastMessage
+                                ? "Waiting for analysis..."
+                                : "Assistant will analyze this data..."}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // If nothing matched, just return null
+                    return null;
+                  })}
                 </div>
               </div>
             ))}
-            {isLoading && (
-              <div className="flex items-center space-x-2 text-gray-500">
-                <div className="animate-pulse">Thinking...</div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-100"></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-200"></div>
-              </div>
-            )}
-            {error && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg">
-                Error: {error}
-              </div>
-            )}
-            <div ref={messagesEndRef} />
           </div>
-        </div>
+        )}
       </div>
-    </main>
+
+      {/* Input area */}
+      <div className="p-4 bg-white border-t border-blue-100">
+        <form onSubmit={handleSubmit} className="flex">
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            placeholder="Ask a question about your data..."
+            className="flex-1 p-3 border border-blue-200 focus:border-blue-400 rounded-l-lg outline-none shadow-sm text-black"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            className={`px-6 py-3 rounded-r-lg font-medium text-white ${
+              isLoading
+                ? "bg-blue-400"
+                : "bg-blue-600 hover:bg-blue-700 transition-colors"
+            }`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="flex items-center">
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <span>Ask</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-4 h-4 ml-1"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                  />
+                </svg>
+              </div>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }

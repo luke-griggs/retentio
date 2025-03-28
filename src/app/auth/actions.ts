@@ -28,7 +28,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect("/private");
+  redirect("/chat");
 }
 
 export async function signup(formData: FormData) {
@@ -48,5 +48,5 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect("/private");
+  redirect("/chat");
 }

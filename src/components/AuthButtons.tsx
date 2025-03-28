@@ -11,7 +11,7 @@ export default function AuthButtons({ isAuthenticated }: AuthButtonsProps) {
   const router = useRouter();
 
   const handleChatRedirect = () => {
-    router.push("/private");
+    router.push("/chat");
   };
 
   return (

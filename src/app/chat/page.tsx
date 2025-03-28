@@ -2,7 +2,7 @@ import { readUserSession } from "../auth/actions";
 import { redirect } from "next/navigation";
 import ChatInterface from "@/components/ChatInterface";
 
-export default async function PrivatePage() {
+export default async function ChatPage() {
   // Check authentication on the server
   const { data } = await readUserSession();
 
@@ -12,5 +12,9 @@ export default async function PrivatePage() {
   }
 
   // User is authenticated, render the chat interface
-  return <ChatInterface />;
+  return (
+    <main className="min-h-screen bg-[#4285f4] p-4">
+      <ChatInterface />
+    </main>
+  );
 }
