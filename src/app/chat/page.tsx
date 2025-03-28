@@ -1,6 +1,7 @@
 import { readUserSession } from "../auth/actions";
 import { redirect } from "next/navigation";
 import ChatInterface from "@/components/ChatInterface";
+import Navbar from "@/components/Navbar";
 
 export default async function ChatPage() {
   // Check authentication on the server
@@ -13,7 +14,8 @@ export default async function ChatPage() {
 
   // User is authenticated, render the chat interface
   return (
-    <main className="min-h-screen bg-[#050E08] p-4">
+    <main className="min-h-screen bg-[#050E08]">
+      <Navbar />
       <ChatInterface />
     </main>
   );

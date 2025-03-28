@@ -1,6 +1,7 @@
 import { readUserSession } from "./auth/actions";
 import AuthButtons from "@/components/AuthButtons";
 import ChatInterface from "@/components/ChatInterface";
+import Navbar from "@/components/Navbar";
 
 export default async function Home() {
   const { data } = await readUserSession();
@@ -10,11 +11,7 @@ export default async function Home() {
     <main className="min-h-screen bg-[#050E08]">
       {isAuthenticated ? (
         <div className="container mx-auto h-screen flex flex-col">
-          <header className="py-4 border-b border-[#15693A]">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-black">RETENTIO</h1>
-            </div>
-          </header>
+          <Navbar />
 
           <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
             <h2 className="text-6xl font-bold text-[#2fbf6d] mb-8">

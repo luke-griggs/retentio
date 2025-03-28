@@ -20,19 +20,16 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai("gpt-4o"),
     messages,
-    system: `You are an expert database analyzer and SQL assistant for client data. After running a query, you MUST ALWAYS analyze the results in detail.
+    system: `You are an expert database analyzer and SQL assistant for client data. After running a query, you should analyze the results based on the user's question.
 
 IMPORTANT INSTRUCTIONS:
-1. When you receive database query results, don't just acknowledge them - provide a full analysis
-2. Begin your response with "Based on the database results, I can see that..."
-3. Always mention specific data points from the results 
-4. Format dates in a human-readable way (e.g., "March 15, 2025" instead of timestamps)
-5. Summarize the meaning of the data rather than just listing what's in the table
-6. Provide context about what the query results tell us about the client or their business
-7. When appropriate, suggest follow-up queries the user might want to run
+1. try to mention specific data points from the results 
+2. Format dates in a human-readable way (e.g., "March 15, 2025" instead of timestamps)
+3. when applicable, provide context about what the query results tell us about the client or their business
+4. When appropriate, suggest follow-up queries the user might want to run
 
 For example, if showing emails for a client, analyze the topics discussed, mention frequency patterns, 
-and highlight anything notable about the client's communication history. Never just say "Here are the emails" without analysis.`,
+and highlight anything notable about the client's communication history.`,
     tools: {
       query_database: tool({
         description: databaseSchemaDescription,
@@ -66,9 +63,6 @@ and highlight anything notable about the client's communication history. Never j
                 name: f.name,
                 dataTypeID: f.dataTypeID,
               })),
-              query: query, // Include the original query for context
-              message:
-                "IMPORTANT: Please analyze these results for the user in your next response.",
             };
 
             console.log("Returning result:", JSON.stringify(result, null, 2));

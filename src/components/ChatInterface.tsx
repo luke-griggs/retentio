@@ -42,10 +42,7 @@ export default function ChatInterface() {
     console.log("Checking if tool call is completed:", toolInvocationPart);
 
     // Try to get the tool call ID from various possible structures
-    const toolCallId =
-      toolInvocationPart.toolInvocation?.id ||
-      toolInvocationPart.toolInvocation?.toolCallId ||
-      (toolInvocationPart.toolInvocation as any)?.toolCall?.id;
+    const toolCallId =toolInvocationPart.toolInvocation?.id
 
     console.log("Tool call ID:", toolCallId);
 
@@ -95,76 +92,67 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-slate-50 shadow-xl rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="bg-[#050E08] p-4 shadow-md">
-        <div className="p-4">
-          <h1 className="text-4xl font-medium text-[#208C4F]">
-            Retentio Agent
-          </h1>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-[calc(100vh-120px)] max-w-5xl mx-auto">
       {/* Chat messages */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-auto p-6 bg-gradient-to-b from-slate-50 to-green-50"
+        className="flex-1 overflow-auto p-6 scrollbar-custom"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "#208C4F transparent",
+        }}
       >
+        <style jsx global>{`
+          .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
+          }
+          .scrollbar-custom::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .scrollbar-custom::-webkit-scrollbar-thumb {
+            background-color: #208c4f;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+          }
+          .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background-color: #15693a;
+          }
+        `}</style>
+
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="bg-white p-6 rounded-xl shadow-md max-w-lg border border-green-100">
-              <div className="w-16 h-16 bg-[#208C4F] text-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="w-8 h-8"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold text-[#208C4F] mb-3">
-                Ask me about your client data
+            <div className="max-w-2xl">
+              <h2 className="text-4xl font-bold mb-8">
+                What can I help with?
               </h2>
-              <p className="text-slate-800 mb-6">
-                I can help you analyze and understand your database information.
-              </p>
-              <div className="bg-green-50 p-4 rounded-lg text-left">
-                <p className="font-medium text-[#208C4F] mb-2">
-                  Try these examples:
+              <div className="bg-[#0a1b10] p-6 rounded-xl border border-[#15693A] shadow-lg max-w-lg mx-auto">
+                <h3 className="text-xl font-semibold text-[#2fbf6d] mb-4">
+                  Ask me about your client data
+                </h3>
+                <p className="text-[#d1e9db] mb-6">
+                  I can help you analyze and understand your database
+                  information.
                 </p>
-                <ul className="space-y-2 text-slate-800">
-                  <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
-                      1
-                    </span>
-                    Show me all active clients
-                  </li>
-                  <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
-                      2
-                    </span>
-                    What email conversations did we have with EcoGoods Store?
-                  </li>
-                  <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
-                      3
-                    </span>
-                    Show me the most recent call transcripts
-                  </li>
-                  <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
-                      4
-                    </span>
-                    Which clients have the most emails in our database?
-                  </li>
-                </ul>
+                <div className="space-y-3 text-left">
+                  <p className="font-medium text-[#2fbf6d] mb-2">
+                    Try these examples:
+                  </p>
+                  <div className="space-y-3">
+                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                      Show me all active clients
+                    </div>
+                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                      What email conversations did we have with EcoGoods Store?
+                    </div>
+                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                      Show me the most recent call transcripts
+                    </div>
+                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                      Which clients have the most emails in our database?
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -178,10 +166,10 @@ export default function ChatInterface() {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
+                  className={`max-w-[80%] rounded-2xl p-4 ${
                     message.role === "user"
-                      ? "bg-[#208C4F] text-white rounded-tr-none"
-                      : "bg-white rounded-tl-none border border-green-100 text-black"
+                      ? "bg-[#081510] text-white rounded-tr-none"
+                      : "bg-none rounded-tl-none text-white"
                   }`}
                 >
                   {message.parts.map((part, i) => {
@@ -190,11 +178,7 @@ export default function ChatInterface() {
                       return (
                         <div
                           key={`text-${i}`}
-                          className={`whitespace-pre-wrap ${
-                            message.role === "user"
-                              ? "text-white"
-                              : "text-black"
-                          }`}
+                          className="whitespace-pre-wrap text-[#d1e9db]"
                         >
                           {part.text}
                         </div>
@@ -213,11 +197,7 @@ export default function ChatInterface() {
                         return (
                           <div
                             key={`tool-${i}`}
-                            className={`text-sm ${
-                              message.role === "user"
-                                ? "text-green-100"
-                                : "text-slate-800"
-                            }`}
+                            className="text-sm text-[#a8d1b9]"
                           >
                             <div className="flex items-center mt-1 mb-2">
                               <svg
@@ -242,13 +222,7 @@ export default function ChatInterface() {
                               </svg>
                               Running SQL query...
                             </div>
-                            <pre
-                              className={`p-2 rounded text-xs overflow-auto ${
-                                message.role === "user"
-                                  ? "bg-[#15693A]"
-                                  : "bg-slate-100"
-                              }`}
-                            >
+                            <pre className="p-2 rounded text-xs overflow-auto bg-[#081510]">
                               {(part.toolInvocation as any).parameters?.query ||
                                 JSON.stringify(part.toolInvocation, null, 2)}
                             </pre>
@@ -289,7 +263,7 @@ export default function ChatInterface() {
 
                       if (!toolResult || typeof toolResult !== "object") {
                         return (
-                          <div key={`error-${i}`} className="mt-2 text-red-500">
+                          <div key={`error-${i}`} className="mt-2 text-red-400">
                             Unable to display result (invalid format)
                           </div>
                         );
@@ -299,10 +273,10 @@ export default function ChatInterface() {
                         return (
                           <div
                             key={`error-${i}`}
-                            className="mt-2 p-4 bg-red-50 rounded-lg border border-red-200"
+                            className="mt-2 p-4 bg-red-900/30 rounded-lg border border-red-600"
                           >
-                            <p className="font-semibold text-red-600">Error:</p>
-                            <p className="text-red-700">{toolResult.error}</p>
+                            <p className="font-semibold text-red-400">Error:</p>
+                            <p className="text-red-300">{toolResult.error}</p>
                           </div>
                         );
                       }
@@ -313,7 +287,7 @@ export default function ChatInterface() {
                         return (
                           <div
                             key={`empty-${i}`}
-                            className="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-700"
+                            className="mt-2 p-3 bg-amber-900/30 rounded-lg border border-amber-600 text-amber-300"
                           >
                             <div className="flex items-center">
                               <svg
@@ -344,7 +318,7 @@ export default function ChatInterface() {
 
                       const originalQuery = toolResult.query ? (
                         <div className="mt-1 mb-3">
-                          <div className="flex items-center text-xs text-[#208C4F] mb-1">
+                          <div className="flex items-center text-xs text-[#2fbf6d] mb-1">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
@@ -361,7 +335,7 @@ export default function ChatInterface() {
                             </svg>
                             SQL QUERY
                           </div>
-                          <code className="block p-3 bg-green-50 text-xs rounded-lg overflow-x-auto border border-green-100 text-[#208C4F] font-mono">
+                          <code className="block p-3 bg-[#081510] text-xs rounded-lg overflow-x-auto border border-[#15693A] text-[#2fbf6d] font-mono">
                             {toolResult.query}
                           </code>
                         </div>
@@ -370,7 +344,7 @@ export default function ChatInterface() {
                       return (
                         <div
                           key={`result-${i}`}
-                          className="mt-4 overflow-hidden rounded-lg border border-green-200 bg-white shadow-sm"
+                          className="mt-4 overflow-hidden rounded-lg border border-[#15693A] bg-[#081510] shadow-md"
                         >
                           {originalQuery}
                           <div className="px-4 py-3 bg-gradient-to-r from-[#208C4F] to-[#15693A] text-white font-medium flex items-center">
@@ -392,13 +366,13 @@ export default function ChatInterface() {
                             rows)
                           </div>
                           <div className="max-h-64 overflow-y-auto">
-                            <table className="w-full text-sm border-collapse text-black">
+                            <table className="w-full text-sm border-collapse text-[#d1e9db]">
                               <thead className="sticky top-0">
                                 <tr>
                                   {Object.keys(results[0]).map((column) => (
                                     <th
                                       key={column}
-                                      className="p-3 text-left bg-green-50 text-[#208C4F] font-medium border-b border-green-200"
+                                      className="p-3 text-left bg-[#0d1f14] text-[#2fbf6d] font-medium border-b border-[#15693A]"
                                     >
                                       {column}
                                     </th>
@@ -411,22 +385,22 @@ export default function ChatInterface() {
                                     key={rowIndex}
                                     className={
                                       rowIndex % 2 === 0
-                                        ? "bg-white"
-                                        : "bg-slate-50"
+                                        ? "bg-[#081510]"
+                                        : "bg-[#0a1b10]"
                                     }
                                   >
                                     {Object.values(row).map(
                                       (value: any, valueIndex: number) => (
                                         <td
                                           key={valueIndex}
-                                          className="p-3 border-b border-slate-100 text-black"
+                                          className="p-3 border-b border-[#15693A]/30 text-[#d1e9db]"
                                         >
                                           {value === null ? (
                                             <span className="text-slate-400 italic">
                                               null
                                             </span>
                                           ) : typeof value === "object" ? (
-                                            <span className="text-xs font-mono bg-slate-100 p-1 rounded">
+                                            <span className="text-xs font-mono bg-[#0d1f14] p-1 rounded">
                                               {JSON.stringify(value)}
                                             </span>
                                           ) : (
@@ -442,10 +416,10 @@ export default function ChatInterface() {
                           </div>
 
                           {isLastPart && isLastMessage && isLoading ? (
-                            <div className="p-3 bg-green-50 border-t border-green-100">
-                              <div className="flex items-center text-[#208C4F]">
+                            <div className="p-3 bg-[#0d1f14] border-t border-[#15693A]">
+                              <div className="flex items-center text-[#2fbf6d]">
                                 <svg
-                                  className="animate-spin mr-2 h-4 w-4 text-[#208C4F]"
+                                  className="animate-spin mr-2 h-4 w-4 text-[#2fbf6d]"
                                   xmlns="http://www.w3.org/2000/svg"
                                   fill="none"
                                   viewBox="0 0 24 24"
@@ -470,7 +444,7 @@ export default function ChatInterface() {
                               </div>
                             </div>
                           ) : (
-                            <div className="px-3 py-2 text-xs text-[#208C4F] bg-green-50 border-t border-green-100">
+                            <div className="px-3 py-2 text-xs text-[#2fbf6d] bg-[#0d1f14] border-t border-[#15693A]">
                               {isLastPart && isLastMessage
                                 ? "Waiting for analysis..."
                                 : "Assistant will analyze this data..."}
@@ -491,21 +465,21 @@ export default function ChatInterface() {
       </div>
 
       {/* Input area */}
-      <div className="p-4 bg-white border-t border-green-100">
+      <div className="px-4 py-6 border-t border-[#15693A]">
         <form onSubmit={handleSubmit} className="flex">
           <input
             type="text"
             value={input}
             onChange={handleInputChange}
-            placeholder="Ask a question about your data..."
-            className="flex-1 p-3 border border-green-200 focus:border-[#208C4F] rounded-l-lg outline-none shadow-sm text-black"
+            placeholder="Message Retentio..."
+            className="flex-1 p-4 bg-[#0a1b10] border border-[#15693A] focus:border-[#208C4F] rounded-l-full outline-none text-white placeholder-[#d1e9db]/50"
             disabled={isLoading}
           />
           <button
             type="submit"
-            className={`px-6 py-3 rounded-r-lg font-medium text-white ${
+            className={`px-6 py-4 rounded-r-full font-medium text-white ${
               isLoading
-                ? "bg-green-400"
+                ? "bg-[#15693A]/50"
                 : "bg-[#208C4F] hover:bg-[#15693A] transition-colors"
             }`}
             disabled={isLoading}
@@ -513,7 +487,7 @@ export default function ChatInterface() {
             {isLoading ? (
               <div className="flex items-center">
                 <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4"
+                  className="animate-spin h-5 w-5"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -532,26 +506,22 @@ export default function ChatInterface() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Processing...
               </div>
             ) : (
-              <div className="flex items-center">
-                <span>Ask</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="w-4 h-4 ml-1"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                  />
-                </svg>
-              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                />
+              </svg>
             )}
           </button>
         </form>

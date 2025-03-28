@@ -1,14 +1,11 @@
 import { login, signup } from "../actions";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#050E08] p-4">
-      <header className="py-4 border-b border-[#15693A]">
-            <div className="flex justify-between items-center p-2">
-              <h1 className="text-2xl font-black">RETENTIO</h1>
-            </div>
-          </header>
+      <Navbar />
       <div className="max-w-md mx-auto min-h-screen flex flex-col items-center justify-center">
         <div className="bg-white rounded-xl shadow-xl p-10 w-[440px]">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
