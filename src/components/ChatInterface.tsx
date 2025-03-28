@@ -97,21 +97,23 @@ export default function ChatInterface() {
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto bg-slate-50 shadow-xl rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-50 p-4 shadow-md">
+      <div className="bg-[#050E08] p-4 shadow-md">
         <div className="p-4">
-          <h1 className="text-4xl font-medium text-blue-600">Retentio Agent</h1>
+          <h1 className="text-4xl font-medium text-[#208C4F]">
+            Retentio Agent
+          </h1>
         </div>
       </div>
 
       {/* Chat messages */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-auto p-6 bg-gradient-to-b from-slate-50 to-blue-50"
+        className="flex-1 overflow-auto p-6 bg-gradient-to-b from-slate-50 to-green-50"
       >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="bg-white p-6 rounded-xl shadow-md max-w-lg border border-blue-100">
-              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-white p-6 rounded-xl shadow-md max-w-lg border border-green-100">
+              <div className="w-16 h-16 bg-[#208C4F] text-white rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -127,37 +129,37 @@ export default function ChatInterface() {
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-blue-700 mb-3">
+              <h2 className="text-xl font-semibold text-[#208C4F] mb-3">
                 Ask me about your client data
               </h2>
               <p className="text-slate-800 mb-6">
                 I can help you analyze and understand your database information.
               </p>
-              <div className="bg-blue-50 p-4 rounded-lg text-left">
-                <p className="font-medium text-blue-800 mb-2">
+              <div className="bg-green-50 p-4 rounded-lg text-left">
+                <p className="font-medium text-[#208C4F] mb-2">
                   Try these examples:
                 </p>
                 <ul className="space-y-2 text-slate-800">
                   <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
                       1
                     </span>
                     Show me all active clients
                   </li>
                   <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
                       2
                     </span>
                     What email conversations did we have with EcoGoods Store?
                   </li>
                   <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
                       3
                     </span>
                     Show me the most recent call transcripts
                   </li>
                   <li className="flex items-center">
-                    <span className="w-5 h-5 mr-2 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
+                    <span className="w-5 h-5 mr-2 bg-green-200 text-[#208C4F] rounded-full flex items-center justify-center text-xs font-bold">
                       4
                     </span>
                     Which clients have the most emails in our database?
@@ -178,8 +180,8 @@ export default function ChatInterface() {
                 <div
                   className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
                     message.role === "user"
-                      ? "bg-blue-600 text-white rounded-tr-none"
-                      : "bg-white rounded-tl-none border border-blue-100 text-black"
+                      ? "bg-[#208C4F] text-white rounded-tr-none"
+                      : "bg-white rounded-tl-none border border-green-100 text-black"
                   }`}
                 >
                   {message.parts.map((part, i) => {
@@ -213,7 +215,7 @@ export default function ChatInterface() {
                             key={`tool-${i}`}
                             className={`text-sm ${
                               message.role === "user"
-                                ? "text-blue-100"
+                                ? "text-green-100"
                                 : "text-slate-800"
                             }`}
                           >
@@ -243,7 +245,7 @@ export default function ChatInterface() {
                             <pre
                               className={`p-2 rounded text-xs overflow-auto ${
                                 message.role === "user"
-                                  ? "bg-blue-700"
+                                  ? "bg-[#15693A]"
                                   : "bg-slate-100"
                               }`}
                             >
@@ -342,7 +344,7 @@ export default function ChatInterface() {
 
                       const originalQuery = toolResult.query ? (
                         <div className="mt-1 mb-3">
-                          <div className="flex items-center text-xs text-blue-600 mb-1">
+                          <div className="flex items-center text-xs text-[#208C4F] mb-1">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
@@ -359,7 +361,7 @@ export default function ChatInterface() {
                             </svg>
                             SQL QUERY
                           </div>
-                          <code className="block p-3 bg-blue-50 text-xs rounded-lg overflow-x-auto border border-blue-100 text-blue-800 font-mono">
+                          <code className="block p-3 bg-green-50 text-xs rounded-lg overflow-x-auto border border-green-100 text-[#208C4F] font-mono">
                             {toolResult.query}
                           </code>
                         </div>
@@ -368,10 +370,10 @@ export default function ChatInterface() {
                       return (
                         <div
                           key={`result-${i}`}
-                          className="mt-4 overflow-hidden rounded-lg border border-blue-200 bg-white shadow-sm"
+                          className="mt-4 overflow-hidden rounded-lg border border-green-200 bg-white shadow-sm"
                         >
                           {originalQuery}
-                          <div className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center">
+                          <div className="px-4 py-3 bg-gradient-to-r from-[#208C4F] to-[#15693A] text-white font-medium flex items-center">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
@@ -396,7 +398,7 @@ export default function ChatInterface() {
                                   {Object.keys(results[0]).map((column) => (
                                     <th
                                       key={column}
-                                      className="p-3 text-left bg-blue-50 text-blue-700 font-medium border-b border-blue-200"
+                                      className="p-3 text-left bg-green-50 text-[#208C4F] font-medium border-b border-green-200"
                                     >
                                       {column}
                                     </th>
@@ -440,10 +442,10 @@ export default function ChatInterface() {
                           </div>
 
                           {isLastPart && isLastMessage && isLoading ? (
-                            <div className="p-3 bg-blue-50 border-t border-blue-100">
-                              <div className="flex items-center text-blue-700">
+                            <div className="p-3 bg-green-50 border-t border-green-100">
+                              <div className="flex items-center text-[#208C4F]">
                                 <svg
-                                  className="animate-spin mr-2 h-4 w-4 text-blue-600"
+                                  className="animate-spin mr-2 h-4 w-4 text-[#208C4F]"
                                   xmlns="http://www.w3.org/2000/svg"
                                   fill="none"
                                   viewBox="0 0 24 24"
@@ -468,7 +470,7 @@ export default function ChatInterface() {
                               </div>
                             </div>
                           ) : (
-                            <div className="px-3 py-2 text-xs text-blue-600 bg-blue-50 border-t border-blue-100">
+                            <div className="px-3 py-2 text-xs text-[#208C4F] bg-green-50 border-t border-green-100">
                               {isLastPart && isLastMessage
                                 ? "Waiting for analysis..."
                                 : "Assistant will analyze this data..."}
@@ -489,22 +491,22 @@ export default function ChatInterface() {
       </div>
 
       {/* Input area */}
-      <div className="p-4 bg-white border-t border-blue-100">
+      <div className="p-4 bg-white border-t border-green-100">
         <form onSubmit={handleSubmit} className="flex">
           <input
             type="text"
             value={input}
             onChange={handleInputChange}
             placeholder="Ask a question about your data..."
-            className="flex-1 p-3 border border-blue-200 focus:border-blue-400 rounded-l-lg outline-none shadow-sm text-black"
+            className="flex-1 p-3 border border-green-200 focus:border-[#208C4F] rounded-l-lg outline-none shadow-sm text-black"
             disabled={isLoading}
           />
           <button
             type="submit"
             className={`px-6 py-3 rounded-r-lg font-medium text-white ${
               isLoading
-                ? "bg-blue-400"
-                : "bg-blue-600 hover:bg-blue-700 transition-colors"
+                ? "bg-green-400"
+                : "bg-[#208C4F] hover:bg-[#15693A] transition-colors"
             }`}
             disabled={isLoading}
           >

@@ -3,15 +3,13 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen bg-[#4285f4] p-4">
+    <main className="min-h-screen bg-[#050E08] p-4">
+      <header className="py-4 border-b border-[#15693A]">
+            <div className="flex justify-between items-center p-2">
+              <h1 className="text-2xl font-black">RETENTIO</h1>
+            </div>
+          </header>
       <div className="max-w-md mx-auto min-h-screen flex flex-col items-center justify-center">
-        <Link
-          href="/"
-          className="text-6xl font-bold text-white text-center mb-12 italic hover:opacity-90 transition-opacity absolute top-8"
-        >
-          RETENTIO
-        </Link>
-
         <div className="bg-white rounded-xl shadow-xl p-10 w-[440px]">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
             Enter Your Credentials
@@ -30,7 +28,7 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 required
-                className="w-full px-4 py-3 border border-gray-200 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-[#208C4F] focus:border-transparent text-gray-900 placeholder-gray-500"
                 placeholder="Enter your email"
               />
             </div>
@@ -47,7 +45,7 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
-                className="w-full px-4 py-3 border border-gray-200 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-[#208C4F] focus:border-transparent text-gray-900 placeholder-gray-500"
                 placeholder="Enter your password"
               />
             </div>
@@ -55,13 +53,13 @@ export default function LoginPage() {
             <div className="flex flex-col space-y-3 pt-4">
               <button
                 formAction={login}
-                className="w-full flex justify-center py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-semibold"
+                className="w-full flex justify-center py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-white bg-[#208C4F] hover:bg-[#15693A] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#208C4F] font-semibold"
               >
                 Sign In
               </button>
               <Link
                 href="/auth/register"
-                className="w-full flex justify-center py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-blue-600 bg-white border-2 border-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-semibold"
+                className="w-full flex justify-center py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-[#208C4F] bg-white border-2 border-[#208C4F] hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#208C4F] font-semibold"
               >
                 Create Account
               </Link>

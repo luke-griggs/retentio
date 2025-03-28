@@ -7,20 +7,28 @@ export default async function Home() {
   const isAuthenticated = !!data.user;
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[#050E08]">
       {isAuthenticated ? (
-        <div className="container mx-auto">
-          <header className="py-4 border-b border-gray-200">
+        <div className="container mx-auto h-screen flex flex-col">
+          <header className="py-4 border-b border-[#15693A]">
             <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-gray-800">RETENTIO</h1>
-              <AuthButtons isAuthenticated={isAuthenticated} />
+              <h1 className="text-2xl font-black">RETENTIO</h1>
             </div>
           </header>
-          <ChatInterface />
+
+          <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
+            <h2 className="text-6xl font-bold text-[#2fbf6d] mb-8">
+              RETENTIO BRAIN
+            </h2>
+            <p className="text-xl text-[#d1e9db] max-w-2xl mb-10">
+              Welcome to Retentio's AI-powered assistant.
+            </p>
+            <AuthButtons isAuthenticated={isAuthenticated} />
+          </div>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto min-h-screen flex flex-col items-center justify-center bg-[#4285f4] p-4">
-          <h1 className="text-6xl font-bold text-white text-center mb-8 italic">
+        <div className="max-w-4xl mx-auto min-h-screen flex flex-col items-center justify-center bg-[#050E08] p-4">
+          <h1 className="text-6xl font-bold text-[#208C4F] text-center mb-8 italic">
             RETENTIO
           </h1>
 
