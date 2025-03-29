@@ -1,4 +1,4 @@
-export const databaseSchemaDescription = `perform a sql query against the database. Here's the schema. make inferences on what tables to query based on the table names and the user's request: Database Schema
+export const databaseSchemaDescription = `it's 2024. perform a sql query against the database. Here's the schema. make inferences on what tables to query based on the table names and the user's request: Database Schema
 Tables and Relationships
 clients
 
@@ -41,6 +41,36 @@ timestamp: When the report was generated
 report_type: Category/type of Klaviyo report
 data: JSON data containing the report content
 status: Report status (default: 'success')
+
+campaign_analytics
+
+campaign_name
+variant_name
+tags
+subject
+list
+send_time
+send_weekday
+total_recipients
+unique_placed_order
+placed_order_rate
+revenue
+unique_opens
+open_rate
+total_opens
+unique_clicks
+click_rate
+total_clicks
+unsubscribes
+spam_complaints
+spam_complaints_rate
+succesful_deliveries
+bounces
+bounce_rate
+campaign_ID
+campaign_channel
+winning_variant
+
 
 Current Clients
 

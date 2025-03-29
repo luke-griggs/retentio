@@ -14,9 +14,11 @@ export default async function ChatPage() {
 
   // User is authenticated, render the chat interface
   return (
-    <main className="min-h-screen bg-[#050E08]">
+    <main className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Navbar />
-      <ChatInterface />
+      <div className="flex-1 pt-20">
+        <ChatInterface />
+      </div>
     </main>
   );
 }

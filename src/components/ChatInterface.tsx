@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Define the type for the tool result data structure
 interface DatabaseToolResult {
@@ -14,24 +14,74 @@ interface DatabaseToolResult {
 }
 
 export default function ChatInterface() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
-    useChat({
-      api: "/api/chat",
-      maxSteps: 5,
-    });
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    setInput,
+  } = useChat({
+    api: "/api/chat",
+    maxSteps: 5,
+  });
 
   // Reference to the chat container for auto-scrolling
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  // Reference to track the last message for scrolling
+  const lastMessageRef = useRef<HTMLDivElement>(null);
 
-  // Debug output to see message structure
+  // Improve scrolling behavior with a custom scroll handler that works for all messages
+  const scrollToLatestMessage = () => {
+    if (lastMessageRef.current) {
+      // Use requestAnimationFrame to ensure scrolling happens after rendering
+      requestAnimationFrame(() => {
+        const inputHeight = 120; // Increased height to account for padding
+        const navbarHeight = 60; // Approximate navbar height
+
+        // Ensure lastMessageRef.current is not null before accessing its properties
+        if (lastMessageRef.current) {
+          // Calculate scroll position: message position - viewport height + message height + input height + padding
+          const scrollPosition =
+            lastMessageRef.current.offsetTop -
+            (window.innerHeight -
+              lastMessageRef.current.offsetHeight -
+              inputHeight) +
+            navbarHeight +
+            40; // Extra padding for visibility
+
+          window.scrollTo({
+            top: Math.max(0, scrollPosition), // Ensure we don't scroll to negative positions
+            behavior: "smooth",
+          });
+        }
+      });
+    }
+  };
+
+  // When new messages arrive, scroll to the appropriate position
   useEffect(() => {
     if (messages.length > 0) {
       console.log("Current messages:", messages);
 
-      // Auto-scroll to bottom when messages change
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop =
-          chatContainerRef.current.scrollHeight;
+      // For first message, scroll immediately
+      if (messages.length === 1) {
+        setTimeout(scrollToLatestMessage, 100);
+      } else {
+        // For subsequent messages
+        const hasToolInvocation = messages[messages.length - 1].parts.some(
+          (part) => part.type === "tool-invocation"
+        );
+
+        // If it has tool invocation, scroll immediately and then after a delay
+        if (hasToolInvocation) {
+          setTimeout(scrollToLatestMessage, 100);
+          // Scroll again after some time to account for the SQL loading UI
+          setTimeout(scrollToLatestMessage, 500);
+        } else {
+          // Normal message, just scroll once
+          setTimeout(scrollToLatestMessage, 100);
+        }
       }
     }
   }, [messages]);
@@ -42,7 +92,7 @@ export default function ChatInterface() {
     console.log("Checking if tool call is completed:", toolInvocationPart);
 
     // Try to get the tool call ID from various possible structures
-    const toolCallId =toolInvocationPart.toolInvocation?.id
+    const toolCallId = toolInvocationPart.toolInvocation?.id;
 
     console.log("Tool call ID:", toolCallId);
 
@@ -91,64 +141,68 @@ export default function ChatInterface() {
     return hasResult;
   };
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-120px)] max-w-5xl mx-auto">
-      {/* Chat messages */}
-      <div
-        ref={chatContainerRef}
-        className="flex-1 overflow-auto p-6 scrollbar-custom"
-        style={{
-          scrollbarWidth: "thin",
-          scrollbarColor: "#208C4F transparent",
-        }}
-      >
-        <style jsx global>{`
-          .scrollbar-custom::-webkit-scrollbar {
-            width: 8px;
-          }
-          .scrollbar-custom::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          .scrollbar-custom::-webkit-scrollbar-thumb {
-            background-color: #208c4f;
-            border-radius: 20px;
-            border: 2px solid transparent;
-            background-clip: content-box;
-          }
-          .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-            background-color: #15693a;
-          }
-        `}</style>
+  // Function to handle clicking on an example query
+  const handleExampleClick = (exampleText: string) => {
+    setInput(exampleText);
+  };
 
+  return (
+    <div className="min-h-screen max-w-5xl mx-auto pb-24">
+      {/* Chat messages - now part of the main content flow */}
+      <div ref={chatContainerRef} className="p-6">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
+          <div className="flex flex-col items-center justify-center min-h-[80vh] text-center">
             <div className="max-w-2xl">
-              <h2 className="text-4xl font-bold mb-8">
-                What can I help with?
-              </h2>
-              <div className="bg-[#0a1b10] p-6 rounded-xl border border-[#15693A] shadow-lg max-w-lg mx-auto">
-                <h3 className="text-xl font-semibold text-[#2fbf6d] mb-4">
+              <h2 className="text-4xl font-bold mb-8">What can I help with?</h2>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg max-w-lg mx-auto">
+                <h3 className="text-xl font-semibold text-blue-400 mb-4">
                   Ask me about your client data
                 </h3>
-                <p className="text-[#d1e9db] mb-6">
+                <p className="text-gray-700 font-medium dark:text-gray-300 mb-6">
                   I can help you analyze and understand your database
                   information.
                 </p>
                 <div className="space-y-3 text-left">
-                  <p className="font-medium text-[#2fbf6d] mb-2">
+                  <p className="font-medium text-blue-400 mb-2">
                     Try these examples:
                   </p>
                   <div className="space-y-3">
-                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                    <div
+                      className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
+                      onClick={() =>
+                        handleExampleClick("Show me all active clients")
+                      }
+                    >
                       Show me all active clients
                     </div>
-                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                    <div
+                      className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
+                      onClick={() =>
+                        handleExampleClick(
+                          "What email conversations did we have with EcoGoods Store?"
+                        )
+                      }
+                    >
                       What email conversations did we have with EcoGoods Store?
                     </div>
-                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                    <div
+                      className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
+                      onClick={() =>
+                        handleExampleClick(
+                          "Show me the most recent call transcripts"
+                        )
+                      }
+                    >
                       Show me the most recent call transcripts
                     </div>
-                    <div className="bg-[#081510] p-3 rounded-lg cursor-pointer hover:bg-[#0d1f14] transition-colors text-[#d1e9db]">
+                    <div
+                      className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
+                      onClick={() =>
+                        handleExampleClick(
+                          "Which clients have the most emails in our database?"
+                        )
+                      }
+                    >
                       Which clients have the most emails in our database?
                     </div>
                   </div>
@@ -161,6 +215,9 @@ export default function ChatInterface() {
             {messages.map((message, messageIndex) => (
               <div
                 key={message.id}
+                ref={
+                  messageIndex === messages.length - 1 ? lastMessageRef : null
+                }
                 className={`flex ${
                   message.role === "user" ? "justify-end" : "justify-start"
                 }`}
@@ -168,18 +225,15 @@ export default function ChatInterface() {
                 <div
                   className={`max-w-[80%] rounded-2xl p-4 ${
                     message.role === "user"
-                      ? "bg-[#081510] text-white rounded-tr-none"
-                      : "bg-none rounded-tl-none text-white"
+                      ? "bg-blue-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-tr-none"
+                      : "bg-none rounded-tl-none text-gray-900 dark:text-white"
                   }`}
                 >
                   {message.parts.map((part, i) => {
                     // Handle different part types
                     if (part.type === "text") {
                       return (
-                        <div
-                          key={`text-${i}`}
-                          className="whitespace-pre-wrap text-[#d1e9db]"
-                        >
+                        <div key={`text-${i}`} className="whitespace-pre-wrap">
                           {part.text}
                         </div>
                       );
@@ -193,36 +247,45 @@ export default function ChatInterface() {
                       );
 
                       // Only show the tool invocation if there are no subsequent tool results
-                      if (!toolResultsExist && isLoading) {
+                      // AND this message is the last message (to prevent duplicates in older messages)
+                      if (
+                        !toolResultsExist &&
+                        isLoading &&
+                        messageIndex === messages.length - 1
+                      ) {
                         return (
                           <div
                             key={`tool-${i}`}
-                            className="text-sm text-[#a8d1b9]"
+                            className="text-sm text-gray-500 dark:text-gray-400"
                           >
                             <div className="flex items-center mt-1 mb-2">
                               <svg
-                                className="animate-spin -ml-1 mr-2 h-4 w-4"
+                                className="h-8 w-8 pr-2"
                                 xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
+                                viewBox="0 0 300 150"
                               >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
                                 <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
+                                  fill="none"
+                                  stroke="#60A5FA"
+                                  strokeWidth="15"
+                                  strokeLinecap="round"
+                                  strokeDasharray="300 385"
+                                  strokeDashoffset="0"
+                                  d="M275 75c0 31-27 50-50 50-58 0-92-100-150-100-28 0-50 22-50 50s23 50 50 50c58 0 92-100 150-100 24 0 50 19 50 50Z"
+                                >
+                                  <animate
+                                    attributeName="stroke-dashoffset"
+                                    calcMode="spline"
+                                    dur="2"
+                                    values="685;-685"
+                                    keySplines="0 0 1 1"
+                                    repeatCount="indefinite"
+                                  ></animate>
+                                </path>
                               </svg>
                               Running SQL query...
                             </div>
-                            <pre className="p-2 rounded text-xs overflow-auto bg-[#081510]">
+                            <pre className="p-2 rounded text-xs overflow-auto bg-gray-100 dark:bg-gray-900">
                               {(part.toolInvocation as any).parameters?.query ||
                                 JSON.stringify(part.toolInvocation, null, 2)}
                             </pre>
@@ -273,10 +336,14 @@ export default function ChatInterface() {
                         return (
                           <div
                             key={`error-${i}`}
-                            className="mt-2 p-4 bg-red-900/30 rounded-lg border border-red-600"
+                            className="mt-2 p-4 bg-red-100 dark:bg-red-900/30 rounded-lg border border-red-300 dark:border-red-600"
                           >
-                            <p className="font-semibold text-red-400">Error:</p>
-                            <p className="text-red-300">{toolResult.error}</p>
+                            <p className="font-semibold text-red-600 dark:text-red-400">
+                              Error:
+                            </p>
+                            <p className="text-red-500 dark:text-red-300">
+                              {toolResult.error}
+                            </p>
                           </div>
                         );
                       }
@@ -287,7 +354,7 @@ export default function ChatInterface() {
                         return (
                           <div
                             key={`empty-${i}`}
-                            className="mt-2 p-3 bg-amber-900/30 rounded-lg border border-amber-600 text-amber-300"
+                            className="mt-2 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-300 dark:border-amber-600 text-amber-600 dark:text-amber-300"
                           >
                             <div className="flex items-center">
                               <svg
@@ -318,7 +385,7 @@ export default function ChatInterface() {
 
                       const originalQuery = toolResult.query ? (
                         <div className="mt-1 mb-3">
-                          <div className="flex items-center text-xs text-[#2fbf6d] mb-1">
+                          <div className="flex items-center text-xs text-blue-500 mb-1">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
@@ -335,7 +402,7 @@ export default function ChatInterface() {
                             </svg>
                             SQL QUERY
                           </div>
-                          <code className="block p-3 bg-[#081510] text-xs rounded-lg overflow-x-auto border border-[#15693A] text-[#2fbf6d] font-mono">
+                          <code className="block p-3 bg-gray-100 dark:bg-gray-900 text-xs rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700 text-blue-600 dark:text-blue-400 font-mono">
                             {toolResult.query}
                           </code>
                         </div>
@@ -344,10 +411,10 @@ export default function ChatInterface() {
                       return (
                         <div
                           key={`result-${i}`}
-                          className="mt-4 overflow-hidden rounded-lg border border-[#15693A] bg-[#081510] shadow-md"
+                          className="mt-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md"
                         >
                           {originalQuery}
-                          <div className="px-4 py-3 bg-gradient-to-r from-[#208C4F] to-[#15693A] text-white font-medium flex items-center">
+                          <div className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
@@ -366,13 +433,13 @@ export default function ChatInterface() {
                             rows)
                           </div>
                           <div className="max-h-64 overflow-y-auto">
-                            <table className="w-full text-sm border-collapse text-[#d1e9db]">
+                            <table className="w-full text-sm border-collapse">
                               <thead className="sticky top-0">
                                 <tr>
                                   {Object.keys(results[0]).map((column) => (
                                     <th
                                       key={column}
-                                      className="p-3 text-left bg-[#0d1f14] text-[#2fbf6d] font-medium border-b border-[#15693A]"
+                                      className="p-3 text-left bg-gray-100 dark:bg-gray-900 text-blue-600 dark:text-blue-400 font-medium border-b border-gray-200 dark:border-gray-700"
                                     >
                                       {column}
                                     </th>
@@ -385,22 +452,22 @@ export default function ChatInterface() {
                                     key={rowIndex}
                                     className={
                                       rowIndex % 2 === 0
-                                        ? "bg-[#081510]"
-                                        : "bg-[#0a1b10]"
+                                        ? "bg-white dark:bg-gray-800"
+                                        : "bg-gray-50 dark:bg-gray-700"
                                     }
                                   >
                                     {Object.values(row).map(
                                       (value: any, valueIndex: number) => (
                                         <td
                                           key={valueIndex}
-                                          className="p-3 border-b border-[#15693A]/30 text-[#d1e9db]"
+                                          className="p-3 border-b border-gray-200 dark:border-gray-700/30"
                                         >
                                           {value === null ? (
-                                            <span className="text-slate-400 italic">
+                                            <span className="text-gray-400 italic">
                                               null
                                             </span>
                                           ) : typeof value === "object" ? (
-                                            <span className="text-xs font-mono bg-[#0d1f14] p-1 rounded">
+                                            <span className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded">
                                               {JSON.stringify(value)}
                                             </span>
                                           ) : (
@@ -416,10 +483,10 @@ export default function ChatInterface() {
                           </div>
 
                           {isLastPart && isLastMessage && isLoading ? (
-                            <div className="p-3 bg-[#0d1f14] border-t border-[#15693A]">
-                              <div className="flex items-center text-[#2fbf6d]">
+                            <div className="p-3 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center text-blue-500">
                                 <svg
-                                  className="animate-spin mr-2 h-4 w-4 text-[#2fbf6d]"
+                                  className="animate-spin mr-2 h-6 w-6"
                                   xmlns="http://www.w3.org/2000/svg"
                                   fill="none"
                                   viewBox="0 0 24 24"
@@ -444,7 +511,7 @@ export default function ChatInterface() {
                               </div>
                             </div>
                           ) : (
-                            <div className="px-3 py-2 text-xs text-[#2fbf6d] bg-[#0d1f14] border-t border-[#15693A]">
+                            <div className="px-3 py-2 text-xs text-blue-500 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
                               {isLastPart && isLastMessage
                                 ? "Waiting for analysis..."
                                 : "Assistant will analyze this data..."}
@@ -464,50 +531,27 @@ export default function ChatInterface() {
         )}
       </div>
 
-      {/* Input area */}
-      <div className="px-4 py-6 border-t border-[#15693A]">
-        <form onSubmit={handleSubmit} className="flex">
-          <input
-            type="text"
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Message Retentio..."
-            className="flex-1 p-4 bg-[#0a1b10] border border-[#15693A] focus:border-[#208C4F] rounded-l-full outline-none text-white placeholder-[#d1e9db]/50"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            className={`px-6 py-4 rounded-r-full font-medium text-white ${
-              isLoading
-                ? "bg-[#15693A]/50"
-                : "bg-[#208C4F] hover:bg-[#15693A] transition-colors"
-            }`}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <div className="flex items-center">
-                <svg
-                  className="animate-spin h-5 w-5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </div>
-            ) : (
+      {/* Input area - now fixed to the bottom of the viewport */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <form onSubmit={handleSubmit} className="flex">
+            <input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              placeholder="Message Retentio..."
+              className="flex-1 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-blue-500 rounded-l-full outline-none text-gray-900 dark:text-white placeholder-gray-400"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              className={`px-6 py-4 rounded-r-full font-medium text-white ${
+                isLoading
+                  ? "bg-blue-400/50"
+                  : "bg-blue-500 hover:bg-blue-600 transition-colors"
+              }`}
+              disabled={isLoading}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -522,9 +566,9 @@ export default function ChatInterface() {
                   d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
                 />
               </svg>
-            )}
-          </button>
-        </form>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

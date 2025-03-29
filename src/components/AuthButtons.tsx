@@ -19,7 +19,7 @@ export default function AuthButtons({ isAuthenticated }: AuthButtonsProps) {
       {isAuthenticated ? (
         <button
           onClick={handleChatRedirect}
-          className="inline-block px-8 py-3 bg-[#050E08] text-white rounded-full font-semibold hover:bg-[#208C4F] border border-[#208C4F] shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-400 cursor-pointer"
+          className="inline-block px-8 py-3 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-white rounded-full font-semibold hover:bg-blue-100 dark:hover:bg-gray-700 border border-blue-200 dark:border-gray-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-400 cursor-pointer"
         >
           Go to Chat
         </button>
@@ -27,7 +27,7 @@ export default function AuthButtons({ isAuthenticated }: AuthButtonsProps) {
         <>
           <Link
             href="/auth/login"
-            className="inline-block px-8 py-3 bg-[#050E08] text-white rounded-full font-semibold hover:bg-[#208C4F] border border-[#208C4F] shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-400 cursor-pointer"
+            className="inline-block px-8 py-3 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-white rounded-full font-semibold hover:bg-blue-100 dark:hover:bg-gray-700 border border-blue-200 dark:border-gray-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-400 cursor-pointer"
           >
             Sign In
           </Link>
