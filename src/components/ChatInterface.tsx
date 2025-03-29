@@ -138,28 +138,18 @@ export default function ChatInterface() {
                         )
                       }
                     >
-                      Which campaigns had the highest revenue last quarter?
+                      Which campaigns had the highest revenue in may 2024?
                     </div>
+                
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          "What day of the week has the best click-through rates?"
+                          'Which campaign subject lines generated the most unique clicks?'
                         )
                       }
                     >
-                      What day of the week has the best click-through rates?
-                    </div>
-                    <div
-                      className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
-                      onClick={() =>
-                        handleExampleClick(
-                          'How do campaigns with tags "discount" perform compared to "new product"?'
-                        )
-                      }
-                    >
-                      How do campaigns with tags "discount" perform compared to
-                      "new product"?
+                      Which campaign subject lines generated the most unique clicks?
                     </div>
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
@@ -169,7 +159,7 @@ export default function ChatInterface() {
                         )
                       }
                     >
-                      Show me trends in unsubscribe rates over the last six months
+                      Show me trends in unsubscribe rates over may 2024
                     </div>
                   </div>
                 </div>
