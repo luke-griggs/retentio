@@ -1,4 +1,4 @@
-export const databaseSchemaDescription = `it's 2024. perform a sql query against the database. Here's the schema. make inferences on what tables to query based on the table names and the user's request: Database Schema
+export const databaseSchemaDescription = `The data in the database is from april 29 2024 to may 31 2024. If the user asks a question that doesnt make sense in terms of the time, remind them of this. Perform a sql query against the database. Here's the schema. make inferences on what tables to query based on the table names and the user's request: Database Schema
 Tables and Relationships
 clients
 

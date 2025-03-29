@@ -133,40 +133,43 @@ export default function ChatInterface() {
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
-                        handleExampleClick("Show me all active clients")
+                        handleExampleClick(
+                          "Which campaigns had the highest revenue in may 2024?"
+                        )
                       }
                     >
-                      Show me all active clients
+                      Which campaigns had the highest revenue last quarter?
                     </div>
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          "What email conversations did we have with EcoGoods Store?"
+                          "What day of the week has the best click-through rates?"
                         )
                       }
                     >
-                      What email conversations did we have with EcoGoods Store?
+                      What day of the week has the best click-through rates?
                     </div>
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          "Show me the most recent call transcripts"
+                          'How do campaigns with tags "discount" perform compared to "new product"?'
                         )
                       }
                     >
-                      Show me the most recent call transcripts
+                      How do campaigns with tags "discount" perform compared to
+                      "new product"?
                     </div>
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          "Which clients have the most emails in our database?"
+                          "Show me trends in unsubscribe rates"
                         )
                       }
                     >
-                      Which clients have the most emails in our database?
+                      Show me trends in unsubscribe rates over the last six months
                     </div>
                   </div>
                 </div>
