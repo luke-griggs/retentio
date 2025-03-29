@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-interface NavbarProps {
-  // Optional props can be added here in the future
-}
+// Use Record<string, never> instead of empty interface
+// or add a comment to disable the linter warning
+type NavbarProps = Record<string, never>;
 
 export default function Navbar({}: NavbarProps) {
   return (

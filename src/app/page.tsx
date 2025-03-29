@@ -1,6 +1,5 @@
 import { readUserSession } from "./auth/actions";
 import AuthButtons from "@/components/AuthButtons";
-import ChatInterface from "@/components/ChatInterface";
 import Navbar from "@/components/Navbar";
 
 export default async function Home() {
@@ -16,7 +15,7 @@ export default async function Home() {
             RETENTIO BRAIN
           </h2>
           <p className="text-xl font-semibold text-gray-500 dark:text-gray-300 max-w-2xl mb-10">
-            Welcome to Retentio's AI-powered assistant.
+            Welcome to Retentio&apos;s AI-powered assistant.
           </p>
           <AuthButtons isAuthenticated={isAuthenticated} />
         </div>

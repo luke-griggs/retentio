@@ -1,4 +1,4 @@
-import { login, signup } from "../actions";
+import { login } from "../actions";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 

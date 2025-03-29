@@ -1,16 +1,34 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-// Define the type for the tool result data structure
-interface DatabaseToolResult {
-  result?: any[];
+// Define type for database query results
+interface DatabaseResult {
+  result?: unknown[];
   rowCount?: number;
   fields?: Array<{ name: string; dataTypeID: number }>;
   error?: string;
   query?: string;
   message?: string;
+}
+
+// Custom type for message parts
+interface MessagePart {
+  type: string;
+  text?: string;
+  toolInvocation?: {
+    id?: string;
+    parameters?: {
+      query?: string;
+    };
+  };
+  toolResult?: DatabaseResult;
+  toolCallId?: string;
+  id?: string;
+  content?: unknown;
+  result?: unknown;
+  tool?: unknown;
 }
 
 export default function ChatInterface() {
@@ -85,61 +103,6 @@ export default function ChatInterface() {
       }
     }
   }, [messages]);
-
-  // Helper function to check if a message has completed tool calls
-  const hasCompletedToolCall = (message: any, toolInvocationPart: any) => {
-    // Better logging to understand the issue
-    console.log("Checking if tool call is completed:", toolInvocationPart);
-
-    // Try to get the tool call ID from various possible structures
-    const toolCallId = toolInvocationPart.toolInvocation?.id;
-
-    console.log("Tool call ID:", toolCallId);
-
-    if (!toolCallId) return false;
-
-    // Check if there's a tool result for this tool invocation
-    const hasResult = message.parts.some((part: any) => {
-      const isToolResult = part.type === "tool-result";
-      const matchesToolCallId =
-        part.toolCallId === toolCallId || part.id === toolCallId;
-
-      console.log(
-        "Part type:",
-        part.type,
-        "Part toolCallId:",
-        part.toolCallId,
-        "Part id:",
-        part.id
-      );
-
-      return isToolResult && matchesToolCallId;
-    });
-
-    console.log("Has result:", hasResult);
-
-    // If no direct match found, check if there are any tool-result parts that appear after this invocation
-    if (!hasResult) {
-      const currentPartIndex = message.parts.findIndex(
-        (p: any) => p === toolInvocationPart
-      );
-      const hasLaterToolResult = message.parts.some(
-        (part: any, index: number) =>
-          index > currentPartIndex && part.type === "tool-result"
-      );
-
-      console.log(
-        "Current part index:",
-        currentPartIndex,
-        "Has later tool result:",
-        hasLaterToolResult
-      );
-
-      return hasLaterToolResult;
-    }
-
-    return hasResult;
-  };
 
   // Function to handle clicking on an example query
   const handleExampleClick = (exampleText: string) => {
@@ -242,8 +205,9 @@ export default function ChatInterface() {
                     if (part.type === "tool-invocation") {
                       // More reliable approach: check if there are any tool-result parts after this
                       const toolResultsExist = message.parts.some(
-                        (p: any, idx: number) =>
-                          idx > i && p.type === "tool-result"
+                        (p, idx: number) =>
+                          // Using string comparison to avoid type errors
+                          idx > i && String(p.type) === "tool-result"
                       );
 
                       // Only show the tool invocation if there are no subsequent tool results
@@ -253,6 +217,10 @@ export default function ChatInterface() {
                         isLoading &&
                         messageIndex === messages.length - 1
                       ) {
+                        const typedPart = part as MessagePart;
+                        const query =
+                          typedPart.toolInvocation?.parameters?.query;
+
                         return (
                           <div
                             key={`tool-${i}`}
@@ -286,8 +254,12 @@ export default function ChatInterface() {
                               Running SQL query...
                             </div>
                             <pre className="p-2 rounded text-xs overflow-auto bg-gray-100 dark:bg-gray-900">
-                              {(part.toolInvocation as any).parameters?.query ||
-                                JSON.stringify(part.toolInvocation, null, 2)}
+                              {query ||
+                                JSON.stringify(
+                                  typedPart.toolInvocation,
+                                  null,
+                                  2
+                                )}
                             </pre>
                           </div>
                         );
@@ -295,32 +267,33 @@ export default function ChatInterface() {
                       return null; // Don't render completed tool invocations
                     }
 
-                    // For all other part types, cast to any to check structure
-                    const anyPart = part as any;
+                    // For all other part types, cast to proper type to check structure
+                    const typedPart = part as MessagePart;
 
                     // Try to detect tool results regardless of exact structure
                     if (
-                      anyPart.toolResult ||
-                      (anyPart.type &&
-                        typeof anyPart.type === "string" &&
-                        anyPart.type.includes("tool")) ||
-                      anyPart.tool
+                      typedPart.toolResult ||
+                      (typedPart.type &&
+                        typeof typedPart.type === "string" &&
+                        typedPart.type.includes("tool")) ||
+                      typedPart.tool
                     ) {
                       // Try to extract the result data, adjusting for different structures
-                      let toolResult: any = anyPart.toolResult;
+                      let toolResult: DatabaseResult =
+                        typedPart.toolResult || {};
 
                       // If we don't have direct toolResult, look in other places
-                      if (!toolResult) {
+                      if (!toolResult || Object.keys(toolResult).length === 0) {
                         if (
-                          anyPart.content &&
-                          typeof anyPart.content === "object"
+                          typedPart.content &&
+                          typeof typedPart.content === "object"
                         ) {
-                          toolResult = anyPart.content;
-                        } else if (anyPart.result) {
-                          toolResult = anyPart.result;
+                          toolResult = typedPart.content as DatabaseResult;
+                        } else if (typedPart.result) {
+                          toolResult = typedPart.result as DatabaseResult;
                         } else {
                           // If still no luck, the part itself might be the result
-                          toolResult = anyPart;
+                          toolResult = typedPart as unknown as DatabaseResult;
                         }
                       }
 
@@ -436,48 +409,59 @@ export default function ChatInterface() {
                             <table className="w-full text-sm border-collapse">
                               <thead className="sticky top-0">
                                 <tr>
-                                  {Object.keys(results[0]).map((column) => (
-                                    <th
-                                      key={column}
-                                      className="p-3 text-left bg-gray-100 dark:bg-gray-900 text-blue-600 dark:text-blue-400 font-medium border-b border-gray-200 dark:border-gray-700"
-                                    >
-                                      {column}
-                                    </th>
-                                  ))}
+                                  {/* Only try to access keys if results[0] is actually an object */}
+                                  {results[0] && typeof results[0] === "object"
+                                    ? Object.keys(
+                                        results[0] as Record<string, unknown>
+                                      ).map((column) => (
+                                        <th
+                                          key={column}
+                                          className="p-3 text-left bg-gray-100 dark:bg-gray-900 text-blue-600 dark:text-blue-400 font-medium border-b border-gray-200 dark:border-gray-700"
+                                        >
+                                          {column}
+                                        </th>
+                                      ))
+                                    : null}
                                 </tr>
                               </thead>
                               <tbody>
-                                {results.map((row: any, rowIndex: number) => (
-                                  <tr
-                                    key={rowIndex}
-                                    className={
-                                      rowIndex % 2 === 0
-                                        ? "bg-white dark:bg-gray-800"
-                                        : "bg-gray-50 dark:bg-gray-700"
-                                    }
-                                  >
-                                    {Object.values(row).map(
-                                      (value: any, valueIndex: number) => (
-                                        <td
-                                          key={valueIndex}
-                                          className="p-3 border-b border-gray-200 dark:border-gray-700/30"
-                                        >
-                                          {value === null ? (
-                                            <span className="text-gray-400 italic">
-                                              null
-                                            </span>
-                                          ) : typeof value === "object" ? (
-                                            <span className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded">
-                                              {JSON.stringify(value)}
-                                            </span>
-                                          ) : (
-                                            String(value)
-                                          )}
-                                        </td>
-                                      )
-                                    )}
-                                  </tr>
-                                ))}
+                                {/* Ensure we're only mapping over array items that are objects */}
+                                {results
+                                  .filter(
+                                    (item): item is Record<string, unknown> =>
+                                      typeof item === "object" && item !== null
+                                  )
+                                  .map((row, rowIndex) => (
+                                    <tr
+                                      key={rowIndex}
+                                      className={
+                                        rowIndex % 2 === 0
+                                          ? "bg-white dark:bg-gray-800"
+                                          : "bg-gray-50 dark:bg-gray-700"
+                                      }
+                                    >
+                                      {Object.values(row).map(
+                                        (value, valueIndex) => (
+                                          <td
+                                            key={valueIndex}
+                                            className="p-3 border-b border-gray-200 dark:border-gray-700/30"
+                                          >
+                                            {value === null ? (
+                                              <span className="text-gray-400 italic">
+                                                null
+                                              </span>
+                                            ) : typeof value === "object" ? (
+                                              <span className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded">
+                                                {JSON.stringify(value)}
+                                              </span>
+                                            ) : (
+                                              String(value)
+                                            )}
+                                          </td>
+                                        )
+                                      )}
+                                    </tr>
+                                  ))}
                               </tbody>
                             </table>
                           </div>
