@@ -1,10 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 interface Store {
   id: string;
   name: string;
-  api_key: string;
+  api_key: string | undefined;
   conversion_metric_id: string;
 }
 
@@ -17,12 +17,52 @@ const stores: Store[] = [
   },
 ];
 
-const getCampaignData = async (store: Store, supabase: any) => {
-  const options = {
+interface KlaviyoCampaignStatsResult {
+  groupings: {
+    campaign_id?: string;
+  };
+  statistics: Record<string, number | string | null>;
+}
+
+interface KlaviyoCampaignMessage {
+  type: string;
+  id: string;
+  attributes: {
+    definition?: {
+      content?: {
+        subject?: string;
+      };
+    };
+  };
+}
+
+interface KlaviyoCampaignDetails {
+  data: {
+    id: string;
+    attributes: {
+      name?: string;
+      send_time?: string;
+    };
+    relationships?: {
+      "campaign-messages"?: {
+        data?: { type: string; id: string }[];
+      };
+    };
+  };
+  included?: KlaviyoCampaignMessage[];
+}
+
+const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
+  if (!store.api_key) {
+    console.error(`API key missing for store ${store.name}. Skipping.`);
+    return;
+  }
+
+  const reportOptions = {
     method: "POST",
     headers: {
       accept: "application/vnd.api+json",
-      revision: "2025-01-15",
+      revision: "2025-04-15",
       "content-type": "application/vnd.api+json",
       Authorization: `Klaviyo-API-Key ${store.api_key}`,
     },
@@ -31,7 +71,7 @@ const getCampaignData = async (store: Store, supabase: any) => {
         type: "campaign-values-report",
         attributes: {
           timeframe: {
-            key: "last_month",
+            key: "today",
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [
@@ -69,93 +109,174 @@ const getCampaignData = async (store: Store, supabase: any) => {
   };
 
   try {
-    const response = await fetch(
+    const reportResponse = await fetch(
       `https://a.klaviyo.com/api/campaign-values-reports`,
-      options
+      reportOptions
     );
 
-    if (!response.ok) {
+    if (!reportResponse.ok) {
       console.error(
-        `Error fetching Klaviyo data for store ${store.name}: ${response.status} ${response.statusText}`
+        `Error fetching Klaviyo campaign report for store ${store.name}: ${reportResponse.status} ${reportResponse.statusText}`,
+        await reportResponse.text()
       );
       return;
     }
 
-    const responseData = await response.json();
+    const reportData = await reportResponse.json();
 
-    if (
-      responseData &&
-      responseData.data &&
-      responseData.data.attributes &&
-      responseData.data.attributes.results
-    ) {
-      const campaignsToInsert = responseData.data.attributes.results.map(
-        (result: any) => ({
-          store_name: store.name,
-          campaign_id: result.groupings?.campaign_id,
-          ...result.statistics,
-        })
+    const campaignStatsResults: KlaviyoCampaignStatsResult[] =
+      reportData?.data?.attributes?.results;
+
+    if (campaignStatsResults && campaignStatsResults.length > 0) {
+      const campaignDetailsPromises = campaignStatsResults
+        .filter((result) => result.groupings?.campaign_id)
+        .map(async (result) => {
+          const campaignId = result.groupings.campaign_id!;
+          const detailOptions = {
+            method: "GET",
+            headers: {
+              accept: "application/vnd.api+json",
+              revision: "2025-04-15",
+              Authorization: `Klaviyo-API-Key ${store.api_key}`,
+            },
+          };
+          try {
+            const detailUrl = `https://a.klaviyo.com/api/campaigns/${campaignId}?include=campaign-messages`;
+            const detailResponse = await fetch(detailUrl, detailOptions);
+            if (!detailResponse.ok) {
+              console.error(
+                `Error fetching details for campaign ${campaignId}: ${detailResponse.status} ${detailResponse.statusText}`,
+                await detailResponse.text()
+              );
+              return { campaign_id: campaignId, details: null };
+            }
+            const details: KlaviyoCampaignDetails = await detailResponse.json();
+            return { campaign_id: campaignId, details };
+          } catch (fetchError) {
+            console.error(
+              `Network error fetching details for campaign ${campaignId}:`,
+              fetchError
+            );
+            return { campaign_id: campaignId, details: null };
+          }
+        });
+
+      const campaignDetailsResults = await Promise.all(campaignDetailsPromises);
+
+      const detailsMap = new Map(
+        campaignDetailsResults.map((item) => [item.campaign_id, item.details])
       );
 
-      if (campaignsToInsert.length > 0) {
-        // Log the exact data being sent to Supabase
-        console.log(
-          "--- Attempting to insert the following data into Supabase ---"
-        );
-        console.log(JSON.stringify(campaignsToInsert, null, 2));
-        console.log("-----------------------------------------------------");
+      const campaignsToInsert = campaignStatsResults.map((result) => {
+        const campaignId = result.groupings?.campaign_id;
+        const detailsData = campaignId ? detailsMap.get(campaignId) : null;
 
-        const { error, data } = await supabase.from("klaviyo_campaigns").insert(campaignsToInsert);
+        let subject: string | null = null;
+        if (
+          detailsData?.included &&
+          detailsData.data.relationships?.["campaign-messages"]?.data
+        ) {
+          const messageId =
+            detailsData.data.relationships["campaign-messages"].data[0]?.id;
+          if (messageId) {
+            const message = detailsData.included.find(
+              (inc) => inc.type === "campaign-message" && inc.id === messageId
+            );
+            subject = message?.attributes?.definition?.content?.subject ?? null;
+          }
+        }
+
+        return {
+          store_name: store.name,
+          campaign_id: campaignId ?? null,
+          ...result.statistics,
+          name: detailsData?.data.attributes.name ?? null,
+          sent_time: detailsData?.data.attributes.send_time ?? null,
+          subject: subject,
+        };
+      });
+
+      if (campaignsToInsert.length > 0) {
+        console.log(
+          `--- Attempting to insert ${campaignsToInsert.length} enriched records for store ${store.name} ---`
+        );
+
+        const { error, data } = await supabase
+          .from("klaviyo_campaigns")
+          .insert(campaignsToInsert)
+          .select();
 
         if (error) {
           console.error(
-            `Error inserting data into Supabase for store ${store.name}:`,
+            `Error inserting enriched data into Supabase for store ${store.name}:`,
             error
           );
-          // Log more details about the error
           console.error("Error details:", {
             code: error.code,
             message: error.message,
             details: error.details,
             hint: error.hint,
           });
+          console.error(
+            "Data attempted:",
+            JSON.stringify(campaignsToInsert[0], null, 2)
+          );
         } else {
           console.log(
-            `Successfully inserted ${campaignsToInsert.length} campaign records for store ${store.name}`
+            `Successfully inserted ${
+              data?.length ?? campaignsToInsert.length
+            } enriched campaign records for store ${store.name}`
           );
-          // Log the successfully inserted data
-          console.log("Inserted data:", data);
         }
       } else {
-        console.log(`No campaign results found for store ${store.name}`);
+        console.log(
+          `No campaign results found to process for store ${store.name}`
+        );
       }
     } else {
-      console.warn(
-        `Unexpected response structure for store ${store.name}:`,
-        responseData
+      console.log(
+        `No campaign statistic results found for store ${store.name}`
       );
     }
   } catch (error) {
-    console.error(`An error occurred processing store ${store.name}:`, error);
+    console.error(
+      `An unexpected error occurred processing store ${store.name}:`,
+      error
+    );
   }
 };
 
-    Deno.serve(async (req: Request) => {
-    const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    {
-      global: { headers: { Authorization: req.headers.get("Authorization")! } },
-    }
-  );
+Deno.serve(async (req: Request) => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const authorization = req.headers.get("Authorization");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("Missing Supabase URL or Anon Key environment variables.");
+    return new Response(
+      JSON.stringify({ error: "Server configuration error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (!authorization) {
+    console.error("Authorization header missing.");
+    return new Response(JSON.stringify({ error: "Authorization required" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authorization } },
+  });
 
   for (const store of stores) {
     await getCampaignData(store, supabase);
   }
 
+  console.log("Klaviyo data fetch process completed for all stores.");
   return new Response(
     JSON.stringify({ message: "Klaviyo data fetch process completed." }),
-    { headers: { "Content-Type": "application/json" } }
+    { headers: { "Content-Type": "application/json" }, status: 200 }
   );
 });
-
