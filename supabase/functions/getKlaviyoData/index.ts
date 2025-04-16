@@ -11,9 +11,9 @@ interface Store {
 const stores: Store[] = [
   {
     id: "1",
-    name: "Test Store",
-    api_key: "pk_6c6e1d7fc5b2dc605af01a666668607e48",
-    conversion_metric_id: "V3SEJB",
+    name: "DRIP EZ",
+    api_key: Deno.env.get("DRIP_EZ_KLAVIYO_API_KEY"),
+    conversion_metric_id: "WsZZFn",
   },
 ];
 
@@ -31,7 +31,7 @@ const getCampaignData = async (store: Store, supabase: any) => {
         type: "campaign-values-report",
         attributes: {
           timeframe: {
-            key: "last_week",
+            key: "last_month",
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [
@@ -140,8 +140,8 @@ const getCampaignData = async (store: Store, supabase: any) => {
   }
 };
 
-Deno.serve(async (req: Request) => {
-  const supabase = createClient(
+    Deno.serve(async (req: Request) => {
+    const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     {
@@ -158,3 +158,4 @@ Deno.serve(async (req: Request) => {
     { headers: { "Content-Type": "application/json" } }
   );
 });
+
