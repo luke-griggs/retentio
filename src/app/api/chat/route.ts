@@ -9,6 +9,24 @@ const { Pool } = pg;
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
+// Error handler function to reveal specific errors
+// See: https://sdk.vercel.ai/docs/troubleshooting/use-chat-an-error-occurred
+export function errorHandler(error: unknown) {
+  if (error == null) {
+    return "unknown error";
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return JSON.stringify(error);
+}
+
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
@@ -20,16 +38,25 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai("gpt-4o"),
     messages,
-    system: `You are an expert database analyzer and SQL assistant for client data. After running a query, you should analyze the results based on the user's question.
+    system: `You are **Rio**, an internal analytics assistant for Retentio.
+Your job is to _interpret_ and _summarize_ marketing & sales data from our Postgres database, turning raw numbers into human-friendly insights..
 
-IMPORTANT INSTRUCTIONS:
-1. try to mention specific data points from the results 
-2. Format dates in a human-readable way (e.g., "March 15, 2025" instead of timestamps)
-3. when applicable, provide context about what the query results tell us about the client or their business
-4. When appropriate, suggest follow-up queries the user might want to run
+**Analysis Guidelines:**
+- After receiving query results, *always* analyze them based on the user's original question.
+- Mention specific data points, trends, or anomalies observed.
+- Format dates human-readably (e.g., "March 15, 2025").
+- Explain what the results imply about the client or their business.
 
-For example, if showing emails for a client, analyze the topics discussed, mention frequency patterns, 
-and highlight anything notable about the client's communication history.`,
+**Formatting Guidelines:**
+Please structure your answers using clear Markdown:
+- Use ## or ### headings for major sections.
+- Use bullet points (-) or numbered lists (1.) for items.
+- Use **bold** or *italics* for emphasis.
+- Use \`\`\`code blocks\`\`\` for SQL queries or code.
+- Keep formatting consistent and focus on the main answer.
+- If a database query times out, inform the user politely that the information couldn't be retrieved in time and ask if you can help with something else.
+
+Always lean on the provided database views and translate raw data into valuable insights.`,
     tools: {
       query_database: tool({
         description: databaseSchemaDescription,
@@ -45,18 +72,40 @@ and highlight anything notable about the client's communication history.`,
             },
           });
 
+          let client: pg.PoolClient | null = null; // Define client outside try
+
           try {
             console.log("Connecting to database...");
-            const client = await pool.connect();
+            client = await pool.connect(); // Assign client
             console.log("Running query:", query);
 
-            const queryResult = await client.query(query);
+            const queryTimeout = 10000; // 20 seconds timeout
+
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      `Query timed out after ${queryTimeout / 1000} seconds`
+                    )
+                  ),
+                queryTimeout
+              )
+            );
+
+            const queryPromise = client.query(query);
+
+            // Race the query against the timeout
+            // Cast timeout promise result type for race compatibility
+            const queryResult = await Promise.race([
+              queryPromise,
+              timeoutPromise as Promise<pg.QueryResult>,
+            ]);
+
+            // If we reach here, the query finished before the timeout
             console.log("Query complete, rows:", queryResult.rows.length);
 
-            client.release();
-            await pool.end();
-
-            const result = {
+            const resultData = {
               result: queryResult.rows,
               rowCount: queryResult.rowCount,
               fields: queryResult.fields.map((f) => ({
@@ -65,16 +114,19 @@ and highlight anything notable about the client's communication history.`,
               })),
             };
 
-            console.log("Returning result:", JSON.stringify(result, null, 2));
-            return result;
+            console.log(
+              "Returning result:",
+              JSON.stringify(resultData, null, 2)
+            );
+            return resultData;
           } catch (error) {
-            console.error("Database error:", error);
-            await pool.end();
+            // This catch block now handles both database errors and the timeout error
+            console.error("Database operation error:", error);
 
             const errorResult = {
               error:
                 error instanceof Error
-                  ? error.message
+                  ? error.message // This will include the "Query timed out..." message
                   : "Unknown database error",
               query: query, // Include the original query for context
             };
@@ -83,7 +135,25 @@ and highlight anything notable about the client's communication history.`,
               "Returning error:",
               JSON.stringify(errorResult, null, 2)
             );
-            return errorResult;
+            return errorResult; // Return structured error for the AI to interpret
+          } finally {
+            // Ensure cleanup happens regardless of success or failure
+            if (client) {
+              client.release();
+              console.log("Client released.");
+            }
+            // Check if pool exists and hasn't been ended (might happen in error before finally)
+            if (pool && !pool.ended) {
+              try {
+                await pool.end();
+                console.log("Pool ended.");
+              } catch (poolEndError) {
+                console.error(
+                  "Error ending pool in finally block:",
+                  poolEndError
+                );
+              }
+            }
           }
         },
       }),

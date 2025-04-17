@@ -2,7 +2,9 @@
 
 import { useChat } from "@ai-sdk/react";
 import { useEffect, useRef } from "react";
-
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import Image from "next/image";
 // Define type for database query results
 interface DatabaseResult {
   result?: unknown[];
@@ -116,50 +118,54 @@ export default function ChatInterface() {
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[80vh] text-center">
             <div className="max-w-2xl">
-              <h2 className="text-4xl font-bold mb-8">What can I help with?</h2>
+              <Image
+                src="/rio.png"
+                alt="Rio"
+                width={100}
+                height={100}
+                className="mx-auto mb-4 rounded-full"
+              />
+              <h2 className="text-4xl font-bold mb-2">Rio</h2>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                I can help you analyze and interact with Retentio's database
+              </p>
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg max-w-lg mx-auto">
-                <h3 className="text-xl font-semibold text-blue-400 mb-4">
-                  Ask me about your client data
-                </h3>
-                <p className="text-gray-700 font-medium dark:text-gray-300 mb-6">
-                  I can help you analyze and understand your database
-                  information.
-                </p>
                 <div className="space-y-3 text-left">
-                  <p className="font-medium text-blue-400 mb-2">
+                  <h3 className="text-xl font-semibold text-blue-400 mb-4">
                     Try these examples:
-                  </p>
+                  </h3>
                   <div className="space-y-3">
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          "Which campaigns had the highest revenue in may 2024?"
+                          "Which campaigns had the most conversions in april 2025?"
                         )
                       }
                     >
-                      Which campaigns had the highest revenue in may 2024?
+                      Which campaigns had the most conversions in april 2025?
                     </div>
-                
+
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          'Which campaign subject lines generated the most unique clicks?'
+                          "Which campaign subject lines generated the most unique clicks?"
                         )
                       }
                     >
-                      Which campaign subject lines generated the most unique clicks?
+                      Which campaign subject lines generated the most unique
+                      clicks?
                     </div>
                     <div
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          "Show me trends in unsubscribe rates"
+                          "Show me trends in unsubscribe rates over the last 3 months"
                         )
                       }
                     >
-                      Show me trends in unsubscribe rates over may 2024
+                      Show me trends in unsubscribe rates over the last 3 months
                     </div>
                   </div>
                 </div>
@@ -188,11 +194,28 @@ export default function ChatInterface() {
                   {message.parts.map((part, i) => {
                     // Handle different part types
                     if (part.type === "text") {
-                      return (
-                        <div key={`text-${i}`} className="whitespace-pre-wrap">
-                          {part.text}
-                        </div>
-                      );
+                      if (message.role === "user") {
+                        return (
+                          <div
+                            key={`text-${i}`}
+                            className="whitespace-pre-wrap"
+                          >
+                            {part.text}
+                          </div>
+                        );
+                      } else {
+                        // Render assistant messages with markdown
+                        return (
+                          <div
+                            key={`text-${i}`}
+                            className="prose dark:prose-invert max-w-none"
+                          >
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {part.text}
+                            </ReactMarkdown>
+                          </div>
+                        );
+                      }
                     }
 
                     if (part.type === "tool-invocation") {
@@ -516,7 +539,7 @@ export default function ChatInterface() {
               type="text"
               value={input}
               onChange={handleInputChange}
-              placeholder="Message Retentio..."
+              placeholder="Message Rio..."
               className="flex-1 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-blue-500 rounded-l-full outline-none text-gray-900 dark:text-white placeholder-gray-400"
               disabled={isLoading}
             />

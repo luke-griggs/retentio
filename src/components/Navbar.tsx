@@ -11,13 +11,13 @@ export default function Navbar({}: NavbarProps) {
         <div className="flex items-center space-x-6 p-2">
           <Link href="/">
             <h1 className="text-2xl font-black cursor-pointer pl-8">
-              RETENTIO
+              RIO
             </h1>
           </Link>
-          <div className="h-6 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+          {/* <div className="h-6 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
           <span className="text-lg font-medium text-gray-600 dark:text-gray-300">
             AGENT
-          </span>
+          </span> */}
         </div>
       </div>
     </header>
