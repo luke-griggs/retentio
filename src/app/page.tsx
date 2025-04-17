@@ -12,10 +12,10 @@ export default async function Home() {
       {/* {isAuthenticated ? ( */}
         <div className="max-w-5xl mx-auto h-[calc(100vh-6rem)] flex flex-col items-center justify-center px-4 text-center">
           <h2 className="text-6xl font-bold text-blue-500 mb-8">
-            RETENTIO BRAIN
+            Welcome to Rio
           </h2>
           <p className="text-xl font-semibold text-gray-500 dark:text-gray-300 max-w-2xl mb-10">
-            Welcome to Retentio&apos;s AI-powered assistant.
+            Retentio&apos;s AI-powered assistant.
           </p>
           <AuthButtons isAuthenticated={isAuthenticated} />
         </div>

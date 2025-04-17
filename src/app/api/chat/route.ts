@@ -9,24 +9,6 @@ const { Pool } = pg;
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-// Error handler function to reveal specific errors
-// See: https://sdk.vercel.ai/docs/troubleshooting/use-chat-an-error-occurred
-export function errorHandler(error: unknown) {
-  if (error == null) {
-    return "unknown error";
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return JSON.stringify(error);
-}
-
 export async function POST(req: Request) {
   const { messages } = await req.json();
 

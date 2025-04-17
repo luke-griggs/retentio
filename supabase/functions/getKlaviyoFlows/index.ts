@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 console.log("Hello from Functions!");
@@ -16,6 +17,7 @@ const stores: Store[] = [
   {
     id: "1",
     name: "DRIP EZ",
+    // @ts-ignore
     api_key: Deno.env.get("DRIP_EZ_KLAVIYO_API_KEY"),
     conversion_metric_id: "WsZZFn",
   },
@@ -269,9 +271,12 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
 };
 
 // Deno edge function handler
+// @ts-ignore
 Deno.serve(async (req: Request) => {
   // Retrieve Supabase credentials from environment variables
+  // @ts-ignore
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  // @ts-ignore
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
   // Get authorization header (e.g., service_role key)
   const authorization = req.headers.get("Authorization");

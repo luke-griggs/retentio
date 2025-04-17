@@ -1,5 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import {
+  createClient,
+  SupabaseClient,
+  // @ts-ignore
+} from "jsr:@supabase/supabase-js@2";
 
 interface Store {
   id: string;
@@ -12,6 +16,7 @@ const stores: Store[] = [
   {
     id: "1",
     name: "DRIP EZ",
+    // @ts-ignore
     api_key: Deno.env.get("DRIP_EZ_KLAVIYO_API_KEY"),
     conversion_metric_id: "WsZZFn",
   },
@@ -245,9 +250,11 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
     );
   }
 };
-
+// @ts-ignore
 Deno.serve(async (req: Request) => {
+  // @ts-ignore
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  // @ts-ignore
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const authorization = req.headers.get("Authorization");
 

@@ -1,5 +1,6 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+// @ts-ignore
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Define the structure for a store's configuration
@@ -15,6 +16,7 @@ const stores: Store[] = [
     id: 1,
     name: "DRIP EZ",
     // NOTE: Reverted to hardcoded for now as Deno.env was removed by user edit. Ideally use env vars.
+    // @ts-ignore
     access_token: Deno.env.get("DRIP_EZ_SHOPIFY_ACCESS_TOKEN"),
     store_url: "drip-ez.myshopify.com", // Domain only
   },
@@ -232,10 +234,13 @@ async function fetchOrdersFromShopify(
 }
 
 // Main Edge Function handler
+// @ts-ignore
 Deno.serve(async (req: Request) => {
   console.log("Shopify data fetch function started.");
 
+  // @ts-ignore
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  // @ts-ignore
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
   if (!supabaseUrl || !supabaseAnonKey) {
