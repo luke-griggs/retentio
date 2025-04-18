@@ -76,7 +76,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
         type: "campaign-values-report",
         attributes: {
           timeframe: {
-            key: "today",
+            key: "last_12_months",
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [
@@ -133,40 +133,90 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
       reportData?.data?.attributes?.results;
 
     if (campaignStatsResults && campaignStatsResults.length > 0) {
-      const campaignDetailsPromises = campaignStatsResults
+      // Process campaign details sequentially to strictly control rate limits
+      const campaignDetailsResults = [];
+
+      // Get all campaign IDs that need details
+      const campaignIds = campaignStatsResults
         .filter((result) => result.groupings?.campaign_id)
-        .map(async (result) => {
-          const campaignId = result.groupings.campaign_id!;
-          const detailOptions = {
-            method: "GET",
-            headers: {
-              accept: "application/vnd.api+json",
-              revision: "2025-04-15",
-              Authorization: `Klaviyo-API-Key ${store.api_key}`,
-            },
-          };
+        .map((result) => result.groupings.campaign_id!);
+
+      console.log(`Processing ${campaignIds.length} campaigns sequentially...`);
+
+      // Function to fetch details for one campaign with retry logic
+      const fetchCampaignDetailsWithRetry = async (
+        campaignId: string,
+        storeApiKey: string
+      ) => {
+        const detailOptions = {
+          method: "GET",
+          headers: {
+            accept: "application/vnd.api+json",
+            revision: "2025-04-15",
+            Authorization: `Klaviyo-API-Key ${storeApiKey}`,
+          },
+        };
+        const detailUrl = `https://a.klaviyo.com/api/campaigns/${campaignId}?include=campaign-messages`;
+        let attempts = 0;
+        const maxRetries = 3;
+        let delay = 2000; // Initial delay 2s
+
+        while (attempts < maxRetries) {
           try {
-            const detailUrl = `https://a.klaviyo.com/api/campaigns/${campaignId}?include=campaign-messages`;
             const detailResponse = await fetch(detailUrl, detailOptions);
-            if (!detailResponse.ok) {
+
+            if (detailResponse.ok) {
+              const details = await detailResponse.json();
+              return { campaign_id: campaignId, details };
+            }
+
+            if (detailResponse.status === 429 && attempts < maxRetries - 1) {
+              console.log(
+                `Rate limited (429) on campaign ${campaignId}, attempt ${
+                  attempts + 1
+                }. Waiting ${delay / 1000}s before retry...`
+              );
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              delay *= 2; // Exponential backoff
+              attempts++;
+            } else {
+              // Handle other errors or final failed retry
               console.error(
-                `Error fetching details for campaign ${campaignId}: ${detailResponse.status} ${detailResponse.statusText}`,
+                `Error fetching details for campaign ${campaignId}: ${
+                  detailResponse.status
+                } ${detailResponse.statusText} (Attempt ${attempts + 1})`,
                 await detailResponse.text()
               );
-              return { campaign_id: campaignId, details: null };
+              return { campaign_id: campaignId, details: null }; // Failed after retries or non-429 error
             }
-            const details: KlaviyoCampaignDetails = await detailResponse.json();
-            return { campaign_id: campaignId, details };
           } catch (fetchError) {
             console.error(
-              `Network error fetching details for campaign ${campaignId}:`,
+              `Network error fetching details for campaign ${campaignId} (Attempt ${
+                attempts + 1
+              }):`,
               fetchError
             );
+            // Decide if network errors should retry - currently not retrying network errors
             return { campaign_id: campaignId, details: null };
           }
-        });
+        }
+        // Should not be reached if maxRetries > 0, but safety return
+        return { campaign_id: campaignId, details: null };
+      };
 
-      const campaignDetailsResults = await Promise.all(campaignDetailsPromises);
+      // Process IDs sequentially
+      for (const campaignId of campaignIds) {
+        console.log(`Fetching details for campaign ${campaignId}...`);
+        const result = await fetchCampaignDetailsWithRetry(
+          campaignId,
+          store.api_key!
+        ); // Pass API key
+        campaignDetailsResults.push(result);
+
+        // Add delay after each request completes to respect steady limit (150/m -> ~400ms per req)
+        // Adjust based on typical API response time. 150ms delay + ~250ms API time = 400ms cycle.
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
 
       const detailsMap = new Map(
         campaignDetailsResults.map((item) => [item.campaign_id, item.details])
@@ -185,7 +235,8 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
             detailsData.data.relationships["campaign-messages"].data[0]?.id;
           if (messageId) {
             const message = detailsData.included.find(
-              (inc) => inc.type === "campaign-message" && inc.id === messageId
+              (inc: KlaviyoCampaignMessage) =>
+                inc.type === "campaign-message" && inc.id === messageId
             );
             subject = message?.attributes?.definition?.content?.subject ?? null;
           }

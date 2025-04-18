@@ -8,9 +8,9 @@ export default async function ChatPage() {
   const { data } = await readUserSession();
 
   // Redirect if not authenticated
-  if (!data.user) {
-    redirect("/auth/login");
-  }
+  // if (!data.user) {
+  //   redirect("/auth/login");
+  // }
 
   // User is authenticated, render the chat interface
   return (

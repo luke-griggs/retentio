@@ -261,10 +261,10 @@ Deno.serve(async (req: Request) => {
     global: { headers: { Authorization: req.headers.get("Authorization")! } },
   });
 
-  // Calculate the date 7 days ago for the Shopify query
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const queryDate = sevenDaysAgo.toISOString();
+  // Calculate the date 1 year ago for the Shopify query
+  const oneYearAgo = new Date();
+  oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+  const queryDate = oneYearAgo.toISOString();
   const queryFilter = `created_at:>'${queryDate}'`;
 
   // Use array type since we don't have Database types

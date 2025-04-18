@@ -90,7 +90,7 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
         type: "flow-values-report", // Changed type to flow-values-report
         attributes: {
           timeframe: {
-            key: "today", // Using "today", adjust as needed (e.g., "last_7_days")
+            key: "last_12_months", // Using "today", adjust as needed (e.g., "last_7_days")
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [
@@ -159,38 +159,80 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
         ),
       ];
 
-      const flowDetailsPromises = flowIds.map(async (flowId) => {
+      // Process flow details sequentially to strictly control rate limits
+      const flowDetailsResults = [];
+      console.log(`Processing ${flowIds.length} unique flows sequentially...`);
+
+      // Function to fetch details for one flow with retry logic
+      const fetchFlowDetailsWithRetry = async (
+        flowId: string,
+        storeApiKey: string
+      ) => {
         const detailOptions = {
           method: "GET",
           headers: {
             accept: "application/vnd.api+json",
             revision: "2025-04-15", // Match revision
-            Authorization: `Klaviyo-API-Key ${store.api_key}`,
+            Authorization: `Klaviyo-API-Key ${storeApiKey}`,
           },
         };
-        try {
-          // Fetch flow details (without attempting to include messages)
-          const detailUrl = `https://a.klaviyo.com/api/flows/${flowId}`; // Removed ?include=flow-messages
-          const detailResponse = await fetch(detailUrl, detailOptions);
-          if (!detailResponse.ok) {
+        const detailUrl = `https://a.klaviyo.com/api/flows/${flowId}`;
+        let attempts = 0;
+        const maxRetries = 3;
+        let delay = 2000; // Initial delay 2s
+
+        while (attempts < maxRetries) {
+          try {
+            const detailResponse = await fetch(detailUrl, detailOptions);
+
+            if (detailResponse.ok) {
+              const details = await detailResponse.json();
+              return { flow_id: flowId, details };
+            }
+
+            if (detailResponse.status === 429 && attempts < maxRetries - 1) {
+              console.log(
+                `Rate limited (429) on flow ${flowId}, attempt ${
+                  attempts + 1
+                }. Waiting ${delay / 1000}s before retry...`
+              );
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              delay *= 2; // Exponential backoff
+              attempts++;
+            } else {
+              // Handle other errors or final failed retry
+              console.error(
+                `Error fetching details for flow ${flowId}: ${
+                  detailResponse.status
+                } ${detailResponse.statusText} (Attempt ${attempts + 1})`,
+                await detailResponse.text()
+              );
+              return { flow_id: flowId, details: null }; // Failed after retries or non-429 error
+            }
+          } catch (fetchError) {
             console.error(
-              `Error fetching details for flow ${flowId}: ${detailResponse.status} ${detailResponse.statusText}`,
-              await detailResponse.text()
+              `Network error fetching details for flow ${flowId} (Attempt ${
+                attempts + 1
+              }):`,
+              fetchError
             );
             return { flow_id: flowId, details: null };
           }
-          const details: KlaviyoFlowDetails = await detailResponse.json();
-          return { flow_id: flowId, details };
-        } catch (fetchError) {
-          console.error(
-            `Network error fetching details for flow ${flowId}:`,
-            fetchError
-          );
-          return { flow_id: flowId, details: null };
         }
-      });
+        // Should not be reached if maxRetries > 0, but safety return
+        return { flow_id: flowId, details: null };
+      };
 
-      const flowDetailsResults = await Promise.all(flowDetailsPromises);
+      // Process flow IDs sequentially
+      for (const flowId of flowIds) {
+        console.log(`Fetching details for flow ${flowId}...`);
+        const result = await fetchFlowDetailsWithRetry(flowId, store.api_key!); // Pass API key
+        flowDetailsResults.push(result);
+
+        // Add delay after each request completes to respect steady limit (60/m -> 1000ms per req)
+        // 500ms delay + ~500ms API time = 1000ms cycle.
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
 
       // Create a map for easy lookup of flow details by flow_id
       const detailsMap = new Map(
