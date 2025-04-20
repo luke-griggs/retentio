@@ -315,7 +315,7 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
           flow_created: detailsData?.data.attributes.created ?? null,
           flow_updated: detailsData?.data.attributes.updated ?? null,
           flow_trigger_type: detailsData?.data.attributes.trigger_type ?? null, // Add trigger type
-          actions: processedActions, // Add the processed actions array
+          flow_steps: processedActions, // Add the processed actions array
           // REMOVED: subject: null,
           // REMOVED: preview_text: null,
           // Add any other relevant fields from detailsData if needed

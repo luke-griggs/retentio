@@ -18,7 +18,7 @@ Use it to query _only_ these three  read‑only views:
    • store_name, campaign_id, sent_date, subject, preview_text, clicks, opens, conversions, channel, campaign_url, recipients(this is the number of recipients who opened the email), ctr, conv_rate  
 
 2. **fact_flow_metrics**  
-   • store_name, flow_id, flow_name, flow_status, created_date, updated_date, flow_trigger_type, total_sends, bounce_rate, open_rate, click_rate, conversion_rate, recipients, inserted_at, actions: JSONB - An array summarizing the flow steps. Each object contains 'type' (e.g., 'send-email', 'time-delay') and relevant details like 'subject' for emails, 'body' for SMS, 'delay_value'/'delay_unit' for delays.
+   • store_name, flow_id, flow_name, flow_status, created_date, updated_date, flow_trigger_type, total_sends, bounce_rate, open_rate, click_rate, conversion_rate, recipients, inserted_at, flow_steps: JSONB - An array summarizing the flow steps. Each object contains 'type' (e.g., 'send-email', 'time-delay') and relevant details like 'subject' for emails, 'body' for SMS, 'delay_value'/'delay_unit' for delays.
 
 3. **fact_shopify_orders**  
    • store_name, shopify_order_id, confirmation_number, order_date, subtotal, shipping, refunded, fully_refunded, email, processed_at, updated_at, fetched_at  
