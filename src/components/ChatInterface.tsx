@@ -420,7 +420,7 @@ export default function ChatInterface() {
                             </svg>
                             Results ({toolResult.rowCount || results.length}{" "}
                             rows)
-                          </div>
+                          </div>                      
                           <div className="max-h-64 overflow-y-auto">
                             <table className="w-full text-sm border-collapse">
                               <thead className="sticky top-0">
