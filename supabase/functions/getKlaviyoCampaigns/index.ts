@@ -227,6 +227,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
         const detailsData = campaignId ? detailsMap.get(campaignId) : null;
 
         let subject: string | null = null;
+        let channel: string | null = null;
         if (
           detailsData?.included &&
           detailsData.data.relationships?.["campaign-messages"]?.data
@@ -239,6 +240,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
                 inc.type === "campaign-message" && inc.id === messageId
             );
             subject = message?.attributes?.definition?.content?.subject ?? null;
+            channel = message?.attributes?.definition?.channel ?? null
           }
         }
 
@@ -249,6 +251,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
           name: detailsData?.data.attributes.name ?? null,
           sent_time: detailsData?.data.attributes.send_time ?? null,
           subject: subject,
+          channel: channel, // added channel to campaign table
         };
       });
 

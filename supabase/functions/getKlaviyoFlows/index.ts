@@ -33,6 +33,13 @@ interface KlaviyoFlowStatsResult {
   statistics: Record<string, number | string | null>;
 }
 
+// Interface for a single action within a flow definition
+interface FlowAction {
+  id?: string;
+  type: string; // e.g., 'time-delay', 'send-email', 'conditional-split'
+  data?: any; // Use 'any' for simplicity, or define specific data structures
+}
+
 // Interface for Klaviyo flow message details (included data)
 interface KlaviyoFlowMessage {
   type: string;
@@ -44,6 +51,16 @@ interface KlaviyoFlowMessage {
       subject?: string;
       preview_text?: string; // Added preview text
       // Add other relevant content fields if needed
+    };
+    status?: string; // Added flow status
+    archived?: boolean; // Added archived status
+    created?: string;
+    updated?: string;
+    trigger_type?: string; // Added trigger type
+    definition?: {
+      // Added definition object
+      triggers?: any[]; // Keep triggers if needed, or omit
+      actions?: FlowAction[]; // Array of flow actions
     };
   };
 }
@@ -176,7 +193,7 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
             Authorization: `Klaviyo-API-Key ${storeApiKey}`,
           },
         };
-        const detailUrl = `https://a.klaviyo.com/api/flows/${flowId}`;
+        const detailUrl = `https://a.klaviyo.com/api/flows/${flowId}?additional-fields[flow]=definition`;
         let attempts = 0;
         const maxRetries = 3;
         let delay = 2000; // Initial delay 2s
@@ -245,6 +262,46 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
         const flowMessageId = result.groupings?.flow_message_id;
         const detailsData = flowId ? detailsMap.get(flowId) : null;
 
+        // Process the actions array into a simplified summary
+        let processedActions: Record<string, any>[] = [];
+        if (detailsData?.data?.attributes?.definition?.actions) {
+          const rawActions = detailsData.data.attributes.definition.actions;
+          processedActions = rawActions.map((action: FlowAction) => {
+            const summary: Record<string, any> = { type: action.type };
+            if (
+              action.type === "send-email" &&
+              action.data?.message?.subject_line
+            ) {
+              summary.subject = action.data.message.subject_line;
+            }
+            if (action.type === "send-sms" && action.data?.message?.body) {
+              summary.body = action.data.message.body;
+            }
+            if (
+              action.type === "time-delay" &&
+              action.data?.value &&
+              action.data?.unit
+            ) {
+              summary.delay_value = action.data.value;
+              summary.delay_unit = action.data.unit;
+            }
+            if (
+              action.type === "send-mobile-push" &&
+              action.data?.message?.title
+            ) {
+              summary.title = action.data.message.title;
+            }
+            if (
+              action.type === "send-mobile-push" &&
+              action.data?.message?.body
+            ) {
+              summary.body = action.data.message.body;
+            }
+            // Add more conditions here for other action types if needed
+            return summary;
+          });
+        }
+
         // Construct the record for Supabase insertion
         return {
           store_name: store.name,
@@ -257,8 +314,10 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
           flow_status: detailsData?.data.attributes.status ?? null,
           flow_created: detailsData?.data.attributes.created ?? null,
           flow_updated: detailsData?.data.attributes.updated ?? null,
-          subject: null, // Set to null as we are not fetching it reliably
-          preview_text: null, // Set to null as we are not fetching it reliably
+          flow_trigger_type: detailsData?.data.attributes.trigger_type ?? null, // Add trigger type
+          actions: processedActions, // Add the processed actions array
+          // REMOVED: subject: null,
+          // REMOVED: preview_text: null,
           // Add any other relevant fields from detailsData if needed
         };
       });
