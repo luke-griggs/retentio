@@ -161,11 +161,11 @@ export default function ChatInterface() {
                       className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                       onClick={() =>
                         handleExampleClick(
-                          "Show me trends in unsubscribe rates over the last 3 months"
+                          "why might our best performing flows be doing well"
                         )
                       }
                     >
-                      Show me trends in unsubscribe rates over the last 3 months
+                      why might our best performing flows be doing well?
                     </div>
                   </div>
                 </div>
@@ -267,15 +267,15 @@ export default function ChatInterface() {
                                   ></animate>
                                 </path>
                               </svg>
-                              Running SQL query...
+                              thinking...
                             </div>
                             <pre className="p-2 rounded text-xs overflow-auto bg-gray-100 dark:bg-gray-900">
-                              {query ||
+                              {/* {query ||
                                 JSON.stringify(
                                   typedPart.toolInvocation,
                                   null,
                                   2
-                                )}
+                                )} */}
                             </pre>
                           </div>
                         );
@@ -420,7 +420,7 @@ export default function ChatInterface() {
                             </svg>
                             Results ({toolResult.rowCount || results.length}{" "}
                             rows)
-                          </div>                      
+                          </div>
                           <div className="max-h-64 overflow-y-auto">
                             <table className="w-full text-sm border-collapse">
                               <thead className="sticky top-0">
@@ -529,6 +529,41 @@ export default function ChatInterface() {
             ))}
           </div>
         )}
+
+        {/* Loading indicator shown immediately after user sends a message */}
+        {isLoading &&
+          messages.length > 0 &&
+          messages[messages.length - 1].role === "user" && (
+            <div className="flex justify-start p-6">
+              <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 max-w-[80%] rounded-2xl p-4 bg-none rounded-tl-none">
+                <svg
+                  className="h-8 w-8 pr-2"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 300 150"
+                >
+                  <path
+                    fill="none"
+                    stroke="#60A5FA"
+                    strokeWidth="15"
+                    strokeLinecap="round"
+                    strokeDasharray="300 385"
+                    strokeDashoffset="0"
+                    d="M275 75c0 31-27 50-50 50-58 0-92-100-150-100-28 0-50 22-50 50s23 50 50 50c58 0 92-100 150-100 24 0 50 19 50 50Z"
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      calcMode="spline"
+                      dur="2"
+                      values="685;-685"
+                      keySplines="0 0 1 1"
+                      repeatCount="indefinite"
+                    ></animate>
+                  </path>
+                </svg>
+                thinking...
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Input area - now fixed to the bottom of the viewport */}

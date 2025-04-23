@@ -76,7 +76,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
         type: "campaign-values-report",
         attributes: {
           timeframe: {
-            key: "last_12_months",
+            key: "last_day",
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [
@@ -227,6 +227,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
         let subject: string | null = null;
         let channel: string | null = null;
         let preview_text: string | null = null;
+        let from_email: string | null = null;
         if (
           detailsData?.included &&
           detailsData.data.relationships?.["campaign-messages"]?.data
@@ -239,8 +240,9 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
                 inc.type === "campaign-message" && inc.id === messageId
             );
             subject = message?.attributes?.definition?.content?.subject ?? null;
+            from_email = message?.attributes?.definition?.content?.from_email ?? null;
             preview_text = message?.attributes?.definition?.content?.preview_text ?? null;
-            channel = message?.attributes?.definition?.channel ?? null;
+            channel = message?.attributes?.definition?.channel ?? null;            
           }
         }
 
@@ -251,6 +253,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
           name: detailsData?.data.attributes.name ?? null,
           sent_time: detailsData?.data.attributes.send_time ?? null,
           subject: subject,
+          from_email: from_email,
           channel: channel,
           campaign_url: `https://klaviyo.com/campaign/${campaignId}/web-view`,
           preview_text: preview_text,

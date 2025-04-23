@@ -168,7 +168,7 @@ async function fetchOrdersFromShopify(
   let allOrders: ShopifyOrderNode[] = [];
   let hasNextPage = true;
   let cursor: string | null = null;
-  const BATCH_SIZE = 50; // Number of orders to fetch per request
+  const BATCH_SIZE = 250; // Number of orders to fetch per request
 
   console.log(
     `Fetching orders for store: ${store.name} with filter: ${queryFilter} using API v2025-04`
@@ -181,20 +181,38 @@ async function fetchOrdersFromShopify(
       cursor: cursor,
     };
 
+    let response: Response;
     try {
-      const response = await fetch(shopifyUrl, {
+      response = await fetch(shopifyUrl, {
         method: "POST",
         headers: headers,
         body: JSON.stringify({ query: GET_RECENT_ORDERS_QUERY, variables }),
       });
+    } catch (fetchError: unknown) {
+      // Catch errors during the fetch call itself (e.g., network issues)
+      console.error(
+        `Network error during fetch for ${store.name}:`,
+        fetchError instanceof Error ? fetchError.message : String(fetchError)
+      );
+      // Stop pagination for this store on fetch error
+      hasNextPage = false;
+      continue; // Move to the next iteration of the while loop
+    }
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(
-          `Shopify API request failed for ${store.name}: ${response.status} ${response.statusText} - ${errorBody}`
-        );
-      }
+    // Check if the response status is OK (e.g., 200)
+    if (!response.ok) {
+      const errorBody = await response.text(); // Read response body as text
+      console.error(
+        `Shopify API request failed for ${store.name}: ${response.status} ${response.statusText}. Response Body:`,
+        errorBody // Log the raw error body
+      );
+      // Potentially add retry logic here later based on status code (e.g., 429 for rate limits)
+      hasNextPage = false; // Stop pagination on non-OK response
+      continue;
+    }
 
+    // Try to parse the response as JSON
+    try {
       const result: ShopifyOrdersResponse = await response.json();
 
       if (result.data?.orders?.edges) {
@@ -214,9 +232,9 @@ async function fetchOrdersFromShopify(
       }
 
       // Optional: Add a small delay to avoid hitting rate limits
-      if (hasNextPage) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      // if (hasNextPage) {
+      //   await new Promise((resolve) => setTimeout(resolve, 500));
+      // }
     } catch (error: unknown) {
       console.error(
         `Error fetching orders from ${store.name}:`,
@@ -261,11 +279,59 @@ Deno.serve(async (req: Request) => {
     global: { headers: { Authorization: req.headers.get("Authorization")! } },
   });
 
-  // Calculate the date 1 year ago for the Shopify query
-  const oneYearAgo = new Date();
-  oneYearAgo.setDate(oneYearAgo.getDate() - 365);
-  const queryDate = oneYearAgo.toISOString();
-  const queryFilter = `created_at:>'${queryDate}'`;
+  // --- Define Date Ranges for Months (going back 1 year) ---
+  const monthsToFetch: {
+    start: Date;
+    end: Date;
+    filter: string;
+    description: string;
+  }[] = [];
+  const now = new Date();
+
+  for (let i = 12; i > 0; i--) {
+    const endDate = new Date(now);
+    endDate.setMonth(now.getMonth() - (i - 1)); // End of the month (start of the *next* month)
+    endDate.setDate(1);
+    endDate.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(now);
+    startDate.setMonth(now.getMonth() - i); // Start of the month
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const queryDateStart = startDate.toISOString();
+    const queryDateEnd = endDate.toISOString();
+    const queryFilter = `created_at:>=${queryDateStart} AND created_at:<${queryDateEnd}`;
+    const description = `Month ${13 - i}: ${startDate.getFullYear()}-${String(
+      startDate.getMonth() + 1
+    ).padStart(2, "0")} (from ${queryDateStart} to ${queryDateEnd})`;
+
+    monthsToFetch.push({
+      start: startDate,
+      end: endDate,
+      filter: queryFilter,
+      description: description,
+    });
+  }
+
+  // --- Select the Month to Run ---
+  // --> Set monthIndex to 0 for the first month (12 months ago)
+  // --> Increment monthIndex (1, 2, ... 11) to run subsequent months
+  const monthIndex = 1; // 0 = 12 months ago, 1 = 11 months ago, ..., 11 = last month
+
+  if (monthIndex < 0 || monthIndex >= monthsToFetch.length) {
+    console.error("Invalid monthIndex selected.");
+    return new Response(JSON.stringify({ error: "Invalid configuration" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const activeMonth = monthsToFetch[monthIndex];
+  const activeQueryFilter = activeMonth.filter;
+  const activeRunDescription = activeMonth.description;
+
+  console.log(`Starting run for: ${activeRunDescription}`);
 
   // Use array type since we don't have Database types
   let allFetchedOrders: any[] = [];
@@ -273,7 +339,9 @@ Deno.serve(async (req: Request) => {
 
   for (const store of stores) {
     try {
-      const orders = await fetchOrdersFromShopify(store, queryFilter);
+      // Fetch orders using the currently active query filter
+      const orders = await fetchOrdersFromShopify(store, activeQueryFilter);
+
       if (orders.length > 0) {
         // Map fetched data to the structure expected by the Supabase table
         const dataToInsert = orders.map((order) => ({

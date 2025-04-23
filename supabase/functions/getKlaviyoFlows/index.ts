@@ -107,7 +107,7 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
         type: "flow-values-report", // Changed type to flow-values-report
         attributes: {
           timeframe: {
-            key: "last_12_months", // Using "today", adjust as needed (e.g., "last_7_days")
+            key: "last_365_days", // Using "today", adjust as needed (e.g., "last_7_days")
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [
