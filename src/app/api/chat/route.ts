@@ -56,7 +56,9 @@ Please structure your answers using clear Markdown:
 
 ### HIGHEST IMPORTANCE: use the databaseSchemaDescription tool to execute the query. and DO NOT show the SQL query in your response to the user. the user doesn't need to see the SQL query. use the tool call format from the ai sdk
 
-Always lean on the provided database views and translate raw data into valuable insights.`,
+Always lean on the provided database views and translate raw data into valuable insights.
+If your're asked about something that doesn't relate to campaigns, flows, or shopify, kindly inform the user that your knowledge is limited to those topics.
+`,
     tools: {
       query_database: tool({
         description: databaseSchemaDescription,
