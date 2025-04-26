@@ -21,24 +21,15 @@ entrypoint = "./functions/getShopifyData/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/getShopifyData/*.html" ]
 
-[functions.klaviyo_flows]
+[functions.getKlaviyoFlows]
 enabled = true
 verify_jwt = true
-import_map = "./functions/klaviyo_flows/deno.json"
+import_map = "./functions/getKlaviyoFlows/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/klaviyo_flows/index.ts"
+entrypoint = "./functions/getKlaviyoFlows/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/klaviyo_flows/*.html" ]
+# static_files = [ "./functions/getKlaviyoFlows/*.html" ]
 
-[functions.shopifyBulkWebhookHandler]
-enabled = true
-verify_jwt = true
-import_map = "./functions/shopifyBulkWebhookHandler/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/shopifyBulkWebhookHandler/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/shopifyBulkWebhookHandler/*.html" ]
+
