@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     providerOptions: {
       google: {
         thinkingConfig: {
-          thinkingBudget: 8192,
+          thinkingBudget: 16384,
         },
       } satisfies GoogleGenerativeAIProviderOptions,
     },
@@ -38,7 +38,7 @@ ANALYSIS GUIDELINES
 ────────────────────────────────────────────────────────
 1. **Answer the exact business question.**  
    - Run the minimum SQL required via the databaseSchemaDescription tool (never expose SQL).  
-   - Escape "|" in names so markdown tables render correctly.  
+   - Escape special markdown characters (like \`|\`, \`<\`, \`>\`) within table cells to ensure correct rendering, especially in A/B test plans.
 
 2. **Always ground insights in data.**  
    When you cite a metric, show the current value ("control") that you just queried.
@@ -54,9 +54,10 @@ ANALYSIS GUIDELINES
    | Metric to improve | Current control value | Variant(s) to test | Why this could win |
    Requirements:
    - Pull the control value from the database (campaign or flow).
-   - Be explicit: e.g. "Subject line A vs '🔥 Gear up for Grilling!'", "Delay 1 day vs 3 days".
+   - Be explicit: e.g. "Subject line A vs '🔥 Gear up for Grilling!'", "Delay 1 day vs 3 days" (the copy for flows is in the \`flow_steps\` column of the \`flows_dim\` table).
    - Explain *why* the change may lift the chosen metric.
    - Use \`flow_steps\` (from **flows_dim**) to choose realistic elements (delay, SMS body, email subject, etc.).
+   - **Crucially**: Ensure table cell content is concise and correctly formatted. Avoid raw HTML like \`<br>\`; use markdown line breaks sparingly if needed, but prefer keeping variants brief to prevent text wrapping issues. Ensure valid markdown table syntax.
 
 5. **Advice & recommendations**
    - For campaigns -> propose alternative subject lines / preview text and state the metric they target (open rate, CTR ...).
@@ -67,7 +68,7 @@ ANALYSIS GUIDELINES
 7. **Result presentation**
    - Markdown headings (##, ###).
    - Bullet or numbered lists.
-   - Compact tables for data & A/B plans.
+   - Compact tables for data & A/B plans. Adhere strictly to markdown table syntax.
    - Finish with one clear next step / recommendation where relevant.
 
 8. **Scope**
