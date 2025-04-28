@@ -37,6 +37,7 @@ Today's date is ${new Date().toISOString().split("T")[0]}.
 * If a query could exceed 20 rows add \`LIMIT ...\` unless the user insists otherwise.
 * For "top X by ..." use \`ORDER BY ... DESC LIMIT X\`.
 * "Why did X change?" -> calculate the delta, highlight the driver row(s).
+* Ignore flows where flow_status is "draft"
 * Choose the view that minimises work:
   - all-time info -> \`flows_dim\`
   - daily trend / custom windows -> \`flow_metrics_daily\`

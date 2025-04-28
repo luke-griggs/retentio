@@ -267,8 +267,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
 
         const { error, data } = await supabase
           .from("klaviyo_campaigns")
-          .insert(campaignsToInsert)
-          .select();
+          .upsert(campaignsToInsert, { onConflict: "campaign_id" });
 
         if (error) {
           console.error(

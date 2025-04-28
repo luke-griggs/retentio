@@ -2,11 +2,9 @@ import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import { streamText, tool } from "ai";
 import { z } from "zod";
-import pg from "pg";
-import { databaseSchemaDescription } from "@/prompts/databaseSchema";
 import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
-
-const { Pool } = pg;
+import { queryDbTool } from "../tools/dbTool";
+import { chartTool } from "../tools/chartTool";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -19,19 +17,23 @@ export async function POST(req: Request) {
     JSON.stringify(messages, null, 2)
   );
 
-  const result = streamText({
-    model: google("gemini-2.5-flash-preview-04-17"),
-    messages,
-    providerOptions: {
-      google: {
-        thinkingConfig: {
-          thinkingBudget: 16384,
-        },
-      } satisfies GoogleGenerativeAIProviderOptions,
-    },
-    system: `system:
+  try {
+    const result = streamText({
+      model: google("gemini-2.5-flash-preview-04-17"),
+      messages,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingBudget: 16384,
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+      onError: ({ error }) => {
+        console.error("Error during streamText call:", error);
+      },
+      system: `system:
 You are **Rio**, the internal analytics assistant for Retentio.  
-Your responsibility is to interpret & summarise marketing / sales data from our Postgres views, turning raw numbers into **action-ready insights**.
+Your responsibility is to interpret & summarize marketing / sales data from our Postgres views, turning raw numbers into **action-ready insights**.
 
 ────────────────────────────────────────────────────────
 ANALYSIS GUIDELINES
@@ -44,7 +46,7 @@ ANALYSIS GUIDELINES
    When you cite a metric, show the current value ("control") that you just queried.
 
 3. **Specificity over generalities.**  
-   - **Campaigns** -> mention the campaign **name** as a clickable \`[link](campaign_url)\`; never show the ID.
+   - **Campaigns** -> mention the campaign **name** as a clickable using campaign_url column in fact_campaign_metrics; links should open in a new tab; never show the ID.
    - **Flows** -> use \`flow_name.\`
    - Quote concrete numbers (e.g., "CTR is **4.7 %** on 12 345 recipients").
    - If a metric is unavailable (e.g., opens for SMS), say so and pivot to an appropriate KPI.
@@ -86,111 +88,143 @@ HIGHEST IMPORTANCE
 ────────────────────────────────────────────────────────
 *use the databaseSchemaDescription tool to execute the query. and DO NOT show the SQL query in your response to the user. the user doesn't need to see the SQL query. use the tool call format from the ai sdk
 
+## Charts
+You have the ability to render charts/graphs using the \`render_chart\` tool. If you are asked for a chart or it makes sense within the context of the question, use this tool.
+
+The tool takes a Vega-Lite v5 JSON spec as input. Follow these rules when creating specifications:
+
+### Required Structure
+Every valid Vega-Lite specification MUST:
+1. Be a top-level JSON object (not wrapped in a "spec" property)
+2. Include at least one of: "mark", "layer", "facet", "hconcat", "vconcat", "concat", or "repeat"
+3. Include a "data" property with the dataset
+4. Include an "encoding" object that maps visual properties to data fields
+
+### Basic Structure Template
+{
+"data": {
+"values": [
+{"fieldA": "value1", "fieldB": 10},
+{"fieldA": "value2", "fieldB": 20}
+]
+},
+"mark": "TYPE",
+"encoding": {
+"x": {"field": "fieldA", "type": "nominal"},
+"y": {"field": "fieldB", "type": "quantitative"}
+}
+}
+
+### Data Types
+Always specify the correct data type in encodings:
+- "nominal" - for categories, names, and discrete values
+- "quantitative" - for numbers and measurements
+- "temporal" - for dates and times (must be in ISO format like "2025-04-01T05:00:00.000Z")
+- "ordinal" - for ordered categories
+
+### Common Charts
+- Bar chart: \`"mark": "bar"\`
+- Line chart: \`"mark": "line"\`
+- Scatter plot: \`"mark": "point"\`
+- Area chart: \`"mark": "area"\`
+- Pie chart: Use \`"mark": "arc"\` with theta encoding
+
+### Example: Bar Chart
+"title": "Campaign Performance",
+"data": {"values": [...]},
+"mark": "bar",
+"encoding": {
+"x": {"field": "campaign_name", "type": "nominal", "axis": {"labelAngle": -45}},
+"y": {"field": "clicks", "type": "quantitative", "axis": {"title": "Clicks"}},
+"tooltip": [
+{"field": "campaign_name", "type": "nominal"},
+{"field": "clicks", "type": "quantitative"}
+]
+},
+"width": 600,
+"height": 400
+}
+
+### Example: Scatter Plot
+{
+"description": "A basic scatter plot example showing the relationship between two variables.",
+  "width": 400,
+  "height": 300,
+  "data": {
+    "values": [
+      {"x": 10, "y": 20, "category": "A", "size": 5},
+      {"x": 15, "y": 35, "category": "A", "size": 8},
+      {"x": 20, "y": 25, "category": "B", "size": 12},
+      {"x": 25, "y": 45, "category": "B", "size": 4},
+    ]
+  },
+  "mark": "point",
+  "encoding": {
+    "x": {
+      "field": "x", 
+      "type": "quantitative",
+      "title": "X-Axis Variable",
+      "scale": {"zero": false}
+    },
+    "y": {
+      "field": "y", 
+      "type": "quantitative",
+      "title": "Y-Axis Variable"
+    },
+    "size": {
+      "field": "size", 
+      "type": "quantitative",
+      "title": "Size Variable"
+    },
+    "color": {
+      "field": "category", 
+      "type": "nominal",
+      "title": "Category"
+    },
+    "tooltip": [
+      {"field": "x", "type": "quantitative"},
+      {"field": "y", "type": "quantitative"},
+      {"field": "category", "type": "nominal"},
+      {"field": "size", "type": "quantitative"}
+    ]
+  }
+}
+
+
+### Advanced Features
+- For multiple series, use \`"color": {"field": "category"}\`
+- To show uncertainty, add error bands with \`"mark": {"type": "errorband"}\`
+- For small multiples, use \`"facet": {"field": "category"}\`
+
+### Interactive Elements
+- Add zoom: \`"selection": {"zoom": {"type": "interval", "bind": "scales"}}\`
+- Add tooltips: \`"mark": {"type": "point", "tooltip": true}\`
+
+### Common Errors to Avoid
+- do not wrap the specification in a "spec" object
+- Always specify data types in encoding (nominal, quantitative, etc.)
+- Ensure temporal data is properly formatted as ISO date strings
+- For bar charts, use \`"axis": {"labelAngle": -45}\` to prevent label overlap
+- VERY IMPORTANT: think carefully about the chart type and the data you are using to create the chart to best display the data to the end user.
+
 You are Rio: lean on the provided views, cite real numbers, propose **specific & data-driven** experiments, and translate analytics into plain-English business value.
 `,
 
-    tools: {
-      query_database: tool({
-        description: databaseSchemaDescription,
-        parameters: z.object({
-          query: z.string().describe("The SQL query to perform"),
-        }),
-        execute: async ({ query }) => {
-          console.log("Starting database query:", query);
-          const pool = new Pool({
-            connectionString: process.env.POSTGRES_SESSION_POOLER_URL,
-            ssl: {
-              rejectUnauthorized: false, // Required for Supabase SSL
-            },
-          });
+      tools: { 
+        query_database: queryDbTool,
+        render_chart: chartTool,
+      },
+    });
 
-          let client: pg.PoolClient | null = null; // Define client outside try
-
-          try {
-            console.log("Connecting to database...");
-            client = await pool.connect(); // Assign client
-            console.log("Running query:", query);
-
-            const queryTimeout = 10000; // 20 seconds timeout
-
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(
-                () =>
-                  reject(
-                    new Error(
-                      `Query timed out after ${queryTimeout / 1000} seconds`
-                    )
-                  ),
-                queryTimeout
-              )
-            );
-
-            const queryPromise = client.query(query);
-
-            // Race the query against the timeout
-            // Cast timeout promise result type for race compatibility
-            const queryResult = await Promise.race([
-              queryPromise,
-              timeoutPromise as Promise<pg.QueryResult>,
-            ]);
-
-            // If we reach here, the query finished before the timeout
-            console.log("Query complete, rows:", queryResult.rows.length);
-
-            const resultData = {
-              result: queryResult.rows,
-              rowCount: queryResult.rowCount,
-              fields: queryResult.fields.map((f) => ({
-                name: f.name,
-                dataTypeID: f.dataTypeID,
-              })),
-            };
-
-            console.log(
-              "Returning result:",
-              JSON.stringify(resultData, null, 2)
-            );
-            return resultData;
-          } catch (error) {
-            // This catch block now handles both database errors and the timeout error
-            console.error("Database operation error:", error);
-
-            const errorResult = {
-              error:
-                error instanceof Error
-                  ? error.message // This will include the "Query timed out..." message
-                  : "Unknown database error",
-              query: query, // Include the original query for context
-            };
-
-            console.log(
-              "Returning error:",
-              JSON.stringify(errorResult, null, 2)
-            );
-            return errorResult; // Return structured error for the AI to interpret
-          } finally {
-            // Ensure cleanup happens regardless of success or failure
-            if (client) {
-              client.release();
-              console.log("Client released.");
-            }
-            // Check if pool exists and hasn't been ended (might happen in error before finally)
-            if (pool && !pool.ended) {
-              try {
-                await pool.end();
-                console.log("Pool ended.");
-              } catch (poolEndError) {
-                console.error(
-                  "Error ending pool in finally block:",
-                  poolEndError
-                );
-              }
-            }
-          }
-        },
-      }),
-    },
-  });
-
-  return result.toDataStreamResponse();
+    return result.toDataStreamResponse();
+  } catch (error) {
+    console.error("Error during streamText call:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to process chat request" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
 }
