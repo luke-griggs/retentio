@@ -32,8 +32,9 @@ export interface MessagePart {
     toolName?: string;
     args?: any;
     state?: any;
-    result?: any
+    result?: any;
   };
+  reasoning?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,7 +94,7 @@ export default function ChatInterface() {
         ))}
 
         {/* -------- loading stub immediately after user sends -------- */}
-        {isLoading && messages.at(-1)?.role === "user" && <Thinking />}
+        {isLoading && <Thinking />}
       </div>
 
       {/* --------------------------- input -------------------------- */}
@@ -145,18 +146,15 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
           }
 
           /* -- tool invocation placeholder (spinner) -- */
-          if (part.type === "tool-invocation" && loading && isLast) {
-            return <Thinking key={`thinking-${i}`} />;
-          }
+          // if (part.type === "tool-invocation" && part.toolInvocation?.state !== "result" && loading && isLast) {
+          //   return <Thinking key={`thinking-${i}`} />;
+          // }
 
           /* -------- generic tool result (chart / db table) -------- */
-          if (part.type === "tool-invocation" && !loading) {   
           const res = getToolResult(part as MessagePart);
-          console.log("HERE IS THE RESULT",res);
           if (res?.spec) {
             return <ChartRenderer key={`chart-${i}`} spec={res.spec} />;
           }
-
 
           if (res?.db) {
             return (
@@ -165,8 +163,7 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
           }
 
           return null;
-        }
-      })}
+        })}
       </div>
     </div>
   )

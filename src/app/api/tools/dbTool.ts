@@ -1,7 +1,7 @@
 import pg from "pg";
 import { tool } from "ai";
 import { z } from "zod";
-import { databaseSchemaDescription } from "@/prompts/databaseSchema";
+import { databaseSchemaDescription } from "@/prompts/dbPrompt";
 
 const { Pool } = pg;
 
@@ -11,7 +11,6 @@ export const queryDbTool = tool({
     query: z.string(),
   }),
   execute: async ({ query }) => {
-    console.log("Starting database query:", query);
     const pool = new Pool({
       connectionString: process.env.POSTGRES_SESSION_POOLER_URL,
         ssl: {
@@ -22,9 +21,7 @@ export const queryDbTool = tool({
       let client: pg.PoolClient | null = null; // Define client outside try
   
       try {
-        console.log("Connecting to database...");
         client = await pool.connect(); // Assign client
-        console.log("Running query:", query);
   
         const queryTimeout = 10000; // 20 seconds timeout
   
@@ -50,7 +47,6 @@ export const queryDbTool = tool({
         ]);
   
         // If we reach here, the query finished before the timeout
-        console.log("Query complete, rows:", queryResult.rows.length);
   
         const resultData = {
           result: queryResult.rows,
@@ -61,10 +57,7 @@ export const queryDbTool = tool({
           })),
         };
   
-        console.log(
-          "Returning result:",
-          JSON.stringify(resultData, null, 2)
-        );
+
         return resultData;
       } catch (error) {
         // This catch block now handles both database errors and the timeout error

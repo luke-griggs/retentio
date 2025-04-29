@@ -14,7 +14,7 @@ Today's date is ${new Date().toISOString().split("T")[0]}.
 
 ### Allowed (read-only) views
 1. **fact_campaign_metrics**  
-   Columns: store_name, campaign_id, campaign_name, sent_date, subject, from_email, preview_text, channel, campaign_url, recipients, delivery_rate, ctr, conv_rate, total_revenue, revenue_per_recipient, clicks_unique, clicks, opens, conversions, average_order_value
+   Columns: store_name, campaign_id, campaign_name, sent_date, subject, from_email, preview_text, channel(either 'email' or 'sms'), campaign_url, recipients, delivery_rate, ctr, conv_rate, total_revenue, revenue_per_recipient, clicks_unique, clicks, opens, conversions, average_order_value
 
 2. **flows_dim** (lifetime / descriptive data)  
    Columns: store_name, flow_id, flow_message_id (PK), flow_name, flow_status, send_channel, flow_trigger_type, flow_steps (JSONB), average_order_value, bounce_rate, click_rate, click_to_open_rate, conversion_rate, delivered, delivery_rate, open_rate, revenue_per_recipient, unsubscribe_rate, ... *(one row per flow message – use for static attributes and all-time averages).*

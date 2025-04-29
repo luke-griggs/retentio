@@ -8,7 +8,6 @@ export interface NormalisedToolResult {
   export function getToolResult(part: MessagePart): NormalisedToolResult | null {
     if (part.toolInvocation?.toolName === "render_chart") {
       if (part.toolInvocation.state === "result") {
-        console.log("response from model", part.toolInvocation.result.spec);
         return { spec: part.toolInvocation.result.spec };
       }
     }
