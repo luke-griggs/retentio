@@ -10,6 +10,7 @@ export const chartTool = tool({
     spec: z.any().describe("The Vega-Lite v5 JSON spec to render"),
   }),
   execute: async ({ spec }) => {
+    console.log("chartTool", JSON.stringify(spec, null, 2));
     // Defensive size check (≤ 2 kB keeps latency down)
     // if (JSON.stringify(spec).length > 2048) {
     //   throw new Error("Chart spec too large (limit ~ 2 kB)");
