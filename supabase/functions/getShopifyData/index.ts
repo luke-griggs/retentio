@@ -25,54 +25,16 @@ const stores: Store[] = [
 // Define the structure of the data returned by Shopify's GraphQL API (refined)
 interface MoneySet {
   shopMoney: { amount: string; currencyCode: string };
-  presentmentMoney: { amount: string; currencyCode: string };
-}
-
-interface ShopifyRefundNode {
-  id: string;
-  createdAt: string;
-  totalRefundedSet: MoneySet | null;
-}
-
-interface ShopifyRefundConnection {
-  edges: { node: ShopifyRefundNode }[];
-}
-
-interface ShopifyTransaction {
-  // Transactions might not be a connection in the response based on query
-  id: string;
-  amountSet: MoneySet | null;
-  status: string | null;
-  createdAt: string;
-  kind: string | null;
-  gateway: string | null;
+  // presentmentMoney is no longer needed if we only use shopMoney
+  // presentmentMoney: { amount: string; currencyCode: string };
 }
 
 interface ShopifyOrderNode {
   id: string;
-  confirmationNumber: string | null;
-  name: string;
-  customer: {
-    id: string;
-    firstName: string | null;
-    lastName: string | null;
-    email: string | null;
-  } | null;
-  cancelledAt: string | null;
-  cancelReason: string | null;
   createdAt: string;
   currentShippingPriceSet: MoneySet | null;
   currentSubtotalPriceSet: MoneySet | null;
-  displayRefundStatus: string | null;
   email: string | null;
-  fullyPaid: boolean;
-  processedAt: string | null;
-  refunds: ShopifyRefundConnection | null; // Nested structure with edges
-  subtotalPriceSet: MoneySet | null;
-  totalRefundedSet: MoneySet | null;
-  transactions: ShopifyTransaction[] | null; // Array of transactions
-  unpaid: boolean;
-  updatedAt: string;
 }
 
 interface ShopifyOrderEdge {
@@ -101,49 +63,14 @@ const GET_RECENT_ORDERS_QUERY = `
         cursor
         node {
           id
-          confirmationNumber
-          name
-          customer {
-            id
-            firstName
-            lastName
-            email
-          }
-          cancelledAt
-          cancelReason
           createdAt
           currentShippingPriceSet {
              shopMoney { amount currencyCode }
-             presentmentMoney { amount currencyCode }
           }
           currentSubtotalPriceSet {
              shopMoney { amount currencyCode }
-             presentmentMoney { amount currencyCode }
           }
           email
-          fullyPaid
-          processedAt
-          subtotalPriceSet {
-             shopMoney { amount currencyCode }
-             presentmentMoney { amount currencyCode }
-          }
-          totalRefundedSet {
-             shopMoney { amount currencyCode }
-             presentmentMoney { amount currencyCode }
-          }
-          transactions(first: 10) { # Adjust if more transactions needed
-             id
-             amountSet {
-               shopMoney { amount currencyCode }
-               presentmentMoney { amount currencyCode }
-             }
-             status
-             createdAt
-             kind
-             gateway
-          }
-          unpaid
-          updatedAt
         }
       }
       pageInfo {
@@ -224,10 +151,10 @@ async function fetchOrdersFromShopify(
         hasNextPage = result.data.orders.pageInfo.hasNextPage;
         cursor = result.data.orders.pageInfo.endCursor;
       } else {
-        console.warn(
-          `No orders found or unexpected response structure for ${store.name}:`,
-          result
-        );
+        // console.warn(
+        //   `No orders found or unexpected response structure for ${store.name}:`,
+        //   result
+        // );
         hasNextPage = false;
       }
 
@@ -317,7 +244,7 @@ Deno.serve(async (req: Request) => {
   // --- Select the Month to Run ---
   // --> Set monthIndex to 0 for the first month (12 months ago)
   // --> Increment monthIndex (1, 2, ... 11) to run subsequent months
-  const monthIndex = 1; // 0 = 12 months ago, 1 = 11 months ago, ..., 11 = last month
+  const monthIndex = 11; // 0 = 12 months ago, 1 = 11 months ago, ..., 11 = last month
 
   if (monthIndex < 0 || monthIndex >= monthsToFetch.length) {
     console.error("Invalid monthIndex selected.");
@@ -337,61 +264,93 @@ Deno.serve(async (req: Request) => {
   let allFetchedOrders: any[] = [];
   const errors: string[] = [];
 
-  for (const store of stores) {
+  // Process stores concurrently
+  const storeProcessingPromises = stores.map(async (store) => {
     try {
       // Fetch orders using the currently active query filter
       const orders = await fetchOrdersFromShopify(store, activeQueryFilter);
 
       if (orders.length > 0) {
-        // Map fetched data to the structure expected by the Supabase table
-        const dataToInsert = orders.map((order) => ({
-          store_name: store.name,
-          shopify_order_id: order.id, // Use Shopify's GID
-          confirmation_number: order.confirmationNumber,
-          order_name: order.name, // e.g., #1001
-          // Cast complex objects to JSON for Supabase JSONB column
-          customer: order.customer,
-          cancelled_at: order.cancelledAt
-            ? new Date(order.cancelledAt).toISOString()
-            : null,
-          cancel_reason: order.cancelReason,
-          created_at: new Date(order.createdAt).toISOString(),
-          current_shipping_price_set: order.currentShippingPriceSet,
-          current_subtotal_price_set: order.currentSubtotalPriceSet,
-          display_refund_status: order.displayRefundStatus,
-          email: order.email,
-          fully_paid: order.fullyPaid,
-          processed_at: order.processedAt
-            ? new Date(order.processedAt).toISOString()
-            : null,
-          // Map refund nodes and cast to JSON
-          refunds: order.refunds?.edges?.map((e) => e.node) || [],
-          subtotal_price_set: order.subtotalPriceSet,
-          total_refunded_set: order.totalRefundedSet,
-          // Cast transactions array to JSON
-          transactions: order.transactions || [],
-          unpaid: order.unpaid,
-          updated_at: new Date(order.updatedAt).toISOString(),
-        }));
-        allFetchedOrders = allFetchedOrders.concat(dataToInsert);
-        console.log(
-          `Prepared ${dataToInsert.length} records for insertion from ${store.name}.`
+        // Map fetched data
+        const mappedData = orders.map((order) => {
+          // Calculate order_value safely
+          const subtotal = parseFloat(
+            order.currentSubtotalPriceSet?.shopMoney?.amount ?? "0"
+          );
+          const shipping = parseFloat(
+            order.currentShippingPriceSet?.shopMoney?.amount ?? "0"
+          );
+          const order_value = subtotal + shipping;
+
+          // Basic check for created_at validity
+          let isoCreatedAt: string | null = null;
+          try {
+            isoCreatedAt = order.createdAt
+              ? new Date(order.createdAt).toISOString()
+              : null;
+          } catch (e) {
+            console.warn(
+              `Could not parse createdAt date: ${order.createdAt} for order ${order.id}`
+            );
+          }
+
+          return {
+            store_name: store.name,
+            shopify_order_id: order.id, // Use Shopify's GID (Should be non-null from GQL)
+            created_at: isoCreatedAt, // Keep order date (Potentially null if parsing failed)
+            order_value: order_value, // Add calculated revenue
+            email: order.email, // Keep email
+          };
+        });
+
+        // Filter out records with null/undefined/NaN in any required field before adding
+        const validDataToInsert = mappedData.filter(
+          (d) =>
+            d.store_name &&
+            d.shopify_order_id &&
+            d.created_at &&
+            d.order_value !== null &&
+            d.order_value !== undefined &&
+            !isNaN(d.order_value) &&
+            d.email
         );
+
+        if (validDataToInsert.length !== mappedData.length) {
+          console.warn(
+            `Filtered out ${
+              mappedData.length - validDataToInsert.length
+            } records due to missing store_name, shopify_order_id, created_at, order_value, or email.`
+          );
+        }
+
+        // Return valid data for this store
+        return validDataToInsert;
       }
+      return []; // Return empty array if no orders
     } catch (error: unknown) {
       // Explicitly type error as unknown
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error(`Failed to process store ${store.name}:`, errorMessage);
       errors.push(`Failed for ${store.name}: ${errorMessage}`);
+      return []; // Return empty array on error for this store
     }
-  }
+  });
+
+  // Wait for all store processing to complete
+  const resultsFromStores = await Promise.all(storeProcessingPromises);
+
+  // Flatten the results from all stores into the final array
+  allFetchedOrders = resultsFromStores.flat();
 
   // Insert fetched data into Supabase
   if (allFetchedOrders.length > 0) {
     console.log(
       `Attempting to insert/upsert ${allFetchedOrders.length} total records into shopify_data...`
     );
+    // ---> ADDED: Log the data being sent to upsert for debugging
+    console.log("Data for upsert:", JSON.stringify(allFetchedOrders, null, 2));
+
     // Ignore the 'data' part of the response as it's not used
     const { error: dbError } = await supabase
       .from("shopify_data")

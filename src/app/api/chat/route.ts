@@ -6,16 +6,22 @@ import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import { queryDbTool } from "../tools/dbTool";
 import { chartTool } from "../tools/chartTool";
 import { systemPrompt } from "@/prompts/system";
+import { auditPrompt } from "@/prompts/audit";
+
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, chatMode } = await req.json();
 
   // console.log(
   //   "Received chat request with messages:",
-  //   JSON.stringify(messages, null, 2)
+  //   JSON.stringify(messages, null, 2),
+  //   `Mode: ${chatMode}`
   // );
+
+  const selectedSystemPrompt =
+    chatMode === "audit" ? auditPrompt : systemPrompt;
 
   try {
     const result = streamText({
@@ -31,7 +37,7 @@ export async function POST(req: Request) {
       onError: ({ error }) => {
         console.error("Error during streamText call:", error);
       },
-      system: systemPrompt,
+      system: selectedSystemPrompt,
 
       tools: {
         query_database: queryDbTool,

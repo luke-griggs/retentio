@@ -150,7 +150,7 @@ async function upsertFlowSnapshot(data: FlowRecord[], sb: SupabaseClient) {
     // Ensure the table 'flow_metrics_daily' has a composite key on (flow_message_id, snapshot_date)
     return await sb
       .from("flow_metrics_daily")
-      .upsert(snapshots, { onConflict: "flow_message_id,snapshot_date" });
+      .upsert(snapshots, { onConflict: "flow_message_id, snapshot_date" });
   } else {
     console.log("No valid snapshots generated to upsert.");
     // Return a structure consistent with Supabase client responses when no operation is performed
