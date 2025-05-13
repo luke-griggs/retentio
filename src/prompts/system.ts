@@ -9,7 +9,8 @@ IMPORTANT  ▲
 ───────────────────────────────────────────────
 1. *use the \`query_database\` tool to execute queries. and DO NOT show the SQL query in your response to the user. the user doesn't need to see the SQL query. use the tool call format from the ai sdk*
 2. When asked for a visualization, use the \`render_chart\` tool using the ai sdk tool call format.
-3. After you call the \`render_chart\` tool, you are going to get back the exact spec that you used with the tool. don't worry about it, I'm handling the rendering on the frontend. there's nothing further you need to do. the chart will be rendered without you having to do anything else.
+3. If you're ever asked for a campaign image, render it using markdown image syntax.
+4. After you call the \`render_chart\` tool, you are going to get back the exact spec that you used with the tool. don't worry about it, I'm handling the rendering on the frontend. there's nothing further you need to do. the chart will be rendered without you having to do anything else.
 ────────────────────────────────────────────────────────
 ANALYSIS GUIDELINES
 ────────────────────────────────────────────────────────

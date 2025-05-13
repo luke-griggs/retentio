@@ -5,6 +5,14 @@ import {
   // @ts-ignore
 } from "jsr:@supabase/supabase-js@2";
 
+// Declare Deno types for Edge Runtime
+declare const Deno: {
+  serve: (handler: (req: Request) => Promise<Response>) => void;
+  env: {
+    get: (key: string) => string | undefined;
+  };
+};
+
 interface Store {
   id: string;
   name: string;
@@ -33,9 +41,12 @@ interface KlaviyoCampaignMessage {
   type: string;
   id: string;
   attributes: {
-    definition?: {
+    definition?: { 
+      channel?: string;
       content?: {
         subject?: string;
+        from_email?: string;
+        preview_text?: string;
       };
     };
   };
@@ -57,6 +68,29 @@ interface KlaviyoCampaignDetails {
   included?: KlaviyoCampaignMessage[];
 }
 
+interface KlaviyoTemplateAttributes {
+  name: string;
+  editor_type: string;
+  html: string;
+  text: string;
+  amp: string;
+  created: string;
+  updated: string;
+}
+
+interface KlaviyoTemplateData {
+  type: "template";
+  id: string;
+  attributes: KlaviyoTemplateAttributes;
+  links: {
+    self: string;
+  };
+}
+
+interface KlaviyoTemplateResponse {
+  data: KlaviyoTemplateData;
+}
+
 const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
   if (!store.api_key) {
     console.error(`API key missing for store ${store.name}. Skipping.`);
@@ -76,7 +110,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
         type: "campaign-values-report",
         attributes: {
           timeframe: {
-            key: "last_week",
+            key: "last_365_days",
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [
@@ -220,33 +254,97 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
         campaignDetailsResults.map((item) => [item.campaign_id, item.details])
       );
 
-      const campaignsToInsert = campaignStatsResults.map((result) => {
+      // Function to fetch template for a campaign message with simplified retry
+      const fetchCampaignTemplateWithRetry = async (
+        messageId: string,
+        storeApiKey: string
+      ): Promise<KlaviyoTemplateResponse | null> => {
+        const templateUrl = `https://a.klaviyo.com/api/campaign-messages/${messageId}/template`;
+        const templateOptions = {
+          method: "GET",
+          headers: {
+            accept: "application/vnd.api+json",
+            revision: "2025-04-15", // Ensure this revision is current for the template endpoint
+            Authorization: `Klaviyo-API-Key ${storeApiKey}`,
+          },
+        };
+        let attempts = 0;
+        const maxRetries = 2; // Simpler retry for templates
+        let delay = 1000;
+
+        while (attempts < maxRetries) {
+          try {
+            const response = await fetch(templateUrl, templateOptions);
+            if (response.ok) {
+              return (await response.json()) as KlaviyoTemplateResponse;
+            }
+            if (response.status === 429 && attempts < maxRetries - 1) {
+              console.log(
+                `Rate limited (429) on template ${messageId}, attempt ${
+                  attempts + 1
+                }. Waiting ${delay / 1000}s before retry...`
+              );
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              delay *= 2;
+              attempts++;
+            } else {
+              console.error(
+                `Error fetching template for message ${messageId}: ${
+                  response.status
+                } ${response.statusText} (Attempt ${attempts + 1})`,
+                await response.text()
+              );
+              return null;
+            }
+          } catch (fetchError) {
+            console.error(
+              `Network error fetching template for message ${messageId} (Attempt ${
+                attempts + 1
+              }):`,
+              fetchError
+            );
+            // Not retrying network errors for templates in this simplified version
+            return null;
+          }
+        }
+        return null;
+      };
+
+      // Convert Promise.all to a sequential loop to respect rate limits for template fetching
+      const campaignsToInsert = [];
+      for (const result of campaignStatsResults) {
         const campaignId = result.groupings?.campaign_id;
-        const detailsData = campaignId ? detailsMap.get(campaignId) : null;
+        const detailsData: KlaviyoCampaignDetails | null = campaignId
+          ? detailsMap.get(campaignId)
+          : null;
 
         let subject: string | null = null;
         let channel: string | null = null;
         let preview_text: string | null = null;
         let from_email: string | null = null;
+
         if (
           detailsData?.included &&
           detailsData.data.relationships?.["campaign-messages"]?.data
         ) {
-          const messageId =
-            detailsData.data.relationships["campaign-messages"].data[0]?.id;
-          if (messageId) {
+          const messageRelationshipData =
+            detailsData.data.relationships["campaign-messages"].data[0];
+          if (messageRelationshipData?.id) {
+            const messageId = messageRelationshipData.id;
             const message = detailsData.included.find(
               (inc: KlaviyoCampaignMessage) =>
                 inc.type === "campaign-message" && inc.id === messageId
             );
             subject = message?.attributes?.definition?.content?.subject ?? null;
-            from_email = message?.attributes?.definition?.content?.from_email ?? null;
-            preview_text = message?.attributes?.definition?.content?.preview_text ?? null;
-            channel = message?.attributes?.definition?.channel ?? null;            
+            from_email =
+              message?.attributes?.definition?.content?.from_email ?? null;
+            preview_text =
+              message?.attributes?.definition?.content?.preview_text ?? null;
+            channel = message?.attributes?.definition?.channel ?? null;
           }
         }
 
-        return {
+        campaignsToInsert.push({
           store_name: store.name,
           campaign_id: campaignId ?? null,
           ...result.statistics,
@@ -255,56 +353,186 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
           subject: subject,
           from_email: from_email,
           channel: channel,
-          campaign_url: `https://klaviyo.com/campaign/${campaignId}/web-view`,
+          campaign_url: campaignId
+            ? `https://klaviyo.com/campaign/${campaignId}/web-view`
+            : null,
           preview_text: preview_text,
-        };
-      });
+        });
+      }
 
       if (campaignsToInsert.length > 0) {
-        console.log(
-          `--- Attempting to insert ${campaignsToInsert.length} enriched records for store ${store.name} ---`
-        );
-
-        const { error, data } = await supabase
+        const { error: insertError } = await supabase
           .from("klaviyo_campaigns")
-          .upsert(campaignsToInsert, { onConflict: "campaign_id" });
-
-        if (error) {
-          console.error(
-            `Error inserting enriched data into Supabase for store ${store.name}:`,
-            error
-          );
-          console.error("Error details:", {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
+          .upsert(campaignsToInsert, {
+            onConflict: "campaign_id",
+            // Specify which fields to update, preserving image-related fields
+            merge: [
+              "store_name",
+              "name",
+              "sent_time",
+              "subject",
+              "from_email",
+              "channel",
+              "campaign_url",
+              "preview_text",
+              // All statistics fields
+              "average_order_value",
+              "bounce_rate",
+              "bounced",
+              "bounced_or_failed",
+              "bounced_or_failed_rate",
+              "click_rate",
+              "click_to_open_rate",
+              "clicks",
+              "clicks_unique",
+              "conversion_rate",
+              "conversion_uniques",
+              "conversion_value",
+              "conversions",
+              "delivered",
+              "delivery_rate",
+              "open_rate",
+              "opens",
+              "opens_unique",
+              "recipients",
+              "revenue_per_recipient",
+              "spam_complaint_rate",
+              "spam_complaints",
+              "unsubscribe_rate",
+              "unsubscribe_uniques",
+              "unsubscribes",
+            ],
           });
-          console.error(
-            "Data attempted:",
-            JSON.stringify(campaignsToInsert[0], null, 2)
-          );
+
+        if (insertError) {
+          console.error(`Error inserting into klaviyo_campaigns:`, insertError);
         } else {
           console.log(
-            `Successfully inserted ${
-              data?.length ?? campaignsToInsert.length
-            } enriched campaign records for store ${store.name}`
+            `Successfully inserted ${campaignsToInsert.length} campaigns into klaviyo_campaigns.`
           );
+
+          // Now process images for campaigns that need them
+          for (const campaign of campaignsToInsert) {
+            if (!campaign.campaign_id || campaign.channel === "sms") continue;
+
+            // Check if we already have an image for this campaign
+            const { data: existingCampaign } = await supabase
+              .from("klaviyo_campaigns")
+              .select("campaign_image_url, image_id")
+              .eq("campaign_id", campaign.campaign_id)
+              .single();
+
+            if (
+              existingCampaign?.campaign_image_url ||
+              existingCampaign?.image_id
+            ) {
+              console.log(
+                `Campaign ${campaign.campaign_id} already has image processing in progress or completed. Skipping.`
+              );
+              continue;
+            }
+
+            // Find the message ID from the details we already have
+            const detailsData = detailsMap.get(campaign.campaign_id);
+            const messageId =
+              detailsData?.data.relationships?.["campaign-messages"]?.data[0]
+                ?.id;
+
+            if (!messageId) {
+              console.log(
+                `No message ID found for campaign ${campaign.campaign_id}. Skipping image processing.`
+              );
+              continue;
+            }
+
+            // Fetch template and process image
+            if (store.api_key) {
+              console.log(
+                `Processing image for campaign ${campaign.campaign_id}, message ${messageId}...`
+              );
+              const templateResponse = await fetchCampaignTemplateWithRetry(
+                messageId,
+                store.api_key
+              );
+
+              if (templateResponse?.data?.attributes?.html) {
+                const escapedHTML = templateResponse.data.attributes.html;
+                const unescapedHTML = escapedHTML
+                  .replace(/\n/g, "\n")
+                  .replace(/\"/g, '"');
+
+                // Initiate Convertio conversion
+                const convertioApiKey = Deno.env.get("CONVERTIO_API_KEY");
+                const callbackBaseUrl = Deno.env.get("PUBLIC_FUNCTIONS_URL");
+
+                if (convertioApiKey && callbackBaseUrl) {
+                  try {
+                    console.log(
+                      `Initiating Convertio job for campaign ${campaign.campaign_id}...`
+                    );
+                    const convertioPayload = {
+                      apikey: convertioApiKey,
+                      input: "raw",
+                      filename: `c_${campaign.campaign_id}_${messageId}.html`,
+                      file: unescapedHTML,
+                      outputformat: "png",
+                      options: {
+                        callback_url: `${callbackBaseUrl}/convertio-callback`,
+                      },
+                    };
+
+                    const startConversionResponse = await fetch(
+                      "https://api.convertio.co/convert",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(convertioPayload),
+                      }
+                    );
+
+                    const convertioResult =
+                      await startConversionResponse.json();
+
+                    if (
+                      startConversionResponse.ok &&
+                      convertioResult.status === "ok" &&
+                      convertioResult.data?.id
+                    ) {
+                      console.log(
+                        `Convertio job started. ID: ${convertioResult.data.id} for campaign ${campaign.campaign_id}`
+                      );
+
+                      // Store the Convertio ID
+                      await supabase
+                        .from("klaviyo_campaigns")
+                        .update({ image_id: convertioResult.data.id })
+                        .eq("campaign_id", campaign.campaign_id);
+                    } else {
+                      console.error(
+                        `Error initiating Convertio job for campaign ${campaign.campaign_id}:`,
+                        convertioResult.error ||
+                          `Convertio API error: ${startConversionResponse.status}`
+                      );
+                    }
+                  } catch (initiationError) {
+                    console.error(
+                      `Exception during Convertio job initiation for campaign ${campaign.campaign_id}:`,
+                      initiationError
+                    );
+                  }
+                }
+              }
+            }
+          }
         }
-      } else {
-        console.log(
-          `No campaign results found to process for store ${store.name}`
-        );
       }
-    } else {
-      console.log(
-        `No campaign statistic results found for store ${store.name}`
-      );
     }
-  } catch (error) {
+  } catch (fetchError) {
     console.error(
-      `An unexpected error occurred processing store ${store.name}:`,
-      error
+      `Network error fetching campaign data for store ${store.name}:`,
+      fetchError
     );
   }
 };
