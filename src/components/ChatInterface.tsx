@@ -159,7 +159,7 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
             : "bg-none rounded-tl-none"
         }`}
       >
-        {message.parts.map((part: MessagePart, i: number) => {
+        {message.parts?.map((part: MessagePart, i: number) => {
           /* -------- plain text -------- */
           if (part.type === "text") {
             return (
@@ -171,12 +171,7 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
             );
           }
 
-          /* -- tool invocation placeholder (spinner) -- */
-          // if (part.type === "tool-invocation" && part.toolInvocation?.state !== "result" && loading && isLast) {
-          //   return <Thinking key={`thinking-${i}`} />;
-          // }
-
-          /* -------- generic tool result (chart / db table) -------- */
+          /* -------- generic tool result (chart / db table ) -------- */
           const res = getToolResult(part as MessagePart);
           if (res?.spec) {
             return <ChartRenderer key={`chart-${i}`} spec={res.spec} />;
@@ -185,6 +180,16 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
           if (res?.db) {
             return (
               <DbTable key={`db-${i}`} results={res.db as DatabaseResult[]} />
+            );
+          }
+
+          if (res?.cdnUrl) {
+            return (
+              <img
+                src={res.cdnUrl}
+                alt="Campaign image"
+                className="max-w-full rounded-lg"
+              />
             );
           }
 

@@ -1,12 +1,14 @@
 import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
-import { streamText, tool } from "ai";
+import { convertToCoreMessages, streamText } from "ai";
 import { z } from "zod";
 import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import { queryDbTool } from "../tools/dbTool";
 import { chartTool } from "../tools/chartTool";
+import { viewImageTool } from "../tools/viewImageTool";
 import { systemPrompt } from "@/prompts/system";
 import { auditPrompt } from "@/prompts/audit";
+import { anthropic, AnthropicProviderOptions } from "@ai-sdk/anthropic";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -14,38 +16,56 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages, chatMode } = await req.json();
 
-  // console.log(
-  //   "Received chat request with messages:",
-  //   JSON.stringify(messages, null, 2),
-  //   `Mode: ${chatMode}`
-  // );
+  // console.log("Final messagesForModel being sent to AI:", JSON.stringify(messagesForModel, null, 2));
 
   const selectedSystemPrompt =
     chatMode === "audit" ? auditPrompt : systemPrompt;
 
   try {
     const result = streamText({
-      model: google("gemini-2.5-flash-preview-04-17"),
-      messages,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            thinkingBudget: 24576,
-          },
-        } satisfies GoogleGenerativeAIProviderOptions,
-      },
+      model: anthropic("claude-4-sonnet-20250514"),
+      messages: convertToCoreMessages(messages, {
+        tools: {
+          query_database: queryDbTool,
+          render_chart: chartTool,
+          view_image: viewImageTool,
+        },
+      }),
+      // headers: {
+      //   "anthropic-beta": "interleaved-thinking-2025-05-14",
+      // },
+      // providerOptions: {
+      //   anthropic: {
+      //     thinking: {
+      //       type: "enabled",
+      //       budgetTokens: 12000,
+      //     },
+      //   } satisfies AnthropicProviderOptions,
+      // },
       onError: ({ error }) => {
         console.error("Error during streamText call:", error);
       },
       system: selectedSystemPrompt,
-
       tools: {
         query_database: queryDbTool,
         render_chart: chartTool,
+        view_image: viewImageTool,
       },
     });
 
-    return result.toDataStreamResponse();
+    const messagesForModel = convertToCoreMessages(messages, {
+      tools: {
+        query_database: queryDbTool,
+        render_chart: chartTool,
+        view_image: viewImageTool,
+      },
+    })
+    console.dir(messagesForModel, { depth: null });
+
+
+    return result.toDataStreamResponse({
+      sendReasoning: true,
+  });
   } catch (error) {
     console.error("Error during streamText call:", error);
     return new Response(

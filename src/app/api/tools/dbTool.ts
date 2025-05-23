@@ -49,7 +49,7 @@ export const queryDbTool = tool({
         // If we reach here, the query finished before the timeout
   
         const resultData = {
-          result: queryResult.rows,
+          rows: queryResult.rows,
           rowCount: queryResult.rowCount,
           fields: queryResult.fields.map((f) => ({
             name: f.name,
