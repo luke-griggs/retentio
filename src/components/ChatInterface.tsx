@@ -183,15 +183,15 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
             );
           }
 
-          if (res?.cdnUrl) {
-            return (
-              <img
-                src={res.cdnUrl}
-                alt="Campaign image"
-                className="max-w-full rounded-lg"
-              />
-            );
-          }
+          // if (res?.cdnUrl) { TODO: add back after ui/ux is updated
+          //   return (
+          //     <img
+          //       src={res.cdnUrl}
+          //       alt="Campaign image"
+          //       className="max-w-full rounded-lg"
+          //     />
+          //   );
+          // }
 
           return null;
         })}
