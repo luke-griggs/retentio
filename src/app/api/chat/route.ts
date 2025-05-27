@@ -16,8 +16,6 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages, chatMode } = await req.json();
 
-  // console.log("Final messagesForModel being sent to AI:", JSON.stringify(messagesForModel, null, 2));
-
   const selectedSystemPrompt =
     chatMode === "audit" ? auditPrompt : systemPrompt;
 
