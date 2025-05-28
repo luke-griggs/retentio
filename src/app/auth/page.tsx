@@ -1,4 +1,4 @@
-import { readUserSession } from "./auth/actions";
+import { readUserSession } from "./actions";
 import AuthButtons from "@/components/AuthButtons";
 import Navbar from "@/components/Navbar";
 
@@ -10,17 +10,17 @@ export default async function Home() {
     <main className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />
       {/* {isAuthenticated ? ( */}
-        <div className="max-w-5xl mx-auto h-[calc(100vh-6rem)] flex flex-col items-center justify-center px-4 text-center">
-          <h2 className="text-6xl font-bold text-blue-500 mb-8">
-            Welcome to Rio
-          </h2>
-          <p className="text-xl font-semibold text-gray-500 dark:text-gray-300 max-w-2xl mb-10">
-            Retentio&apos;s AI-powered assistant.
-          </p>
-          <AuthButtons isAuthenticated={isAuthenticated} />
-        </div>
+      <div className="max-w-5xl mx-auto h-[calc(100vh-6rem)] flex flex-col items-center justify-center px-4 text-center">
+        <h2 className="text-6xl font-bold text-blue-500 mb-8">
+          Welcome to Rio
+        </h2>
+        <p className="text-xl font-semibold text-gray-500 dark:text-gray-300 max-w-2xl mb-10">
+          Retentio&apos;s AI-powered assistant.
+        </p>
+        <AuthButtons isAuthenticated={isAuthenticated} />
+      </div>
       {/* ) : ( */}
-        {/* <div className="max-w-4xl mx-auto min-h-[calc(100vh-6rem)] flex flex-col items-center justify-center p-4">
+      {/* <div className="max-w-4xl mx-auto min-h-[calc(100vh-6rem)] flex flex-col items-center justify-center p-4">
           <h1 className="text-6xl font-bold text-blue-500 text-center mb-8 italic">
             RETENTIO
           </h1>
