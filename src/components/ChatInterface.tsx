@@ -15,6 +15,12 @@ import { useMessages } from "@/hooks/use-messages";
 
 // Custom scrollbar styles
 const scrollbarStyles = `
+  /* Prevent system dark mode from interfering */
+  .chat-interface {
+    color-scheme: light;
+    forced-color-adjust: none;
+  }
+  
   .chat-scrollbar::-webkit-scrollbar {
     width: 8px;
   }
@@ -43,6 +49,46 @@ const scrollbarStyles = `
   .chat-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: #fbbf24 transparent;
+  }
+  
+  /* Force consistent text colors regardless of system theme */
+  .chat-interface * {
+    color-scheme: light;
+  }
+  
+  /* Ensure markdown prose styling works consistently */
+  .prose-invert {
+    color: #e5e7eb !important;
+  }
+  
+  .prose-invert h1, .prose-invert h2, .prose-invert h3, .prose-invert h4, .prose-invert h5, .prose-invert h6 {
+    color: #f9fafb !important;
+  }
+  
+  .prose-invert strong {
+    color: #f9fafb !important;
+  }
+  
+  .prose-invert a {
+    color: #fbbf24 !important;
+  }
+  
+  .prose-invert code {
+    color: #fbbf24 !important;
+    background-color: rgba(55, 65, 81, 0.5) !important;
+  }
+  
+  .prose-invert table {
+    color: #e5e7eb !important;
+  }
+  
+  .prose-invert th {
+    color: #f9fafb !important;
+    border-color: #4b5563 !important;
+  }
+  
+  .prose-invert td {
+    border-color: #4b5563 !important;
   }
 `;
 
@@ -182,7 +228,7 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-[#1A2030] via-[#3a5a8a] to-[#2e4a6f] relative overflow-hidden">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-[#1A2030] via-[#3a5a8a] to-[#2e4a6f] relative overflow-hidden chat-interface">
       {/* Top decorative layer can stay absolute */}
       <div className="absolute inset-0 w-full h-full">
         <Image
@@ -421,20 +467,29 @@ MessageBubble.displayName = "MessageBubble";
 
 const MarkdownText = ({ text, isUser }: { text: string; isUser: boolean }) => (
   <div
-    className={
-      isUser ? "whitespace-pre-wrap" : "prose dark:prose-invert max-w-none"
-    }
+    className={isUser ? "whitespace-pre-wrap" : "prose prose-invert max-w-none"}
   >
     {isUser ? (
       text
     ) : (
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children, ...props }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
     )}
   </div>
 );
 
 const Thinking = () => (
-  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+  <div className="flex items-center text-sm text-gray-400">
     <svg
       className="h-6 w-6 animate-spin mr-2"
       xmlns="http://www.w3.org/2000/svg"

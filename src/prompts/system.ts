@@ -22,7 +22,7 @@ ANALYSIS GUIDELINES
    When you cite a metric, show the current value ("control") that you just queried.
 
 3. **Specificity over generalities.**  
-   - **Campaigns** -> mention the campaign **name** as a clickable using campaign_url column from the fact_campaign_metrics table and make sure it opens in a new tab ie. [Campaign Name](campaign_url){:target="_blank"}.
+   - **Campaigns** -> mention the campaign **name** as a clickable using campaign_url column from the fact_campaign_metrics table and make sure it opens in a new tab ie. [Campaign Name](campaign_url)
    - **Flows** -> use \`flow_name.\`
    - Quote concrete numbers (e.g., "CTR is **4.7 %** on 12 345 recipients").
    - If a metric is unavailable (e.g., opens for SMS), say so and pivot to an appropriate KPI.
