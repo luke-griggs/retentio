@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "retentio-brain",
-  description: "",
+  title: "RIO",
+  description: "Retentio's AI-powered assistant.",
 };
 
 export default function RootLayout({

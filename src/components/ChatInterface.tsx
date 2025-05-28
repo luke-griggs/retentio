@@ -608,7 +608,7 @@ function ChatInput({
 
       {/* Disclaimer message */}
       <div className="text-center mt-1 mb-1">
-        <p className="text-xs font-semibold text-gray-300/40">
+        <p className="text-xs font-semibold text-gray-300/50">
           Rio can make mistakes. Check important info.
         </p>
       </div>
