@@ -368,6 +368,10 @@ function InitialView({ fillExample, chatInputProps }: InitialViewProps) {
         <h2 className="text-6xl md:text-7xl font-black mb-8 text-shadow-lg tracking-tight">
           Hello, I'm <span className="text-yellow-400 italic">RIO</span>
         </h2>
+        <p className="text-lg md:text-xl text-gray-200 mb-8 font-medium">
+          Designed to help you serve{" "}
+          <span className="font-black italic">RETENTIO</span> clients.
+        </p>
 
         {/* Chat Input Container - matching the form padding exactly */}
         <div className="w-full max-w-4xl px-4 mb-10">
