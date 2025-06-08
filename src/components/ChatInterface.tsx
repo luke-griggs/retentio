@@ -136,12 +136,15 @@ interface ChatInputProps {
   disabled: boolean;
   chatMode: ChatMode;
   onModeChange: (mode: ChatMode) => void;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
   isFixed?: boolean; // New prop for positioning
 }
 
 export default function ChatInterface() {
   /* --------------------------- chat state -------------------------- */
   const [chatMode, setChatMode] = useState<ChatMode>("analysis");
+  const [files, setFiles] = useState<File[]>([]);
 
   const {
     messages,
@@ -187,12 +190,41 @@ export default function ChatInterface() {
   };
 
   // Wrap handleSubmit to include chatMode
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const readFiles = async () => {
+      return Promise.all(
+        files.map(
+          (file) =>
+            new Promise<{ name: string; type: string; data: string }>(
+              (resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () =>
+                  resolve({
+                    name: file.name,
+                    type: file.type,
+                    data: reader.result as string,
+                  });
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(file);
+              }
+            )
+        )
+      );
+    };
+
+    const fileData = await readFiles().catch(() => []);
+
+    setFiles([]);
+
     originalHandleSubmit(e, {
-      // options: {
-      //     body: { chatMode }
-      // }
+      options: {
+        body: {
+          chatMode,
+          files: fileData,
+        },
+      },
     });
   };
 
@@ -215,6 +247,8 @@ export default function ChatInterface() {
     disabled: isLoading,
     chatMode,
     onModeChange: setChatMode,
+    files,
+    onFilesChange: setFiles,
   };
 
   if (messages.length === 0 && !isLoading) {
@@ -526,6 +560,8 @@ function ChatInput({
   disabled,
   chatMode,
   onModeChange,
+  files,
+  onFilesChange,
   isFixed = true, // Default to true
 }: ChatInputProps) {
   const toggleMode = () => {
@@ -534,6 +570,7 @@ function ChatInput({
 
   // Create a ref for the textarea
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Adjust textarea height automatically
   const adjustTextareaHeight = useCallback(() => {
@@ -608,11 +645,27 @@ function ChatInput({
               : "py-6 min-h-[80px] max-h-[200px] text-lg" // Increased from py-5 and min-h-[70px]
           }`}
         />
+        <input
+          type="file"
+          multiple
+          ref={fileInputRef}
+          onChange={(e) => onFilesChange(Array.from(e.target.files || []))}
+          className="hidden"
+        />
         <div
           className={`absolute flex items-center space-x-2 ${
             isFixed ? "right-6 bottom-7" : "right-6 bottom-8" // Adjusted for taller input
           }`}
         >
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-200"
+            title="Attach files"
+          >
+            <Image src="/file.svg" alt="attach" width={16} height={16} />
+          </button>
           <button
             type="button"
             onClick={toggleMode}
@@ -664,6 +717,15 @@ function ChatInput({
           </button>
         </div>
       </form>
+      {files.length > 0 && (
+        <div className="mt-2 text-xs text-gray-300">
+          {files.map((f) => (
+            <span key={f.name} className="mr-2">
+              {f.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Disclaimer message */}
       <div className="text-center mt-1 mb-1">
