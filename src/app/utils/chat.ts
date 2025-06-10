@@ -1,4 +1,4 @@
-import { MessagePart, DatabaseResult } from "@/components/ChatInterface";
+import { MessagePart, DatabaseResult } from "@/components/MessageComponents";
 
 export interface NormalisedToolResult {
   spec?: Record<string, unknown>;

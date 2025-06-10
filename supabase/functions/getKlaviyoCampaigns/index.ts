@@ -110,7 +110,7 @@ const getCampaignData = async (store: Store, supabase: SupabaseClient) => {
         type: "campaign-values-report",
         attributes: {
           timeframe: {
-            key: "last_365_days",
+            key: "last_30_days",
           },
           conversion_metric_id: store.conversion_metric_id,
           statistics: [

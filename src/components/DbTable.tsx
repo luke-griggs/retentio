@@ -1,5 +1,5 @@
 import React from "react";
-import { DatabaseResult } from "./ChatInterface";
+import { DatabaseResult } from "./MessageComponents";
 const DbTable = ({ results }: { results: DatabaseResult[] }) => {
   return (
     <table className="w-full text-sm border-collapse">
