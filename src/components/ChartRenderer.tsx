@@ -12,11 +12,16 @@ const VegaLite = dynamic(
 );
 
 /* ------------------ 2) main component ------------------ */
-export const ChartRenderer = React.memo(function ChartRenderer({
+
+// We export the plain function component to satisfy the stricter JSXElementConstructor
+// type constraints introduced with the React 19 typings. A separate memoized version
+// is still provided for consumers that want to optimise re-renders without hitting the
+// new typing limitation that excludes `MemoExoticComponent` from valid JSX element
+// types.
+
+export const ChartRenderer: React.FC<{ spec: VisualizationSpec }> = ({
   spec,
-}: {
-  spec: VisualizationSpec;
-}) {
+}) => {
   if (!VegaLite) {
     return <p className="text-sm">Loading chart...</p>;
   }
@@ -28,4 +33,9 @@ export const ChartRenderer = React.memo(function ChartRenderer({
       <VegaLite spec={spec as any} actions={false} />
     </div>
   );
-});
+};
+
+// Optional memoised export if some areas of the codebase want to take advantage
+// of memoisation explicitly. Having this separate keeps the default export type
+// simple and compatible with React 19's JSX constraints.
+export const MemoizedChartRenderer = React.memo(ChartRenderer);

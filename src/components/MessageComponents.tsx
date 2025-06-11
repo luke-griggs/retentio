@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdownBase from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChartRenderer } from "@/components/ChartRenderer";
 import DbTable from "@/components/DbTable";
@@ -40,6 +40,14 @@ interface FileAttachment {
   url: string;
   contentType?: string;
 }
+
+// React 19's stricter JSXElementConstructor no longer recognises the function
+// signature returned by the default export of `react-markdown`. We provide a
+// lightweight wrapper that forwards all props but has an explicit React.FC
+// signature, making it compatible with JSX usage.
+const ReactMarkdown: React.FC<
+  React.ComponentProps<typeof ReactMarkdownBase>
+> = (props) => <ReactMarkdownBase {...props} />;
 
 export const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
   ({ message, requiresScrollPadding }, ref) => {

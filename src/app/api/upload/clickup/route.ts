@@ -138,16 +138,6 @@ async function createClickUpTask(
     name: campaign.campaignName,
     due_date: parseDateToUnix(campaign.date),
     custom_fields: customFields,
-    tags: [
-      campaign.campaignType && campaign.campaignType !== ""
-        ? campaign.campaignType
-        : null,
-      campaign.promo && campaign.promo !== "" ? campaign.promo : null,
-    ].filter((tag) => tag !== null),
-    // You can add other fields here as needed:
-    // assignees: [], // Array of user IDs - to be configured by user
-    // status: "to do", // Task status - to be configured by user
-    // time_estimate: null, // Time in milliseconds
   };
 
   try {
@@ -230,21 +220,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Custom field mapping - you'll need to set these environment variables with your actual field IDs
+    // Custom field mapping - using hardcoded field IDs from ClickUp
     const customFieldMapping: CustomFieldMapping = {
-      campaignType: process.env.CLICKUP_FIELD_CAMPAIGN_TYPE,
-      promo: process.env.CLICKUP_FIELD_PROMO,
-      primaryGoal: process.env.CLICKUP_FIELD_PRIMARY_GOAL,
-      emotionalDriver: process.env.CLICKUP_FIELD_EMOTIONAL_DRIVER,
-      contentStrategy: process.env.CLICKUP_FIELD_CONTENT_STRATEGY,
-      inclusionSegments: process.env.CLICKUP_FIELD_INCLUSION_SEGMENTS,
-      exclusionSegments: process.env.CLICKUP_FIELD_EXCLUSION_SEGMENTS,
-      sendTime: process.env.CLICKUP_FIELD_SEND_TIME,
-      abTest: process.env.CLICKUP_FIELD_AB_TEST,
-      sms: process.env.CLICKUP_FIELD_SMS,
-      plainText: process.env.CLICKUP_FIELD_PLAIN_TEXT,
-      followUp: process.env.CLICKUP_FIELD_FOLLOW_UP,
-      notes: process.env.CLICKUP_FIELD_NOTES,
+      // campaignType: "9b23ac4f-2efc-4f1a-bca2-deb1d7edbcb0",
+      promo: "ca8efe1c-db5e-41bc-9077-a475c59ea893",
+      // primaryGoal: "6d98af22-4a83-4ab2-b189-7f91ae70ade1",
+      emotionalDriver: "e4785680-a540-40f7-8caa-e8507e733dc4",
+      contentStrategy: "24fca732-54a3-41de-8c6f-76248502faab",
+      inclusionSegments: "ff7e4ee9-27f5-4fa5-bd74-e6c78471f607",
+      exclusionSegments: "ea6f66cd-f163-4727-9ec3-7dcb5217de20",
+      sendTime: "ffe94050-321f-40b6-b5bc-16b631ceb744",
+      abTest: "45b89329-1fef-4eb7-bc91-3f5f0a721140",
+      sms: "3e18b90b-9b07-428b-b9bb-1d525bcb0d15",
+      plainText: "3eb999a0-c005-486e-9d37-eb232dab080a",
+      followUp: "82687b29-bcaf-42ff-8c35-7bb2bb820908",
+      notes: "8c7a2fe0-84e4-44c0-9f2f-c93ee2acb88f",
+      // If you came across this repo, these are no longer in use :
     };
 
     const createdTasks = [];

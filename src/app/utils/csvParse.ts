@@ -1,6 +1,7 @@
 import Papa from "papaparse";
 
 export interface Campaign {
+  storeName: string;
   date: string;
   campaignName: string;
   campaignType: string;
@@ -26,6 +27,9 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
   // Parse CSV into rows
   const parsed = Papa.parse<string[]>(csv.trim(), { skipEmptyLines: false });
   const rows = parsed.data;
+
+  // Extract store name from the very first entry
+  const storeName = rows[0]?.[0]?.trim() || "";
 
   // Regex to match date patterns like "2 June", "15 December", etc.
   const dateRegex =
@@ -73,6 +77,7 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
         };
 
         const campaign: Campaign = {
+          storeName,
           date,
           campaignName: cleanString(campaignName),
           campaignType: cleanString(fieldRows[1]?.[col] || ""),
@@ -98,6 +103,13 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
     }
   }
 
+  // Validate campaign count limit
+  if (campaigns.length > 31) {
+    throw new Error(
+      `Too many campaigns detected (${campaigns.length}). Maximum allowed is 31 campaigns per upload to prevent timeout issues.`
+    );
+  }
+
   return campaigns;
 }
 
@@ -108,6 +120,7 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
  */
 export function campaignsToCSV(campaigns: Campaign[]): string {
   const headers = [
+    "Store Name",
     "Date",
     "Campaign Name",
     "Campaign Type",
@@ -128,6 +141,7 @@ export function campaignsToCSV(campaigns: Campaign[]): string {
   const csvData = [
     headers,
     ...campaigns.map((campaign) => [
+      campaign.storeName,
       campaign.date,
       campaign.campaignName,
       campaign.campaignType,
