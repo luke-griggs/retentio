@@ -28,7 +28,7 @@ function LoadingModal({ isOpen }: { isOpen: boolean }) {
               We're uploading your calendar
             </h3>
             <p className="text-sm text-gray-400">
-              This should only take a few seconds
+              This should only take a moment
             </p>
           </div>
         </div>
@@ -240,7 +240,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                           Your file is being uploaded to ClickUp
                         </p>
                         <p className="text-xs text-gray-400">
-                          This should only take a few seconds
+                          This should only take a moment
                         </p>
                       </>
                     ) : isDragging ? (

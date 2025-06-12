@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseCampaignCalendarCSV, Campaign } from "@/app/utils/csvParse";
 
+enum CampaignType {
+  "Promo" = 1,
+  "Educational" = 0,
+  "Newsletter" = 2,
+  "Blog" = 3,
+  "ProductFeature" = 4,
+  "Value-Add" = 5,
+}
+
+enum PrimaryGoal {
+  "Awareness" = 1,
+  "Education" = 2,
+  "Engagement" = 3,
+  "Conversion" = 4,
+  "Retention" = 5,
+  "UGC/Social Proof" = 6,
+  "AOV Lift" = 7,
+}
+
 // Custom field mapping interface
 interface CustomFieldMapping {
   campaignType?: string;
@@ -16,6 +35,133 @@ interface CustomFieldMapping {
   plainText?: string;
   followUp?: string;
   notes?: string;
+}
+
+// Helper function to sanitize store name for environment variable lookup
+function sanitizeStoreName(storeName: string): string {
+  return storeName
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+// Helper function to get ClickUp list ID for a store
+function getClickUpListId(storeName: string): string | null {
+  const sanitizedName = sanitizeStoreName(storeName);
+  const envVarName = `CLICKUP_LIST_ID_${sanitizedName}`;
+  return process.env[envVarName] || null;
+}
+
+// Helper function to get Space-level custom field mapping from environment variables
+function getCustomFieldMapping(): CustomFieldMapping {
+  return {
+    campaignType: process.env.CLICKUP_FIELD_CAMPAIGN_TYPE,
+    promo: process.env.CLICKUP_FIELD_PROMO,
+    primaryGoal: process.env.CLICKUP_FIELD_PRIMARY_GOAL,
+    emotionalDriver: process.env.CLICKUP_FIELD_EMOTIONAL_DRIVER,
+    contentStrategy: process.env.CLICKUP_FIELD_CONTENT_STRATEGY,
+    inclusionSegments: process.env.CLICKUP_FIELD_INCLUSION_SEGMENTS,
+    exclusionSegments: process.env.CLICKUP_FIELD_EXCLUSION_SEGMENTS,
+    sendTime: process.env.CLICKUP_FIELD_SEND_TIME,
+    abTest: process.env.CLICKUP_FIELD_AB_TEST,
+    sms: process.env.CLICKUP_FIELD_SMS,
+    plainText: process.env.CLICKUP_FIELD_PLAIN_TEXT,
+    followUp: process.env.CLICKUP_FIELD_FOLLOW_UP,
+    notes: process.env.CLICKUP_FIELD_NOTES,
+  };
+}
+
+// Helper function to build custom fields array
+function buildCustomFields(
+  campaign: Campaign,
+  customFieldMapping: CustomFieldMapping
+) {
+  const customFields = [];
+
+  // Define field mappings with their corresponding enum/value extractors
+  const fieldMappings = [
+    {
+      mappingKey: "campaignType" as keyof CustomFieldMapping,
+      campaignValue: campaign.campaignType,
+      getValue: (value: string) =>
+        CampaignType[value as keyof typeof CampaignType],
+    },
+    {
+      mappingKey: "promo" as keyof CustomFieldMapping,
+      campaignValue: campaign.promo,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "primaryGoal" as keyof CustomFieldMapping,
+      campaignValue: campaign.primaryGoal,
+      getValue: (value: string) =>
+        PrimaryGoal[value as keyof typeof PrimaryGoal],
+    },
+    {
+      mappingKey: "emotionalDriver" as keyof CustomFieldMapping,
+      campaignValue: campaign.emotionalDriver,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "contentStrategy" as keyof CustomFieldMapping,
+      campaignValue: campaign.contentStrategy,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "inclusionSegments" as keyof CustomFieldMapping,
+      campaignValue: campaign.inclusionSegments,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "exclusionSegments" as keyof CustomFieldMapping,
+      campaignValue: campaign.exclusionSegments,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "sendTime" as keyof CustomFieldMapping,
+      campaignValue: campaign.sendTime,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "abTest" as keyof CustomFieldMapping,
+      campaignValue: campaign.abTest,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "sms" as keyof CustomFieldMapping,
+      campaignValue: campaign.sms,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "plainText" as keyof CustomFieldMapping,
+      campaignValue: campaign.plainText,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "followUp" as keyof CustomFieldMapping,
+      campaignValue: campaign.followUp,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "notes" as keyof CustomFieldMapping,
+      campaignValue: campaign.notes,
+      getValue: (value: string) => value,
+    },
+  ];
+
+  // Build custom fields array using the mappings
+  for (const mapping of fieldMappings) {
+    const fieldId = customFieldMapping[mapping.mappingKey];
+    if (fieldId && mapping.campaignValue) {
+      customFields.push({
+        id: fieldId,
+        value: mapping.getValue(mapping.campaignValue),
+      });
+    }
+  }
+
+  return customFields;
 }
 
 // Helper function to create a ClickUp task for a campaign
@@ -40,104 +186,10 @@ async function createClickUpTask(
     }
   };
 
-  // Build custom fields array based on mapping and campaign data
-  const customFields = [];
-
-  if (customFieldMapping.campaignType && campaign.campaignType) {
-    customFields.push({
-      id: customFieldMapping.campaignType,
-      value: campaign.campaignType,
-    });
-  }
-
-  if (customFieldMapping.promo && campaign.promo) {
-    customFields.push({
-      id: customFieldMapping.promo,
-      value: campaign.promo,
-    });
-  }
-
-  if (customFieldMapping.primaryGoal && campaign.primaryGoal) {
-    customFields.push({
-      id: customFieldMapping.primaryGoal,
-      value: campaign.primaryGoal,
-    });
-  }
-
-  if (customFieldMapping.emotionalDriver && campaign.emotionalDriver) {
-    customFields.push({
-      id: customFieldMapping.emotionalDriver,
-      value: campaign.emotionalDriver,
-    });
-  }
-
-  if (customFieldMapping.contentStrategy && campaign.contentStrategy) {
-    customFields.push({
-      id: customFieldMapping.contentStrategy,
-      value: campaign.contentStrategy,
-    });
-  }
-
-  if (customFieldMapping.inclusionSegments && campaign.inclusionSegments) {
-    customFields.push({
-      id: customFieldMapping.inclusionSegments,
-      value: campaign.inclusionSegments,
-    });
-  }
-
-  if (customFieldMapping.exclusionSegments && campaign.exclusionSegments) {
-    customFields.push({
-      id: customFieldMapping.exclusionSegments,
-      value: campaign.exclusionSegments,
-    });
-  }
-
-  if (customFieldMapping.sendTime && campaign.sendTime) {
-    customFields.push({
-      id: customFieldMapping.sendTime,
-      value: campaign.sendTime,
-    });
-  }
-
-  if (customFieldMapping.abTest && campaign.abTest) {
-    customFields.push({
-      id: customFieldMapping.abTest,
-      value: campaign.abTest,
-    });
-  }
-
-  if (customFieldMapping.sms && campaign.sms) {
-    customFields.push({
-      id: customFieldMapping.sms,
-      value: campaign.sms,
-    });
-  }
-
-  if (customFieldMapping.plainText && campaign.plainText) {
-    customFields.push({
-      id: customFieldMapping.plainText,
-      value: campaign.plainText,
-    });
-  }
-
-  if (customFieldMapping.followUp && campaign.followUp) {
-    customFields.push({
-      id: customFieldMapping.followUp,
-      value: campaign.followUp,
-    });
-  }
-
-  if (customFieldMapping.notes && campaign.notes) {
-    customFields.push({
-      id: customFieldMapping.notes,
-      value: campaign.notes,
-    });
-  }
-
   const taskData = {
     name: campaign.campaignName,
     due_date: parseDateToUnix(campaign.date),
-    custom_fields: customFields,
+    custom_fields: buildCustomFields(campaign, customFieldMapping),
   };
 
   try {
@@ -196,9 +248,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get store name from the first campaign (all campaigns should have the same store name)
+    const storeName = campaigns[0].storeName;
+    if (!storeName) {
+      return NextResponse.json(
+        {
+          error:
+            "No store name found in CSV. Please ensure the store name is in the first cell.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Get configuration from environment variables
     const CLICKUP_KEY = process.env.CLICKUP_KEY;
-    const CLICKUP_LIST_ID = "901704863057";
+    const CLICKUP_LIST_ID = getClickUpListId(storeName);
 
     if (!CLICKUP_KEY) {
       return NextResponse.json(
@@ -211,32 +275,33 @@ export async function POST(request: NextRequest) {
     }
 
     if (!CLICKUP_LIST_ID) {
+      const sanitizedName = sanitizeStoreName(storeName);
       return NextResponse.json(
         {
-          error:
-            "ClickUp List ID not configured. Please set CLICKUP_LIST_ID environment variable.",
+          error: `ClickUp List ID not configured for store "${storeName}". Please set CLICKUP_LIST_ID_${sanitizedName} environment variable.`,
         },
         { status: 500 }
       );
     }
 
-    // Custom field mapping - using hardcoded field IDs from ClickUp
-    const customFieldMapping: CustomFieldMapping = {
-      // campaignType: "9b23ac4f-2efc-4f1a-bca2-deb1d7edbcb0",
-      promo: "ca8efe1c-db5e-41bc-9077-a475c59ea893",
-      // primaryGoal: "6d98af22-4a83-4ab2-b189-7f91ae70ade1",
-      emotionalDriver: "e4785680-a540-40f7-8caa-e8507e733dc4",
-      contentStrategy: "24fca732-54a3-41de-8c6f-76248502faab",
-      inclusionSegments: "ff7e4ee9-27f5-4fa5-bd74-e6c78471f607",
-      exclusionSegments: "ea6f66cd-f163-4727-9ec3-7dcb5217de20",
-      sendTime: "ffe94050-321f-40b6-b5bc-16b631ceb744",
-      abTest: "45b89329-1fef-4eb7-bc91-3f5f0a721140",
-      sms: "3e18b90b-9b07-428b-b9bb-1d525bcb0d15",
-      plainText: "3eb999a0-c005-486e-9d37-eb232dab080a",
-      followUp: "82687b29-bcaf-42ff-8c35-7bb2bb820908",
-      notes: "8c7a2fe0-84e4-44c0-9f2f-c93ee2acb88f",
-      // If you came across this repo, these are no longer in use :
-    };
+    // Get Space-level custom field mapping from environment variables
+    const customFieldMapping = getCustomFieldMapping();
+    const configuredFields =
+      Object.values(customFieldMapping).filter(Boolean).length;
+
+    if (configuredFields === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "No custom fields configured. Please set CLICKUP_FIELD_* environment variables.",
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      `Using ${configuredFields} configured custom fields for store: ${storeName}`
+    );
 
     const createdTasks = [];
     const failedTasks = [];
@@ -245,7 +310,7 @@ export async function POST(request: NextRequest) {
     for (const campaign of campaigns) {
       try {
         console.log(
-          `Creating ClickUp task for campaign: ${campaign.campaignName}`
+          `Creating ClickUp task for campaign: ${campaign.campaignName} (Store: ${storeName})`
         );
         const task = await createClickUpTask(
           campaign,
@@ -271,17 +336,19 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `Successfully created ${createdTasks.length} tasks, ${failedTasks.length} failed`
+      `Successfully created ${createdTasks.length} tasks, ${failedTasks.length} failed for store: ${storeName}`
     );
 
     return NextResponse.json({
       success: true,
-      message: `Successfully processed ${campaigns.length} campaigns. Created ${createdTasks.length} tasks.`,
+      message: `Successfully processed ${campaigns.length} campaigns for ${storeName}. Created ${createdTasks.length} tasks using Space-level custom fields.`,
+      storeName,
       campaignCount: campaigns.length,
       createdTasks: createdTasks.length,
       failedTasks: failedTasks.length,
       createdTasksList: createdTasks,
       failedTasksList: failedTasks,
+      customFieldsUsed: configuredFields,
       fileUrl, // Include the blob URL for reference
     });
   } catch (error) {
