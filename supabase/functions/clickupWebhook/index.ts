@@ -20,14 +20,14 @@ import { emailPrompt } from "./emailPrompt.ts";
 // Env vars – fill these in the Supabase dashboard
 // ────────────────────────────────────────────────────────────
 const CLICKUP_KEY = Deno.env.get("CLICKUP_KEY"); // personal/service token
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 const DRAFT_FIELD_NAME = "First Draft";
 const CU_API = "https://api.clickup.com/api/v2";
 
-if (!CLICKUP_KEY || !ANTHROPIC_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+if (!CLICKUP_KEY || !GOOGLE_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error("Missing one or more required environment variables");
 }
 
@@ -74,39 +74,43 @@ async function setDraft(taskId: string, fieldId: string, draft: string) {
   if (!res.ok) throw new Error(`ClickUp setField → ${res.status}`);
 }
 
-async function anthropicDraft(prompt: string) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY ?? "",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 512,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+async function googleDraft(prompt: string) {
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" +
+      GOOGLE_API_KEY,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error(
-      `Anthropic API error: ${response.status} ${response.statusText}`
+      `GEMINI API error: ${response.status} ${response.statusText}`
     );
   }
 
   const data = await response.json();
-  return data.content[0]?.type === "text" ? data.content[0].text : "";
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  return text;
 }
 
 async function fetchBrandCartridge(supabase: any, brand: string) {
   const { data, error } = await supabase
     .from("brand_cartridges")
-    .select("cartridges")
-    .ilike("name", brand)
-    .single();
+    .select("content")
+    .eq("store", brand)
+    .limit(1);
   if (error) throw error;
-  return data.cartridges as string;
+  if (!data || data.length === 0) {
+    throw new Error(`No brand cartridge found for brand: ${brand}`);
+  }
+  return data[0].content as string;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -133,27 +137,27 @@ Deno.serve(async (req) => {
 // Background worker
 // ────────────────────────────────────────────────────────────
 async function handleAsync(taskId: string) {
-  // // Supabase client per invocation
-  // const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Supabase client per invocation
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // // 1) Task details
-  // const task = await getTask(taskId);
+  // 1) Task details
+  const task = await getTask(taskId);
 
-  // // 2) Brand name from folder
-  // const brand = task.folder?.name ?? "unknown";
+  // 2) Brand name from folder
+  const brand = task.folder?.name ?? "unknown";
 
-  // // 3) Brand-specific instructions
-  // // const instructions = await fetchBrandCartrige(supabase, brand);
+  // 3) Brand-specific instructions
+  const cartridge = await fetchBrandCartridge(supabase, brand);
 
-  // // 4) Draft via Anthropic
-  // const prompt = await emailPrompt(task.description); // clickup description contains instructions for the email
-  // const draft = await anthropicDraft(prompt);
-  // console.log(draft);
+  // 4) Draft via Google
+  const prompt = await emailPrompt(task.description, cartridge); // clickup description contains instructions for the email
+  const draft = await googleDraft(prompt);
+  console.log(draft);
 
-  // // 5) Field ID, then write
-  // const fieldId = await getCustomFieldId(task.list.id);
-  // await setDraft(taskId, fieldId, draft);
+  // 5) Field ID, then write
+  const fieldId = await getCustomFieldId(task.list.id);
+  await setDraft(taskId, fieldId, draft);
 
-  // // (optional) telemetry / logging
+  // (optional) telemetry / logging
   console.log(`Draft saved for task ${taskId}`);
 }

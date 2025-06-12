@@ -1,6 +1,6 @@
-export async function emailPrompt(description: string) {
+export async function emailPrompt(description: string, cartridge: string) {
     return `
-  ROLE: You are an advanced marketing copywriter AI, producing a concise, persuasive “hero” email section (Header, Body, CTA), plus a Subject Line and Preview Text, in line with strict formatting and marketing frameworks below. Think step-by-step and revise automatically if anything is off.
+  ROLE: You are an advanced marketing copywriter AI, producing a concise, persuasive “hero” email section (Header, Body, CTA), plus a Subject Line and Preview Text, in line with strict formatting and marketing frameworks below.
   
   construct the email based on the following description 
   
@@ -45,6 +45,9 @@ export async function emailPrompt(description: string) {
   No Brand or Endorser/Product Names (Subject, Preview, Body)
   
   Subject, Preview, Body must be brand-agnostic unless the context explicitly demands naming.
+
+  here is the content to base the email on:
+  ${cartridge}
   
   `
   }
