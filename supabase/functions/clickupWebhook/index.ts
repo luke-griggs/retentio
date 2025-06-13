@@ -10,7 +10,7 @@ declare const Deno: {
 //   1) fetch task   (ClickUp API)
 //   2) fetch brand instructions (Supabase DB)
 //   3) generate draft (Anthropic)
-//   4) write to "Draft Email" custom field (ClickUp API)
+//   4) update task description with draft (ClickUp API)
 
 // @ts-ignore
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -24,7 +24,6 @@ const GOOGLE_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
-const DRAFT_FIELD_NAME = "First Draft";
 const CU_API = "https://api.clickup.com/api/v2";
 
 if (!CLICKUP_KEY || !GOOGLE_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -42,36 +41,19 @@ async function getTask(taskId: string) {
   return res.json();
 }
 
-async function getCustomFieldId(listId: string) {
-  // (b) otherwise list metadata
-  const res = await fetch(`${CU_API}/list/${listId}/field`, {
-    headers: { Authorization: CLICKUP_KEY ?? "" },
-  });
-  if (!res.ok) throw new Error(`ClickUp list fields → ${res.status}`);
-  const data = await res.json();
-
-  // Handle different possible response structures
-  const fields = data.fields || data || [];
-  if (!Array.isArray(fields)) {
-    console.error("ClickUp API response is not an array:", data);
-    throw new Error(`Custom field API returned unexpected format`);
-  }
-
-  const found = fields.find((f: any) => f.name === DRAFT_FIELD_NAME);
-  if (!found) throw new Error(`Custom field "${DRAFT_FIELD_NAME}" not found`);
-  return found.id;
-}
-
-async function setDraft(taskId: string, fieldId: string, draft: string) {
-  const res = await fetch(`${CU_API}/task/${taskId}/field/${fieldId}`, {
-    method: "POST",
+async function updateTaskDescription(taskId: string, markdownContent: string) {
+  const res = await fetch(`${CU_API}/task/${taskId}`, {
+    method: "PUT",
     headers: {
       Authorization: CLICKUP_KEY ?? "",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ value: draft }),
+    body: JSON.stringify({
+      markdown_content: markdownContent,
+    }),
   });
-  if (!res.ok) throw new Error(`ClickUp setField → ${res.status}`);
+  if (!res.ok) throw new Error(`ClickUp updateTask → ${res.status}`);
+  return res.json();
 }
 
 async function googleDraft(prompt: string) {
@@ -149,15 +131,20 @@ async function handleAsync(taskId: string) {
   // 3) Brand-specific instructions
   const cartridge = await fetchBrandCartridge(supabase, brand);
 
-  // 4) Draft via Google
-  const prompt = await emailPrompt(task.description, cartridge); // clickup description contains instructions for the email
+  // 4) Extract links from custom fields
+  const linksField = task.custom_fields?.find(
+    (field: any) => field.name === "links"
+  );
+  const links = linksField?.value || "";
+
+  // 5) Draft via Google
+  const prompt = await emailPrompt(task.description, cartridge, links); // pass links to prompt
   const draft = await googleDraft(prompt);
   console.log(draft);
 
-  // 5) Field ID, then write
-  const fieldId = await getCustomFieldId(task.list.id);
-  await setDraft(taskId, fieldId, draft);
+  // 6) Update task description with markdown content
+  await updateTaskDescription(taskId, draft);
 
   // (optional) telemetry / logging
-  console.log(`Draft saved for task ${taskId}`);
+  console.log(`Draft saved to task description for task ${taskId}`);
 }
