@@ -2,22 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseCampaignCalendarCSV, Campaign } from "@/app/utils/csvParse";
 
 enum CampaignType {
-  "Promo" = 1,
-  "Educational" = 0,
-  "Newsletter" = 2,
-  "Blog" = 3,
-  "ProductFeature" = 4,
-  "Value-Add" = 5,
+  "Bundle / Collection Highlight" = 0,
+  "Community / UGC" = 1,
+  "Gift Guide" = 2,
+  "Launch Announcement" = 3,
+  "Lifestyle / Use-Case Story" = 4,
+  "Product Comparison / Guide" = 5,
+  "Value-Product Education" = 6,
+  "Promotion / Sale" = 7,
+  "Seasonal" = 8,
+  "Tips / Recipe / How-To" = 9,
 }
 
 enum PrimaryGoal {
-  "Awareness" = 1,
-  "Education" = 2,
-  "Engagement" = 3,
-  "Conversion" = 4,
-  "Retention" = 5,
-  "UGC/Social Proof" = 6,
-  "AOV Lift" = 7,
+  "Awareness" = 0,
+  "Education" = 1,
+  "Engagement" = 2,
+  "Conversion" = 3,
+  "Retention" = 4,
+  "UGC/Social Proof" = 5,
+  "AOV Lift" = 6,
 }
 
 // Custom field mapping interface
@@ -178,7 +182,7 @@ async function createClickUpTask(
     try {
       // Assuming date format like "2 June" - we'll need to add current year
       const currentYear = new Date().getFullYear();
-      const fullDateStr = `${dateStr} ${currentYear}`;
+      const fullDateStr = `${dateStr} ${currentYear} 12:00:00 GMT`;
       const date = new Date(fullDateStr);
       return date.getTime();
     } catch {
