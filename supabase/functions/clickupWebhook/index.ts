@@ -89,10 +89,7 @@ async function fetchBrandCartridge(supabase: any, brand: string) {
     .eq("store", brand)
     .limit(1);
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error(`No brand cartridge found for brand: ${brand}`);
-  }
-  return data[0].content as string;
+  return data[0]?.content as string;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -133,16 +130,22 @@ async function handleAsync(taskId: string) {
 
   // 4) Extract links from custom fields
   const linksField = task.custom_fields?.find(
-    (field: any) => field.name === "links"
+    (field: any) => field.name === "Links"
+  );
+
+  // 5) Extract content strategy from custom fields
+  const contentStrategyField = task.custom_fields?.find(
+    (field: any) => field.name === "Content Strategy"
   );
   const links = linksField?.value || "";
+  const contentStrategy = contentStrategyField?.value || "";
 
-  // 5) Draft via Google
-  const prompt = await emailPrompt(task.description, cartridge, links); // pass links to prompt
-  const draft = await googleDraft(prompt);
+  // 6) Draft via Google
+  const prompt = await emailPrompt(cartridge ?? "", links, contentStrategy); // pass links to prompt
+  const draft = await googleDraft(prompt); 
   console.log(draft);
 
-  // 6) Update task description with markdown content
+  // 7) Update task description with markdown content
   await updateTaskDescription(taskId, draft);
 
   // (optional) telemetry / logging

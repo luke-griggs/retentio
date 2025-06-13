@@ -39,6 +39,7 @@ interface CustomFieldMapping {
   plainText?: string;
   followUp?: string;
   notes?: string;
+  links?: string;
 }
 
 // Helper function to sanitize store name for environment variable lookup
@@ -73,6 +74,7 @@ function getCustomFieldMapping(): CustomFieldMapping {
     plainText: process.env.CLICKUP_FIELD_PLAIN_TEXT,
     followUp: process.env.CLICKUP_FIELD_FOLLOW_UP,
     notes: process.env.CLICKUP_FIELD_NOTES,
+    links: process.env.CLICKUP_FIELD_LINKS,
   };
 }
 
@@ -150,6 +152,11 @@ function buildCustomFields(
     {
       mappingKey: "notes" as keyof CustomFieldMapping,
       campaignValue: campaign.notes,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "links" as keyof CustomFieldMapping,
+      campaignValue: campaign.links,
       getValue: (value: string) => value,
     },
   ];

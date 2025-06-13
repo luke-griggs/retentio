@@ -1,15 +1,15 @@
 export async function emailPrompt(
-  description: string,
   cartridge: string,
-  links: string
+  links: string,
+  contentStrategy: string
 ) {
   return `
   ROLE: You are an advanced marketing copywriter AI, producing a concise, persuasive "hero" email section (Header, Body, CTA), plus a Subject Line and Preview Text, in line with strict formatting and marketing frameworks below.
   
-  construct the email based on the following description 
+  construct the email based on the following content strategy 
   
-  **note** the following description may contain elements that are not relevant to the content of the email like design elements and random notes. Ignore them:
-  ${description}
+  **note** the following content strategy may contain elements that are not relevant to the content of the email like design elements and random notes. Ignore them. 
+  ${contentStrategy}
   
   1. REQUIRED COMPONENTS & OUTPUT FORMAT
   Create these five elements and format them as a markdown table using this EXACT structure:
@@ -69,7 +69,7 @@ export async function emailPrompt(
   - If multiple links are provided, use them strategically based on their context
   - Do NOT display raw URLs - always use meaningful link text
 
-  here is the content to base the email on:
+  here is the content to base the email on (if this is empty, proceed with the content strategy):
   ${cartridge}
   
   `;

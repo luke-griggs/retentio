@@ -17,6 +17,7 @@ export interface Campaign {
   plainText: string;
   followUp: string;
   notes: string;
+  links: string;
 }
 
 /**
@@ -46,10 +47,10 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
       // This is a date row - extract the dates and campaign data
       const dateRow = row;
 
-      // The next 14 rows contain the campaign fields
-      if (i + 14 >= rows.length) break; // Not enough rows remaining
+      // The next 15 rows contain the campaign fields
+      if (i + 15 >= rows.length) break; // Not enough rows remaining
 
-      const fieldRows = rows.slice(i + 1, i + 15);
+      const fieldRows = rows.slice(i + 1, i + 16);
 
       // Check that we have the expected field structure
       if (
@@ -93,13 +94,14 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
           plainText: cleanString(fieldRows[11]?.[col] || ""),
           followUp: cleanString(fieldRows[12]?.[col] || ""),
           notes: cleanString(fieldRows[13]?.[col] || ""),
+          links: cleanString(fieldRows[14]?.[col] || ""),
         };
 
         campaigns.push(campaign);
       }
 
       // Skip the field rows we just processed
-      i += 14;
+      i += 15;
     }
   }
 
