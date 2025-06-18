@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "ClickUp API key not configured. Please set CLICKUP_KEY environment variable.",
+            "ClickUp API key not configured. Please set environment variable.",
         },
         { status: 500 }
       );
@@ -289,7 +289,7 @@ export async function POST(request: NextRequest) {
       const sanitizedName = sanitizeStoreName(storeName);
       return NextResponse.json(
         {
-          error: `ClickUp List ID not configured for store "${storeName}". Please set CLICKUP_LIST_ID_${sanitizedName} environment variable.`,
+          error: `ClickUp List ID not configured for store`,
         },
         { status: 500 }
       );

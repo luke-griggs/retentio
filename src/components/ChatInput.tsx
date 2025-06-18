@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { UploadModal } from "./UploadModal";
 import { AttachFileModal } from "./AttachFileModal";
+import { CampaignUploadModal } from "./CampaignUploadModal";
 
 type ChatMode = "analysis" | "audit";
 
@@ -43,6 +44,7 @@ export function ChatInput({
   const [showUploadDropdown, setShowUploadDropdown] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAttachModal, setShowAttachModal] = useState(false);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -284,7 +286,7 @@ export function ChatInput({
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
                   />
                 </svg>
               </button>
@@ -308,9 +310,19 @@ export function ChatInput({
                       setShowUploadModal(true);
                       setShowUploadDropdown(false);
                     }}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
                   >
                     Upload a Calendar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCampaignModal(true);
+                      setShowUploadDropdown(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Upload Campaign
                   </button>
                 </div>
               )}
@@ -384,6 +396,11 @@ export function ChatInput({
         isOpen={showAttachModal}
         onClose={() => setShowAttachModal(false)}
         onFileAttach={handleFileAttachInternal}
+      />
+
+      <CampaignUploadModal
+        isOpen={showCampaignModal}
+        onClose={() => setShowCampaignModal(false)}
       />
 
       {/* Disclaimer message */}
