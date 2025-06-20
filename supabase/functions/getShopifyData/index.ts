@@ -186,11 +186,11 @@ Deno.serve(async (req: Request) => {
   // @ts-ignore
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   // @ts-ignore
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error(
-      "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables."
+      "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables."
     );
     return new Response(
       JSON.stringify({ error: "Server configuration error" }),
@@ -202,9 +202,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // Initialize Supabase client (without Database type)
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: req.headers.get("Authorization")! } },
-  });
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // --- Define Date Ranges for Months (going back 1 year) ---
   const monthsToFetch: {

@@ -1,6 +1,7 @@
 import { readUserSession } from "../auth/actions";
 import { redirect } from "next/navigation";
 import ChatInterface from "@/components/ChatInterface";
+import ChatLayout from "@/components/ChatLayout";
 
 export default async function ChatPage() {
   // Check authentication on the server
@@ -13,8 +14,10 @@ export default async function ChatPage() {
 
   // User is authenticated, render the chat interface
   return (
-    <main className="min-h-screen bg-white dark:bg-gray-900">
-      <ChatInterface />
-    </main>
+    <ChatLayout>
+      <main className="min-h-screen bg-white dark:bg-gray-900">
+        <ChatInterface />
+      </main>
+    </ChatLayout>
   );
 }

@@ -22,11 +22,11 @@ import { emailPrompt } from "./emailPrompt.ts";
 const CLICKUP_KEY = Deno.env.get("CLICKUP_KEY"); // personal/service token
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const CU_API = "https://api.clickup.com/api/v2";
 
-if (!CLICKUP_KEY || !GOOGLE_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+if (!CLICKUP_KEY || !GOOGLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("Missing one or more required environment variables");
 }
 
@@ -82,14 +82,48 @@ async function googleDraft(prompt: string) {
   return text;
 }
 
-async function fetchBrandCartridge(supabase: any, brand: string) {
+async function fetchBrandCartridge(supabase: any, store: string) {
   const { data, error } = await supabase
     .from("brand_cartridges")
     .select("content")
-    .eq("store", brand)
+    .eq("store", store)
     .limit(1);
   if (error) throw error;
   return data[0]?.content as string;
+}
+
+// ────────────────────────────────────────────────────────────
+// NEW: persist task into clickup_tasks table
+// ────────────────────────────────────────────────────────────
+async function upsertClickupTaskRecord(supabase: any, task: any, draft: string) {
+  let storeId: string | null = null;
+
+  if (task.list?.id) {
+    const { data: storeByList } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("clickup_list_id", task.list.id)
+      .maybeSingle();
+    storeId = storeByList?.id ?? null;
+  } else {
+    console.error("No store found for task", task);
+  }
+  try {
+    await supabase.from("clickup_tasks").upsert(
+      {
+        id: task.id,
+        store_id: storeId,
+        name: task.name,
+        description: draft,
+        updated_at: task.date_updated
+          ? new Date(Number(task.date_updated)).toISOString()
+          : new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
+  } catch (e) {
+    console.error("Error upserting clickup_tasks", e);
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -106,7 +140,7 @@ Deno.serve(async (req) => {
   if (!taskId) return new Response("task_id missing", { status: 400 });
 
   // 2. Immediate 200 back to ClickUp, then process in background
-  handleAsync(taskId).catch((e) =>
+  handleAsync(taskId, payload).catch((e) =>
     console.error("Background processing error:", e)
   );
   return new Response("ok");
@@ -115,39 +149,57 @@ Deno.serve(async (req) => {
 // ────────────────────────────────────────────────────────────
 // Background worker
 // ────────────────────────────────────────────────────────────
-async function handleAsync(taskId: string) {
+async function handleAsync(taskId: string, payload: any) {
   // Supabase client per invocation
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   // 1) Task details
   const task = await getTask(taskId);
 
-  // 2) Brand name from folder
-  const brand = task.folder?.name ?? "unknown";
+  // 2) Check if status changed to "READY FOR WRITING"
+  const currentStatus = task.status?.status?.toLowerCase();
 
-  // 3) Brand-specific instructions
-  const cartridge = await fetchBrandCartridge(supabase, brand);
+  // Only proceed if status is "ready for writing"
+  if (currentStatus !== "ready for writing") {
+    console.log(
+      `Task ${taskId} status is "${currentStatus}", not "ready for writing". Skipping processing.`
+    );
+    return;
+  }
 
-  // 4) Extract links from custom fields
+  console.log(`Task ${taskId} status is "ready for writing". Processing...`);
+
+  // 3) Store name from folder
+  const store = task.folder?.name ?? "unknown";
+
+  // 4) Store-specific instructions
+  const cartridge = await fetchBrandCartridge(supabase, store);
+
+  // 5) Extract links from custom fields
   const linksField = task.custom_fields?.find(
     (field: any) => field.name === "Links"
   );
 
-  // 5) Extract content strategy from custom fields
+  // 6) Extract content strategy from custom fields
   const contentStrategyField = task.custom_fields?.find(
     (field: any) => field.name === "Content Strategy"
   );
   const links = linksField?.value || "";
   const contentStrategy = contentStrategyField?.value || "";
 
-  // 6) Draft via Google
-  const prompt = await emailPrompt(cartridge ?? "", links, contentStrategy); // pass links to prompt
-  const draft = await googleDraft(prompt); 
+  // 7) Draft via Google
+  const prompt = await emailPrompt(cartridge ?? "", links, contentStrategy);
+  const draft = await googleDraft(prompt);
   console.log(draft);
 
-  // 7) Update task description with markdown content
+  // 8) Update task description with markdown content
   await updateTaskDescription(taskId, draft);
 
+  // 9) Persist task record in DB (create/update)
+  await upsertClickupTaskRecord(supabase, task, draft);
+
   // (optional) telemetry / logging
-  console.log(`Draft saved to task description for task ${taskId}`);
+  console.log(
+    `Draft generated and saved for task ${taskId} with "ready for writing" status`
+  );
 }

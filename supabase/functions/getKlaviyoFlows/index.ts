@@ -33,7 +33,6 @@ interface KlaviyoFlowStatsResult {
   statistics: Record<string, number | string | null>;
 }
 
-
 // Interface for a single action within a flow definition
 interface FlowAction {
   id?: string;
@@ -81,7 +80,7 @@ interface FlowRecord {
   click_rate?: number | string | null;
   click_to_open_rate?: number | string | null;
   clicks?: number | string | null;
-  clicks_unique?: number | string | null;  
+  clicks_unique?: number | string | null;
   conversion_rate?: number | string | null;
   conversion_uniques?: number | string | null;
   conversion_value?: number | string | null;
@@ -102,10 +101,7 @@ interface FlowRecord {
   flow_steps: Record<string, any>[];
 }
 
-async function upsertFlowDim(
-  data: FlowRecord[],
-  sb: SupabaseClient
-) {
+async function upsertFlowDim(data: FlowRecord[], sb: SupabaseClient) {
   // Upsert the combined flow dimension data
   // The 'data' parameter now explicitly expects an array of FlowRecord objects
   return await sb
@@ -219,7 +215,7 @@ const getFlowData = async (store: Store, supabase: SupabaseClient) => {
   try {
     // Fetch the flow values report
     const reportResponse = await fetch(
-      `https://a.klaviyo.com/api/flow-values-reports`, 
+      `https://a.klaviyo.com/api/flow-values-reports`,
       reportOptions
     );
 
@@ -499,31 +495,19 @@ Deno.serve(async (req: Request) => {
   // @ts-ignore
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   // @ts-ignore
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  // Get authorization header (e.g., service_role key)
-  const authorization = req.headers.get("Authorization");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   // Validate required configuration
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Missing Supabase URL or Anon Key environment variables.");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("Missing Supabase URL or Service Key environment variables.");
     return new Response(
       JSON.stringify({ error: "Server configuration error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (!authorization) {
-    // Ensure requests are authorized
-    console.error("Authorization header missing.");
-    return new Response(JSON.stringify({ error: "Authorization required" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
 
-  // Initialize Supabase client with authorization
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authorization } },
-  });
+  // Initialize Supabase client with service role key
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // Process flow data for each configured store
   // Use Promise.all for concurrent processing if desired and safe

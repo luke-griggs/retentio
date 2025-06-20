@@ -41,7 +41,7 @@ interface KlaviyoCampaignMessage {
   type: string;
   id: string;
   attributes: {
-    definition?: { 
+    definition?: {
       channel?: string;
       content?: {
         subject?: string;
@@ -541,27 +541,17 @@ Deno.serve(async (req: Request) => {
   // @ts-ignore
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   // @ts-ignore
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const authorization = req.headers.get("Authorization");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Missing Supabase URL or Anon Key environment variables.");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("Missing Supabase URL or Service Key environment variables.");
     return new Response(
       JSON.stringify({ error: "Server configuration error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (!authorization) {
-    console.error("Authorization header missing.");
-    return new Response(JSON.stringify({ error: "Authorization required" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authorization } },
-  });
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   for (const store of stores) {
     await getCampaignData(store, supabase);
