@@ -1,1 +1,3 @@
 use bun for installs
+
+If you're told that something isn't implemented correctly when you know it is, or I misatribute the cause of an issue - Kindly correct me and inform me that I'm mistaken. 

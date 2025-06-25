@@ -99,7 +99,15 @@ export default function CopyModeInterface() {
   // Update email content when campaign is selected
   useEffect(() => {
     if (selectedCampaign) {
-      setEmailContent(selectedCampaign.description || "");
+      const description = selectedCampaign.description?.trim();
+      if (description && description.length > 0) {
+        setEmailContent(description);
+      } else {
+        // Set a clear empty state for campaigns without content
+        setEmailContent("");
+      }
+    } else {
+      setEmailContent("");
     }
   }, [selectedCampaign]);
 
@@ -272,7 +280,18 @@ export default function CopyModeInterface() {
         </div>
       </div>
 
-      {/* Center Column - Email Editor or Store Overview */}
+      {/* Middle Column - AI Chat */}
+      {selectedCampaign && (
+        <div className="w-96 border-r border-gray-700">
+          <EmailEditChat
+            campaign={selectedCampaign}
+            emailContent={emailContent}
+            onContentChange={setEmailContent}
+          />
+        </div>
+      )}
+
+      {/* Right Column - Email Editor or Store Overview */}
       <div className="flex-1 flex flex-col">
         {selectedCampaign ? (
           <>
@@ -298,7 +317,6 @@ export default function CopyModeInterface() {
               <div className="max-w-2xl w-full">
                 {/* Store Name - Large Centered Title */}
                 <div className="flex items-center justify-center mb-2">
-                  
                   <h1 className="text-4xl font-semibold text-white text-center">
                     {selectedStore.name}
                   </h1>
@@ -374,17 +392,6 @@ export default function CopyModeInterface() {
           </div>
         )}
       </div>
-
-      {/* Right Column - AI Chat */}
-      {selectedCampaign && (
-        <div className="w-96 border-l border-gray-700">
-          <EmailEditChat
-            campaign={selectedCampaign}
-            emailContent={emailContent}
-            onContentChange={setEmailContent}
-          />
-        </div>
-      )}
     </div>
   );
 }

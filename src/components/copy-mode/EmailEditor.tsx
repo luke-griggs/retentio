@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Typography from "@tiptap/extension-typography";
-import Placeholder from "@tiptap/extension-placeholder";
+
 import Link from "@tiptap/extension-link";
 import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
@@ -93,6 +93,7 @@ const convertMarkdownTableToHtml = (markdown: string): string => {
 
 export default function EmailEditor({ content, onChange }: EmailEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const [isEmpty, setIsEmpty] = useState(true);
 
   const editor = useEditor({
     extensions: [
@@ -155,10 +156,6 @@ export default function EmailEditor({ content, onChange }: EmailEditorProps) {
           class: "border border-gray-600 px-3 py-2",
         },
       }),
-      Placeholder.configure({
-        placeholder: "Start typing your email content...",
-        emptyEditorClass: "is-empty",
-      }),
     ],
     content: "",
     editorProps: {
@@ -172,6 +169,21 @@ export default function EmailEditor({ content, onChange }: EmailEditorProps) {
       // Get HTML content instead of markdown for emails
       const html = editor.getHTML();
       onChange(html);
+
+      // Update isEmpty state
+      const text = editor.getText().trim();
+      setIsEmpty(text.length === 0);
+    },
+    onFocus: () => {
+      // Hide placeholder on focus if editor is empty
+      if (isEmpty) {
+        setIsEmpty(false);
+      }
+    },
+    onBlur: ({ editor }) => {
+      // Show placeholder again if editor is empty after blur
+      const text = editor.getText().trim();
+      setIsEmpty(text.length === 0);
     },
     parseOptions: {
       preserveWhitespace: "full",
@@ -180,13 +192,20 @@ export default function EmailEditor({ content, onChange }: EmailEditorProps) {
 
   // Update editor content when content prop changes
   useEffect(() => {
-    if (editor && content) {
-      // Convert markdown content to HTML if it contains tables
-      const htmlContent = convertMarkdownTableToHtml(content);
+    if (editor) {
+      if (content && content.trim().length > 0) {
+        // Convert markdown content to HTML if it contains tables
+        const htmlContent = convertMarkdownTableToHtml(content);
 
-      // Only update if content is different
-      if (htmlContent !== editor.getHTML()) {
-        editor.commands.setContent(htmlContent, false);
+        // Only update if content is different
+        if (htmlContent !== editor.getHTML()) {
+          editor.commands.setContent(htmlContent, false);
+        }
+        setIsEmpty(false);
+      } else {
+        // Clear content to show placeholder
+        editor.commands.setContent("", false);
+        setIsEmpty(true);
       }
     }
   }, [content, editor]);
@@ -269,6 +288,17 @@ export default function EmailEditor({ content, onChange }: EmailEditorProps) {
     <div className="flex-1 flex relative overflow-hidden">
       <div className="flex-1 relative" ref={editorRef}>
         <EditorContent editor={editor} className="h-full overflow-y-auto" />
+
+        {/* Custom placeholder overlay */}
+        {isEmpty && (
+          <div
+            className="absolute top-6 left-6 text-gray-400 cursor-text select-none"
+            style={{ fontSize: "14px", lineHeight: "1.6" }}
+            onClick={() => editor?.commands.focus()}
+          >
+            This campaign has no content. Start typing to add email content...
+          </div>
+        )}
       </div>
     </div>
   );
