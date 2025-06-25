@@ -32,7 +32,7 @@ if (!CLICKUP_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 // Helper functions
 // ────────────────────────────────────────────────────────────
 async function getTask(taskId: string) {
-  const res = await fetch(`${CU_API}/task/${taskId}`, {
+  const res = await fetch(`${CU_API}/task/${taskId}/?include_markdown_description=true`, {
     headers: { Authorization: CLICKUP_KEY ?? "" },
   });
   if (!res.ok) throw new Error(`ClickUp getTask → ${res.status}`);
@@ -61,7 +61,7 @@ async function upsertClickupTaskRecord(
       id: task.id,
       store_id: brandId,
       name: task.name,
-      description: task.description ?? task.text_content ?? "",
+      description: task.markdown_description ?? "",
       updated_at: task.date_updated
         ? new Date(Number(task.date_updated)).toISOString()
         : new Date().toISOString(),

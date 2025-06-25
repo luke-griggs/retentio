@@ -1,0 +1,114 @@
+.ProseMirror {
+  outline: none !important;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.ProseMirror h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+  color: #f3f4f6;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0.4rem 0;
+  color: #f3f4f6;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0.3rem 0;
+  color: #f3f4f6;
+}
+
+.ProseMirror p {
+  margin: 0.75rem 0;
+  color: #f3f4f6;
+}
+
+.ProseMirror strong {
+  font-weight: bold;
+  color: #f3f4f6;
+}
+
+.ProseMirror em {
+  font-style: italic;
+  color: #f3f4f6;
+}
+
+.ProseMirror ul {
+  color: #f3f4f6;
+  list-style-type: disc;
+  list-style-position: outside;
+  margin-left: 1.5rem;
+}
+
+.ProseMirror ol {
+  color: #f3f4f6;
+  list-style-type: decimal;
+  list-style-position: outside;
+  margin-left: 1.5rem;
+}
+
+.ProseMirror ul li,
+.ProseMirror ol li {
+  margin: 0.25rem 0;
+  padding-left: 0.5rem;
+  color: #f3f4f6;
+  cursor: text;
+}
+
+.ProseMirror ul li::marker,
+.ProseMirror ol li::marker {
+  color: #f3f4f6;
+}
+
+.ProseMirror a {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.ProseMirror a:hover {
+  color: #93c5fd;
+}
+
+.ProseMirror.is-empty::before {
+  content: attr(data-placeholder);
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.ProseMirror code {
+  background-color: rgba(55, 65, 81, 0.5);
+  color: #fbbf24;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, Liberation Mono, Menlo,
+    monospace;
+}
+
+.ProseMirror pre {
+  background-color: rgba(55, 65, 81, 0.5);
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+  color: #f3f4f6;
+}
+
+.ProseMirror blockquote {
+  border-left: 4px solid #6b7280;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: #d1d5db;
+  font-style: italic;
+}

@@ -161,12 +161,13 @@ export function CampaignUploadModal({
     "AOV Lift",
   ];
 
-  const storeNames = [
+  const storeNames = [ // TODO: Get this from the database
     "Drip EZ",
     "Haverhill",
     "Life Harmony Energies",
     "BioPower Pet",
     "EMF Harmony",
+    "Luke Test", 
   ];
 
   const handleFieldChange = (name: keyof Campaign, value: string) => {

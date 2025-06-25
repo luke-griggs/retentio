@@ -12,7 +12,7 @@ export async function emailPrompt(
   ${contentStrategy}
   
   1. REQUIRED COMPONENTS & OUTPUT FORMAT
-  Create these five elements and format them as a markdown table using this EXACT structure:
+  Create these five elements and FORMAT THEM AS A TABLE using this EXACT structure (if it's not a table, bad things will happen):
   
   | Section | Content |
   |---------|---------|

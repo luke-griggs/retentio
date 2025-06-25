@@ -89,12 +89,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <motion.div
-            animate={{ rotate: isHovering ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Bars3Icon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          </motion.div>
+          <Bars3Icon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
         </motion.button>
       </motion.div>
     );
@@ -136,16 +131,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
         {/* Copy Mode - Subtle */}
         <div className="px-4 py-2 group">
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            className="w-full text-left text-sm py-2 px-2 rounded-md transition-all duration-200 hover:bg-gray-800/50"
-          >
-            <div className="opacity-70 group-hover:opacity-100 transition-opacity flex items-center">
-              <DocumentTextIcon className="w-5 h-5 mr-2" />
-              Copy Mode
-            </div>
-          </motion.button>
+          <Link href="/copy-mode">
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="w-full text-left text-sm py-2 px-2 rounded-md transition-all duration-200 hover:bg-gray-800/50"
+            >
+              <div className="opacity-70 group-hover:opacity-100 transition-opacity flex items-center">
+                <DocumentTextIcon className="w-5 h-5 mr-2" />
+                Copy Mode
+              </div>
+            </motion.button>
+          </Link>
         </div>
 
         {/* Chat History */}

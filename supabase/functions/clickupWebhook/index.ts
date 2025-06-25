@@ -26,7 +26,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const CU_API = "https://api.clickup.com/api/v2";
 
-if (!CLICKUP_KEY || !GOOGLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+if (
+  !CLICKUP_KEY ||
+  !GOOGLE_API_KEY ||
+  !SUPABASE_URL ||
+  !SUPABASE_SERVICE_ROLE_KEY
+) {
   throw new Error("Missing one or more required environment variables");
 }
 
@@ -95,7 +100,11 @@ async function fetchBrandCartridge(supabase: any, store: string) {
 // ────────────────────────────────────────────────────────────
 // NEW: persist task into clickup_tasks table
 // ────────────────────────────────────────────────────────────
-async function upsertClickupTaskRecord(supabase: any, task: any, draft: string) {
+async function upsertClickupTaskRecord(
+  supabase: any,
+  task: any,
+  draft: string
+) {
   let storeId: string | null = null;
 
   if (task.list?.id) {
@@ -195,6 +204,7 @@ async function handleAsync(taskId: string, payload: any) {
   // 8) Update task description with markdown content
   await updateTaskDescription(taskId, draft);
 
+  console.log("upserting task with description", draft);
   // 9) Persist task record in DB (create/update)
   await upsertClickupTaskRecord(supabase, task, draft);
 

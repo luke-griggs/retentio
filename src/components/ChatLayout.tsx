@@ -6,9 +6,13 @@ import Sidebar from "./Sidebar";
 
 interface ChatLayoutProps {
   children: React.ReactNode;
+  hideSidebar?: boolean;
 }
 
-export default function ChatLayout({ children }: ChatLayoutProps) {
+export default function ChatLayout({
+  children,
+  hideSidebar = false,
+}: ChatLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -17,11 +21,13 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
 
   return (
     <div className="relative h-screen overflow-hidden">
-      {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
+      {/* Sidebar - only show if not hidden */}
+      {!hideSidebar && (
+        <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
+      )}
 
-      {/* Backdrop for mobile */}
-      {isSidebarOpen && (
+      {/* Backdrop for mobile - only show if sidebar is not hidden */}
+      {!hideSidebar && isSidebarOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -34,7 +40,7 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
       {/* Main content */}
       <motion.div
         animate={{
-          marginLeft: isSidebarOpen ? 320 : 0,
+          marginLeft: hideSidebar ? 0 : isSidebarOpen ? 320 : 0,
         }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className="h-full transition-all duration-300 ease-in-out"
