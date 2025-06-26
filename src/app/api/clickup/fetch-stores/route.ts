@@ -3,16 +3,36 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
-    // Log environment variables (be careful with this in production)
-    console.log("SUPABASE_URL exists:", !!process.env.SUPABASE_URL);
-    console.log(
-      "SUPABASE_SERVICE_ROLE_KEY exists:",
-      !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    // Log environment info (safely)
+    console.log("Environment Info:", {
+      supabaseUrlPrefix: process.env.SUPABASE_URL?.substring(0, 30),
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      deploymentUrl: request.nextUrl.host,
+      timestamp: new Date().toISOString(),
+    });
 
     const supabase = await createClient();
 
-    // Fetch all stores from the database
+    // Test basic connectivity first
+    const { data: testData, error: testError } = await supabase
+      .from("stores")
+      .select("count")
+      .limit(1);
+
+    console.log("Basic connectivity test:", { testData, testError });
+
+    // Try to get ANY data from stores table
+    const { data: allData, error: allError } = await supabase
+      .from("stores")
+      .select("*");
+
+    console.log("All stores query:", {
+      count: allData?.length || 0,
+      error: allError,
+      firstRow: allData?.[0] || null,
+    });
+
+    // Original query
     const { data: stores, error } = await supabase
       .from("stores")
       .select("id, name, clickup_list_id")
@@ -26,7 +46,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("Stores fetched successfully:", stores?.length || 0, "stores");
+    console.log("Final result:", {
+      storeCount: stores?.length || 0,
+      stores: stores?.slice(0, 2), // Log first 2 stores for debugging
+    });
+
     return NextResponse.json({ success: true, stores: stores || [] });
   } catch (error) {
     console.error("Unexpected error fetching stores:", error);
