@@ -1,3 +1,5 @@
+// TODO: separate this into separate routes (single campaign upload and a calendar upload)
+
 import { NextRequest, NextResponse } from "next/server";
 import { parseCampaignCalendarCSV, Campaign } from "@/app/utils/csvParse";
 
@@ -229,7 +231,9 @@ async function createClickUpTask(
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -259,7 +263,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get store name from the first campaign (all campaigns should have the same store name)
     const storeName = campaigns[0].storeName;
     if (!storeName) {
       return NextResponse.json(
@@ -286,7 +289,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!CLICKUP_LIST_ID) {
-      const sanitizedName = sanitizeStoreName(storeName);
       return NextResponse.json(
         {
           error: `ClickUp List ID not configured for store`,

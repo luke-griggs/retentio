@@ -52,6 +52,7 @@
     "react-vega": "^7.6.0",
     "remark-gfm": "^4.0.1",
     "secure-json-parse": "^4.0.0",
+    "sonner": "^2.0.5",
     "supabase": "^2.24.3",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.3.1",

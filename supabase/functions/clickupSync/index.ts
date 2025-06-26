@@ -32,9 +32,12 @@ if (!CLICKUP_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 // Helper functions
 // ────────────────────────────────────────────────────────────
 async function getTask(taskId: string) {
-  const res = await fetch(`${CU_API}/task/${taskId}/?include_markdown_description=true`, {
-    headers: { Authorization: CLICKUP_KEY ?? "" },
-  });
+  const res = await fetch(
+    `${CU_API}/task/${taskId}/?include_markdown_description=true`,
+    {
+      headers: { Authorization: CLICKUP_KEY ?? "" },
+    }
+  );
   if (!res.ok) throw new Error(`ClickUp getTask → ${res.status}`);
   return res.json();
 }
@@ -56,6 +59,10 @@ async function upsertClickupTaskRecord(
     brandId = data?.id ?? null;
   }
 
+  console.log(
+    `Upserting ClickUp task record for taskId: ${task.id}, brandId: ${brandId}`
+  );
+
   await supabase.from("clickup_tasks").upsert(
     {
       id: task.id,
@@ -75,6 +82,7 @@ async function upsertClickupTaskRecord(
 // ────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
+    console.log("Received non-POST request");
     return new Response("Method Not Allowed", { status: 405 });
   }
 
@@ -83,7 +91,10 @@ Deno.serve(async (req: Request) => {
   const event = payload?.event;
   const taskId = payload?.task_id;
 
+  console.log("Received ClickUp webhook", { event, taskId });
+
   if (!event || !taskId) {
+    console.error("Missing event or task_id", { event, taskId });
     return new Response("Missing event or task_id", { status: 400 });
   }
 
@@ -101,13 +112,21 @@ Deno.serve(async (req: Request) => {
 async function handleAsync(event: string, taskId: string) {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-  if (event === "taskUpdated") {
-    const task = await getTask(taskId);
-    const store = task.folder?.name ?? "unknown";
-    await upsertClickupTaskRecord(supabase, task, store);
-  } else if (event === "taskDeleted") {
-    await supabase.from("clickup_tasks").delete().eq("id", taskId);
-  } else {
-    console.log(`Unhandled ClickUp event: ${event}`);
+  try {
+    if (event === "taskUpdated") {
+      console.log(`Processing taskUpdated for taskId: ${taskId}`);
+      const task = await getTask(taskId);
+      const store = task.folder?.name ?? "unknown";
+      await upsertClickupTaskRecord(supabase, task, store);
+      console.log(`Upserted task ${taskId}`);
+    } else if (event === "taskDeleted") {
+      console.log(`Processing taskDeleted for taskId: ${taskId}`);
+      await supabase.from("clickup_tasks").delete().eq("id", taskId);
+      console.log(`Deleted task ${taskId}`);
+    } else {
+      console.warn(`Unhandled ClickUp event: ${event}`);
+    }
+  } catch (error) {
+    console.error(`Error handling event ${event} for taskId ${taskId}:`, error);
   }
 }

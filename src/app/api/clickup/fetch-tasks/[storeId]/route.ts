@@ -32,17 +32,6 @@ export async function GET(
       );
     }
 
-    // Add logging to see the raw descriptions
-    console.log("Fetched tasks for store:", storeId);
-    console.log("Number of tasks:", tasks?.length);
-    if (tasks?.length > 0) {
-      (tasks as Array<{ description: string }>).forEach((task, index) => {
-        console.log("Raw description:", task.description);
-        console.log("Description type:", typeof task.description);
-        console.log("Description length:", task.description?.length);
-      });
-    }
-
     return NextResponse.json({ tasks: tasks || [] });
   } catch (error) {
     console.error("Unexpected error fetching tasks:", error);

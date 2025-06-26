@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { parseCampaignCalendarCSV } from "@/app/utils/csvParse";
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -112,15 +113,31 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       const uploadData = await uploadResponse.json();
       const fileUrl = uploadData.attachments[0].url;
 
+      // --- New logic to parse CSV and get store name ---
+      const fileContent = await file.text();
+      const campaigns = parseCampaignCalendarCSV(fileContent);
+
+      if (campaigns.length === 0 || !campaigns[0].storeName) {
+        alert(
+          "Could not find a valid store name in the CSV. Please check the file."
+        );
+        setIsUploading(false);
+        setShowLoadingModal(false);
+        return;
+      }
+
       // Then send to ClickUp with the file URL
       const clickupFormData = new FormData();
       clickupFormData.append("file", file);
       clickupFormData.append("fileUrl", fileUrl);
 
-      const clickupResponse = await fetch("/api/upload/clickup", {
-        method: "POST",
-        body: clickupFormData,
-      });
+      const clickupResponse = await fetch(
+        `/api/clickup/task-upload`,
+        {
+          method: "POST",
+          body: clickupFormData,
+        }
+      );
 
       if (clickupResponse.ok) {
         const result = await clickupResponse.json();

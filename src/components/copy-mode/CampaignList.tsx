@@ -28,25 +28,25 @@ export default function CampaignList({
 
   useEffect(() => {
     if (storeId) {
-      fetchCampaigns();
+      fetchTasks();
     }
   }, [storeId]);
 
-  const fetchCampaigns = async () => {
+  const fetchTasks = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/clickup-tasks/${storeId}`);
+      const response = await fetch(`/api/clickup/fetch-tasks/${storeId}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch campaigns");
+        throw new Error("Failed to fetch tasks");
       }
 
       const data = await response.json();
       setCampaigns(data.tasks || []);
     } catch (err) {
-      console.error("Error fetching campaigns:", err);
-      setError("Failed to load campaigns");
+      console.error("Error fetching tasks:", err);
+      setError("Failed to load tasks");
     } finally {
       setIsLoading(false);
     }

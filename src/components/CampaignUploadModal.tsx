@@ -161,13 +161,14 @@ export function CampaignUploadModal({
     "AOV Lift",
   ];
 
-  const storeNames = [ // TODO: Get this from the database
+  const storeNames = [
+    // TODO: Get this from the database
     "Drip EZ",
     "Haverhill",
     "Life Harmony Energies",
     "BioPower Pet",
     "EMF Harmony",
-    "Luke Test", 
+    "Luke Test",
   ];
 
   const handleFieldChange = (name: keyof Campaign, value: string) => {
@@ -178,6 +179,10 @@ export function CampaignUploadModal({
     e.preventDefault();
 
     // Validate required fields
+    if (!formData.storeName) {
+      alert("Please select a store for the campaign");
+      return;
+    }
     if (!formData.date) {
       alert("Please select a date for the campaign");
       return;
@@ -197,10 +202,13 @@ export function CampaignUploadModal({
 
       payload.append("file", file);
 
-      const response = await fetch("/api/upload/clickup", {
-        method: "POST",
-        body: payload,
-      });
+      const response = await fetch(
+        `/api/clickup/task-upload`,
+        {
+          method: "POST",
+          body: payload,
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();

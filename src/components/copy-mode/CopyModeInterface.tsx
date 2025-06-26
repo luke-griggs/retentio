@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   HomeIcon,
@@ -10,9 +10,17 @@ import {
   DocumentTextIcon,
   MagnifyingGlassIcon,
   BuildingStorefrontIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  ArrowPathIcon,
+  ChevronLeftIcon,
+  PaintBrushIcon,
 } from "@heroicons/react/24/outline";
-import EmailEditor from "./EmailEditor";
+import { ArrowLeftIcon } from "@heroicons/react/24/solid";
+import EmailEditor, { EmailEditorRef } from "./EmailEditor";
 import EmailEditChat from "./EmailEditChat";
+import { useEmailVersions } from "@/hooks/use-email-versions";
+import { toast } from "sonner"; // TODO: set up toast
 
 interface Store {
   id: string;
@@ -28,19 +36,38 @@ interface Campaign {
 }
 
 export default function CopyModeInterface() {
+  const editorRef = useRef<EmailEditorRef>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoadingStores, setIsLoadingStores] = useState(true);
   const [storeError, setStoreError] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
-  const [campaignError, setCampaignError] = useState<string | null>(null);
+  const [selectedStoreName, setSelectedStoreName] = useState<string>("");
+  const [tasks, setTasks] = useState<Campaign[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [taskError, setTaskError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
-    null
-  );
+  const [selectedTask, setSelectedTask] = useState<Campaign | null>(null);
   const [emailContent, setEmailContent] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [loadingStores, setLoadingStores] = useState(true);
+  const [emailUpdating, setEmailUpdating] = useState(false);
+
+  // Initialize version history - use campaign ID as key to prevent resets on save
+  const versionKey = selectedTask?.id || "";
+  const initialContent = selectedTask?.description || "";
+  const { currentContent, versions, canUndo, canRedo, addVersion, undo, redo } =
+    useEmailVersions(initialContent, versionKey);
+
+  // Sync current content with email content state
+  useEffect(() => {
+    if (currentContent !== emailContent) {
+      setEmailContent(currentContent);
+    }
+  }, [currentContent]);
 
   // Fetch stores
   useEffect(() => {
@@ -50,9 +77,9 @@ export default function CopyModeInterface() {
   // Fetch campaigns when store is selected
   useEffect(() => {
     if (selectedStore) {
-      fetchCampaigns(selectedStore.id);
+      fetchTasks(selectedStore.id);
     } else {
-      setCampaigns([]);
+      setTasks([]);
     }
   }, [selectedStore]);
 
@@ -61,7 +88,7 @@ export default function CopyModeInterface() {
       setIsLoadingStores(true);
       setStoreError(null);
 
-      const response = await fetch("/api/stores");
+      const response = await fetch("/api/clickup/fetch-stores");
       if (!response.ok) {
         throw new Error("Failed to fetch stores");
       }
@@ -76,30 +103,30 @@ export default function CopyModeInterface() {
     }
   };
 
-  const fetchCampaigns = async (storeId: string) => {
+  const fetchTasks = async (storeId: string) => {
     try {
-      setIsLoadingCampaigns(true);
-      setCampaignError(null);
+      setIsLoadingTasks(true);
+      setTaskError(null);
 
-      const response = await fetch(`/api/clickup-tasks/${storeId}`);
+      const response = await fetch(`/api/clickup/fetch-tasks/${storeId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch campaigns");
       }
 
       const data = await response.json();
-      setCampaigns(data.tasks || []);
+      setTasks(data.tasks || []);
     } catch (err) {
       console.error("Error fetching campaigns:", err);
-      setCampaignError("Failed to load campaigns");
+      setTaskError("Failed to load campaigns");
     } finally {
-      setIsLoadingCampaigns(false);
+      setIsLoadingTasks(false);
     }
   };
 
   // Update email content when campaign is selected
   useEffect(() => {
-    if (selectedCampaign) {
-      const description = selectedCampaign.description?.trim();
+    if (selectedTask) {
+      const description = selectedTask.description?.trim();
       if (description && description.length > 0) {
         setEmailContent(description);
       } else {
@@ -109,59 +136,106 @@ export default function CopyModeInterface() {
     } else {
       setEmailContent("");
     }
-  }, [selectedCampaign]);
+  }, [selectedTask]);
 
-  const handleSave = async () => {
-    if (!selectedCampaign) return;
+  const handleUpdateCard = async () => {
+    if (!selectedTask) return;
 
     setIsSaving(true);
+    setSaveError(null);
     try {
       const response = await fetch(
-        `/api/clickup-tasks/task/${selectedCampaign.id}`,
+        `/api/clickup/update-task/${selectedTask.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `${process.env.CLICKUP_KEY}`,
           },
           body: JSON.stringify({
-            description: emailContent,
+            description: currentContent,
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Failed to save changes");
+        throw new Error("Failed to update card");
       }
 
       const data = await response.json();
-      console.log("Saved successfully:", data);
-
-      // Update the selected campaign with new data
-      if (data.task) {
-        setSelectedCampaign(data.task);
-      }
+      console.log("Card updated successfully:", data);
+      alert("Card updated successfully");
+      setLastSaved(new Date());
     } catch (error) {
-      console.error("Error saving changes:", error);
-      // TODO: Show error toast/notification
+      console.error("Error updating card:", error);
+      setSaveError("Failed to update card");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const filteredCampaigns = campaigns.filter((campaign) =>
-    campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleReadyForDesign = async () => {
+    if (!selectedTask) return;
+
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const response = await fetch(
+        `/api/clickup/update-task/${selectedTask.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `${process.env.CLICKUP_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            description: currentContent,
+            status: "READY FOR DESIGN",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to mark as ready for design");
+      }
+
+      const data = await response.json();
+      console.log("Marked as ready for design successfully:", data);
+      alert("Marked as ready for design!");
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error("Error marking as ready for design:", error);
+      setSaveError("Failed to mark as ready for design");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const filteredTasks = tasks.filter((task) =>
+    task.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleStoreClick = (store: Store) => {
     if (selectedStore?.id === store.id) {
       // Clicking on already selected store collapses it
       setSelectedStore(null);
-      setSelectedCampaign(null);
+      setSelectedTask(null);
     } else {
       // Select new store
       setSelectedStore(store);
-      setSelectedCampaign(null);
+      setSelectedTask(null);
     }
+  };
+
+  const handleContentChange = (content: string) => {
+    setEmailContent(content);
+    // Don't add version on every keystroke, this will be handled by the chat
+  };
+
+  const handleAIContentChange = (content: string, description?: string) => {
+    // Add a new version when AI makes changes
+    addVersion(content, "ai", description);
+    setEmailContent(content);
   };
 
   return (
@@ -242,33 +316,33 @@ export default function CopyModeInterface() {
                       </div>
 
                       {/* Campaign List */}
-                      {isLoadingCampaigns ? (
+                      {isLoadingTasks ? (
                         <div className="py-2 text-gray-400 text-xs">
                           Loading campaigns...
                         </div>
-                      ) : campaignError ? (
+                      ) : taskError ? (
                         <div className="py-2 text-red-400 text-xs">
-                          {campaignError}
+                          {taskError}
                         </div>
-                      ) : filteredCampaigns.length === 0 ? (
+                      ) : filteredTasks.length === 0 ? (
                         <div className="py-2 text-gray-400 text-xs">
                           {searchQuery
-                            ? "No campaigns found"
-                            : "No campaigns available"}
+                            ? "No tasks found"
+                            : "No tasks available"}
                         </div>
                       ) : (
-                        filteredCampaigns.map((campaign) => (
+                        filteredTasks.map((task) => (
                           <button
-                            key={campaign.id}
-                            onClick={() => setSelectedCampaign(campaign)}
+                            key={task.id}
+                            onClick={() => setSelectedTask(task)}
                             className={`w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 ${
-                              selectedCampaign?.id === campaign.id
+                              selectedTask?.id === task.id
                                 ? "bg-gray-800 text-white"
                                 : "text-gray-400"
                             }`}
                           >
                             <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{campaign.name}</span>
+                            <span className="truncate">{task.name}</span>
                           </button>
                         ))
                       )}
@@ -280,117 +354,164 @@ export default function CopyModeInterface() {
         </div>
       </div>
 
-      {/* Middle Column - AI Chat */}
-      {selectedCampaign && (
-        <div className="w-96 border-r border-gray-700">
-          <EmailEditChat
-            campaign={selectedCampaign}
-            emailContent={emailContent}
-            onContentChange={setEmailContent}
-          />
-        </div>
-      )}
-
-      {/* Right Column - Email Editor or Store Overview */}
+      {/* Right Column - Email Editor */}
       <div className="flex-1 flex flex-col">
-        {selectedCampaign ? (
-          <>
-            <div className="p-4 flex justify-center">
-              <div className="pt-8 flex flex-col items-center">
-                <h1 className="text-3xl font-semibold text-white pb-1">
-                  {selectedCampaign.name}
-                </h1>
-                <p className="text-xs text-gray-400">
-                  Last updated:{" "}
-                  {new Date(selectedCampaign.updated_at).toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <EmailEditor content={emailContent} onChange={setEmailContent} />
-            </div>
-          </>
-        ) : selectedStore ? (
-          <>
-            {/* Store Overview - Centered Layout */}
-            <div className="flex-1 flex flex-col items-center justify-start pt-16 px-6">
-              <div className="max-w-2xl w-full">
-                {/* Store Name - Large Centered Title */}
-                <div className="flex items-center justify-center mb-2">
-                  <h1 className="text-4xl font-semibold text-white text-center">
-                    {selectedStore.name}
-                  </h1>
-                </div>
+        {/* Version History Bar */}
+        {selectedTask && versions.length > 1 && (
+          <div className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center space-x-4">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              <span>Undo</span>
+            </button>
 
-                {/* Campaign Count */}
-                <p className="text-gray-400 text-center mb-10">
-                  {filteredCampaigns.length} campaign
-                  {filteredCampaigns.length !== 1 ? "s" : ""} available
-                </p>
-
-                {/* Campaigns List */}
-                {isLoadingCampaigns ? (
-                  <div className="flex items-center justify-center py-8">
-                    <p className="text-gray-400">Loading campaigns...</p>
-                  </div>
-                ) : campaignError ? (
-                  <div className="flex items-center justify-center py-8">
-                    <p className="text-red-400">{campaignError}</p>
-                  </div>
-                ) : filteredCampaigns.length === 0 ? (
-                  <div className="flex items-center justify-center py-8">
-                    <p className="text-gray-400">No campaigns available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredCampaigns.map((campaign) => (
-                      <button
-                        key={campaign.id}
-                        onClick={() => setSelectedCampaign(campaign)}
-                        className="w-full px-6 py-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors duration-200 text-left group cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-white font-medium text-lg mb-1 truncate">
-                              {campaign.name}
-                            </h3>
-                            <p className="text-gray-400 text-sm">
-                              Last updated:{" "}
-                              {new Date(
-                                campaign.updated_at
-                              ).toLocaleDateString()}{" "}
-                              at{" "}
-                              {new Date(campaign.updated_at).toLocaleTimeString(
-                                [],
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )}
-                            </p>
-                          </div>
-                          <div className="ml-4 flex-shrink-0">
-                            <ChevronRightIcon className="w-5 h-5 text-gray-500 group-hover:text-gray-300 transition-colors" />
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-400">
+              <span>
+                Version{" "}
+                {versions.findIndex((v) => v.content === currentContent) + 1} of{" "}
+                {versions.length}
+              </span>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <FolderIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-              <p className="text-lg">Select a store to view campaigns</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Choose a store from the sidebar to get started
-              </p>
+
+            {canRedo && (
+              <button
+                onClick={redo}
+                className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <span>Redo</span>
+                <ChevronRightIcon className="w-4 h-4" />
+              </button>
+            )}
+
+            <div className="flex items-center space-x-3 ml-auto">
+              <button
+                onClick={handleReadyForDesign}
+                disabled={isSaving}
+                className="flex items-center space-x-2 px-3 py-1 text-sm bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+              >
+                <PaintBrushIcon className="w-4 h-4" />
+                <span>Ready for Design</span>
+              </button>
+              <button
+                onClick={handleUpdateCard}
+                disabled={isSaving}
+                className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+              >
+                <CheckCircleIcon className="w-4 h-4" />
+                <span>Update Card</span>
+              </button>
             </div>
           </div>
         )}
+
+        {/* Editor and Campaign List */}
+        <div className="flex-1 flex overflow-hidden">
+          {selectedTask ? (
+            <>
+              {/* Side Panel for Email Edit Chat */}
+              <div
+                className={`transition-all duration-300 ${
+                  isSidePanelOpen ? "w-96" : "w-0"
+                } border-r border-gray-800 overflow-hidden`}
+              >
+                {isSidePanelOpen && selectedTask && (
+                  <EmailEditChat
+                    task={selectedTask}
+                    emailContent={currentContent}
+                    onContentChange={handleAIContentChange}
+                    editorRef={editorRef}
+                  />
+                )}
+              </div>
+              <EmailEditor
+                ref={editorRef}
+                content={currentContent}
+                onChange={handleContentChange}
+              />
+            </>
+          ) : selectedStore ? (
+            <>
+              {/* Store Overview - Centered Layout */}
+              <div className="flex-1 flex flex-col items-center justify-start pt-16 px-6">
+                <div className="max-w-2xl w-full">
+                  {/* Store Name - Large Centered Title */}
+                  <div className="flex items-center justify-center mb-2">
+                    <h1 className="text-4xl font-semibold text-white text-center">
+                      {selectedStore.name}
+                    </h1>
+                  </div>
+
+                  {/* Campaign Count */}
+                  <p className="text-gray-400 text-center mb-10">
+                    {filteredTasks.length} task
+                    {filteredTasks.length !== 1 ? "s" : ""} available
+                  </p>
+
+                  {/* Campaigns List */}
+                  {isLoadingTasks ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-gray-400">Loading campaigns...</p>
+                    </div>
+                  ) : taskError ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-red-400">{taskError}</p>
+                    </div>
+                  ) : filteredTasks.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-gray-400">No campaigns available</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredTasks.map((task) => (
+                        <button
+                          key={task.id}
+                          onClick={() => setSelectedTask(task)}
+                          className="w-full px-6 py-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors duration-200 text-left group cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-white font-medium text-lg mb-1 truncate">
+                                {task.name}
+                              </h3>
+                              <p className="text-gray-400 text-sm">
+                                Last updated:{" "}
+                                {new Date(task.updated_at).toLocaleDateString()}{" "}
+                                at{" "}
+                                {new Date(task.updated_at).toLocaleTimeString(
+                                  [],
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
+                              </p>
+                            </div>
+                            <div className="ml-4 flex-shrink-0">
+                              <ChevronRightIcon className="w-5 h-5 text-gray-500 group-hover:text-gray-300 transition-colors" />
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="text-center">
+                <FolderIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                <p className="text-lg">Select a store to view campaigns</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Choose a store from the sidebar to get started
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
