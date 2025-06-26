@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/supabaseAdmin";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ storeId: string }> }
 ) {
   try {
-    const supabase = await createClient();
     const { storeId } = await params;
 
     // Validate storeId
@@ -18,7 +17,7 @@ export async function GET(
     }
 
     // Fetch clickup tasks for the specified store
-    const { data: tasks, error } = await supabase
+    const { data: tasks, error } = await supabaseAdmin
       .from("clickup_tasks")
       .select("id, name, description, updated_at")
       .eq("store_id", storeId)
