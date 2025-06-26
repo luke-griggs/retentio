@@ -137,8 +137,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               whileTap={{ scale: 0.99 }}
               className="w-full text-left text-sm py-2 px-2 rounded-md transition-all duration-200 hover:bg-gray-800/50"
             >
-              <div className="opacity-70 group-hover:opacity-100 transition-opacity flex items-center">
-                <DocumentTextIcon className="w-5 h-5 mr-2" />
+              <div className="opacity-70 group-hover:opacity-100 transition-opacity flex items-center text-white">
+                <DocumentTextIcon className="w-5 h-5 mr-2 text-white" />
                 Copy Mode
               </div>
             </motion.button>
