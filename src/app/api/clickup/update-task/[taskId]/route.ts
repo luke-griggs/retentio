@@ -34,7 +34,10 @@ export async function PUT(
       );
     }
 
-    let updateBody: { description: string; status?: string } = { description };
+    let updateBody: { markdown_content: string; status?: string } = {
+      markdown_content: description,
+    };
+
     if (status === "READY FOR DESIGN") {
       updateBody.status = status;
     }
@@ -47,19 +50,15 @@ export async function PUT(
       body: JSON.stringify(updateBody),
     };
 
- 
-      const response = await fetch(
-        `https://api.clickup.com/api/v2/task/${taskId}`,
-        options
-      );
-      if (!response.ok) {
-        throw new Error("Failed to update task");
-      }
-      return NextResponse.json({ success: true });
-    } 
-
-
-   catch (error) {
+    const response = await fetch(
+      `https://api.clickup.com/api/v2/task/${taskId}`,
+      options
+    );
+    if (!response.ok) {
+      throw new Error("Failed to update task");
+    }
+    return NextResponse.json({ success: true });
+  } catch (error) {
     console.error("Unexpected error updating task:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },

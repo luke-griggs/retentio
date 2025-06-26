@@ -21,6 +21,7 @@ import EmailEditor, { EmailEditorRef } from "./EmailEditor";
 import EmailEditChat from "./EmailEditChat";
 import { useEmailVersions } from "@/hooks/use-email-versions";
 import { toast } from "sonner"; // TODO: set up toast
+import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
 
 interface Store {
   id: string;
@@ -144,6 +145,9 @@ export default function CopyModeInterface() {
     setIsSaving(true);
     setSaveError(null);
     try {
+      // Convert HTML table back to markdown format
+      const markdownContent = campaignHtmlToMarkdown(currentContent);
+
       const response = await fetch(
         `/api/clickup/update-task/${selectedTask.id}`,
         {
@@ -153,7 +157,7 @@ export default function CopyModeInterface() {
             Authorization: `${process.env.CLICKUP_KEY}`,
           },
           body: JSON.stringify({
-            description: currentContent,
+            description: markdownContent,
           }),
         }
       );
@@ -180,6 +184,9 @@ export default function CopyModeInterface() {
     setIsSaving(true);
     setSaveError(null);
     try {
+      // Convert HTML table back to markdown format
+      const markdownContent = campaignHtmlToMarkdown(currentContent);
+
       const response = await fetch(
         `/api/clickup/update-task/${selectedTask.id}`,
         {
@@ -189,7 +196,7 @@ export default function CopyModeInterface() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            description: currentContent,
+            description: markdownContent,
             status: "READY FOR DESIGN",
           }),
         }
