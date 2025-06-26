@@ -17,14 +17,14 @@ export default function AuthButtons({ isAuthenticated }: AuthButtonsProps) {
   return (
     <div className="space-x-4">
       {/* {isAuthenticated ? ( */}
-        <button
-          onClick={handleChatRedirect}
-          className="inline-block px-8 py-3 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-white rounded-full font-semibold hover:bg-blue-100 dark:hover:bg-gray-700 border border-blue-200 dark:border-gray-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-400 cursor-pointer"
-        >
-          Go to Chat
-        </button>
+      <button
+        onClick={handleChatRedirect}
+        className="inline-block px-8 py-3 bg-gray-800 text-white rounded-full font-semibold hover:bg-gray-700 border border-gray-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-400 cursor-pointer"
+      >
+        Go to Chat
+      </button>
       {/* ) : ( */}
-        {/* <>
+      {/* <>
           <Link
             href="/auth/login"
             className="inline-block px-8 py-3 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-white rounded-full font-semibold hover:bg-blue-100 dark:hover:bg-gray-700 border border-blue-200 dark:border-gray-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-400 cursor-pointer"

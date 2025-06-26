@@ -11,7 +11,7 @@ const DbTable = ({ results }: { results: DatabaseResult[] }) => {
                 (column) => (
                   <th
                     key={column}
-                    className="p-3 text-left bg-gray-100 dark:bg-gray-900 text-blue-600 dark:text-blue-400 font-medium border-b border-gray-200 dark:border-gray-700"
+                    className="p-3 text-left bg-gray-900 text-blue-400 font-medium border-b border-gray-700"
                   >
                     {column}
                   </th>
@@ -32,19 +32,19 @@ const DbTable = ({ results }: { results: DatabaseResult[] }) => {
               key={rowIndex}
               className={
                 rowIndex % 2 === 0
-                  ? "bg-white dark:bg-gray-800"
-                  : "bg-gray-50 dark:bg-gray-700"
+                  ? "bg-gray-800"
+                  : "bg-gray-700"
               }
             >
               {Object.values(row).map((value, valueIndex) => (
                 <td
                   key={valueIndex}
-                  className="p-3 border-b border-gray-200 dark:border-gray-700/30"
+                  className="p-3 border-b border-gray-700/30"
                 >
                   {value === null ? (
                     <span className="text-gray-400 italic">null</span>
                   ) : typeof value === "object" ? (
-                    <span className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded">
+                    <span className="text-xs font-mono bg-gray-900 p-1 rounded">
                       {JSON.stringify(value)}
                     </span>
                   ) : (

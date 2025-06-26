@@ -85,11 +85,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         onClick={onToggle}
       >
         <motion.button
-          className="w-12 h-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center cursor-pointer transition-all duration-200 hover:shadow-xl"
+          className="w-12 h-12 bg-gray-800 rounded-lg shadow-lg border border-gray-700 flex items-center justify-center cursor-pointer transition-all duration-200 hover:shadow-xl"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <Bars3Icon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          <Bars3Icon className="w-6 h-6 text-gray-300" />
         </motion.button>
       </motion.div>
     );

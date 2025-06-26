@@ -4,11 +4,11 @@ import Navbar from "@/components/Navbar";
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <main className="min-h-screen bg-gray-900 flex flex-col">
       <Navbar />
       <div className="flex-1 max-w-md mx-auto flex flex-col items-center justify-center px-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-10 w-full sm:w-[440px] border border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">
+        <div className="bg-gray-800 rounded-xl shadow-xl p-10 w-full sm:w-[440px] border border-gray-700">
+          <h2 className="text-2xl font-bold text-white mb-8 text-center">
             Enter Your Credentials
           </h2>
 
@@ -16,7 +16,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-300"
               >
                 Email
               </label>
@@ -25,7 +25,7 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 required
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-700 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white bg-gray-800 placeholder-gray-400"
                 placeholder="Enter your email"
               />
             </div>
@@ -33,7 +33,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-300"
               >
                 Password
               </label>
@@ -42,7 +42,7 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-700 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white bg-gray-800 placeholder-gray-400"
                 placeholder="Enter your password"
               />
             </div>
@@ -56,7 +56,7 @@ export default function LoginPage() {
               </button>
               <Link
                 href="/auth/register"
-                className="w-full flex justify-center py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-blue-500 dark:text-blue-400 bg-white dark:bg-gray-800 border-2 border-blue-300 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-semibold"
+                className="w-full flex justify-center py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-blue-500 bg-gray-800 border-2 border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-semibold"
               >
                 Create Account
               </Link>
