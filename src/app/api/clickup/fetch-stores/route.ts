@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ stores: stores || [] });
+    return NextResponse.json({ success: true, stores: stores });
   } catch (error) {
     console.error("Unexpected error fetching stores:", error);
     return NextResponse.json(
