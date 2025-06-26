@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("Stores fetched successfully:", stores?.length || 0, "stores");
-    return NextResponse.json({ success: true, stores: stores });
+    return NextResponse.json({ success: true, stores: stores || [] });
   } catch (error) {
     console.error("Unexpected error fetching stores:", error);
     return NextResponse.json(
