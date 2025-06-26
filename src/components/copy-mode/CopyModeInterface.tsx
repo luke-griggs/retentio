@@ -95,7 +95,7 @@ export default function CopyModeInterface() {
       }
 
       const data = await response.json();
-      setStores(data.stores || []);
+      setStores(data.stores);
     } catch (err) {
       console.error("Error fetching stores:", err);
       setStoreError("Failed to load stores");
