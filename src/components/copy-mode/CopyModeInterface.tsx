@@ -56,6 +56,7 @@ export default function CopyModeInterface() {
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [loadingStores, setLoadingStores] = useState(true);
   const [emailUpdating, setEmailUpdating] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Initialize version history - use campaign ID as key to prevent resets on save
   const versionKey = selectedTask?.id || "";
@@ -137,6 +138,7 @@ export default function CopyModeInterface() {
     } else {
       setEmailContent("");
     }
+    setHasUnsavedChanges(false);
   }, [selectedTask]);
 
   const handleUpdateCard = async () => {
@@ -146,7 +148,7 @@ export default function CopyModeInterface() {
     setSaveError(null);
     try {
       // Convert HTML table back to markdown format
-      const markdownContent = campaignHtmlToMarkdown(currentContent);
+      const markdownContent = campaignHtmlToMarkdown(emailContent);
 
       const response = await fetch(
         `/api/clickup/update-task/${selectedTask.id}`,
@@ -170,9 +172,12 @@ export default function CopyModeInterface() {
       console.log("Card updated successfully:", data);
       alert("Card updated successfully");
       setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      addVersion(emailContent, "user", "Saved changes");
     } catch (error) {
       console.error("Error updating card:", error);
       setSaveError("Failed to update card");
+      alert("Failed to update card");
     } finally {
       setIsSaving(false);
     }
@@ -185,7 +190,7 @@ export default function CopyModeInterface() {
     setSaveError(null);
     try {
       // Convert HTML table back to markdown format
-      const markdownContent = campaignHtmlToMarkdown(currentContent);
+      const markdownContent = campaignHtmlToMarkdown(emailContent);
 
       const response = await fetch(
         `/api/clickup/update-task/${selectedTask.id}`,
@@ -210,9 +215,12 @@ export default function CopyModeInterface() {
       console.log("Marked as ready for design successfully:", data);
       alert("Marked as ready for design!");
       setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      addVersion(emailContent, "user", "Marked as ready for design");
     } catch (error) {
       console.error("Error marking as ready for design:", error);
       setSaveError("Failed to mark as ready for design");
+      alert("Failed to mark as ready for design");
     } finally {
       setIsSaving(false);
     }
@@ -236,6 +244,7 @@ export default function CopyModeInterface() {
 
   const handleContentChange = (content: string) => {
     setEmailContent(content);
+    setHasUnsavedChanges(true);
     // Don't add version on every keystroke, this will be handled by the chat
   };
 
@@ -364,36 +373,43 @@ export default function CopyModeInterface() {
       {/* Right Column - Email Editor */}
       <div className="flex-1 flex flex-col">
         {/* Version History Bar */}
-        {selectedTask && versions.length > 1 && (
-          <div className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center space-x-4">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon className="w-4 h-4" />
-              <span>Undo</span>
-            </button>
+        {selectedTask && (
+          <div className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {canUndo && (
+                <button
+                  onClick={undo}
+                  disabled={!canUndo}
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                >
+                  <ArrowLeftIcon className="w-4 h-4" />
+                  <span>Undo</span>
+                </button>
+              )}
 
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
-              <span>
-                Version{" "}
-                {versions.findIndex((v) => v.content === currentContent) + 1} of{" "}
-                {versions.length}
-              </span>
+              {versions.length > 1 && (
+                <div className="flex items-center space-x-2 text-sm text-gray-400">
+                  <span>
+                    Version{" "}
+                    {versions.findIndex((v) => v.content === currentContent) +
+                      1}{" "}
+                    of {versions.length}
+                  </span>
+                </div>
+              )}
+
+              {canRedo && (
+                <button
+                  onClick={redo}
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <span>Redo</span>
+                  <ChevronRightIcon className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            {canRedo && (
-              <button
-                onClick={redo}
-                className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <span>Redo</span>
-                <ChevronRightIcon className="w-4 h-4" />
-              </button>
-            )}
-
-            <div className="flex items-center space-x-3 ml-auto">
+            <div className="flex items-center space-x-3">
               <button
                 onClick={handleReadyForDesign}
                 disabled={isSaving}
@@ -404,7 +420,7 @@ export default function CopyModeInterface() {
               </button>
               <button
                 onClick={handleUpdateCard}
-                disabled={isSaving}
+                disabled={isSaving || !hasUnsavedChanges}
                 className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 <CheckCircleIcon className="w-4 h-4" />
