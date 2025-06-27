@@ -28,8 +28,23 @@ interface EmailEditorProps {
 export interface EmailEditorRef {
   editor: Editor | null;
   applyPatch: (patch: EditorPatch) => boolean;
+  applySectionOperation: (operation: SectionOperation) => boolean;
   getContent: () => string;
   setContent: (content: string) => void;
+}
+
+interface SectionOperation {
+  action:
+    | "add_section"
+    | "remove_section"
+    | "move_section"
+    | "update_section_name"
+    | "update_section_content";
+  section_name: string;
+  section_content?: string;
+  new_section_name?: string;
+  position?: "start" | "end" | "after" | "before";
+  target_section?: string;
 }
 
 // Convert markdown table to HTML table
@@ -110,6 +125,11 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
   function EmailEditor({ content, onChange }: EmailEditorProps, ref) {
     const editorRef = useRef<HTMLDivElement>(null);
     const [isEmpty, setIsEmpty] = useState(true);
+    const [buttonPosition, setButtonPosition] = useState<{
+      top: number;
+      left: number;
+    } | null>(null);
+    const [isAddingSection, setIsAddingSection] = useState(false);
 
     const editor = useEditor({
       extensions: [
@@ -191,6 +211,9 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
         // Update isEmpty state
         const text = editor.getText().trim();
         setIsEmpty(text.length === 0);
+
+        // Update button position after content changes
+        updateButtonPosition();
       },
       onFocus: () => {
         // Hide placeholder on focus if editor is empty
@@ -208,6 +231,357 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
       },
     });
 
+    // Function to update button position based on table location
+    const updateButtonPosition = () => {
+      if (!editorRef.current || !editor) {
+        setButtonPosition(null);
+        return;
+      }
+
+      // Use a small delay to ensure DOM is updated
+      setTimeout(() => {
+        const editorElement = editorRef.current?.querySelector(".ProseMirror");
+        if (!editorElement) return;
+
+        const table = editorElement.querySelector("table");
+        if (table) {
+          const editorContainer =
+            editorRef.current?.querySelector(".overflow-y-auto");
+          if (!editorContainer) return;
+
+          const containerRect = editorContainer.getBoundingClientRect();
+          const tableRect = table.getBoundingClientRect();
+
+          // Calculate position relative to the scrollable container
+          const scrollTop = editorContainer.scrollTop;
+          const relativeTop =
+            tableRect.bottom - containerRect.top + scrollTop + 10; // 10px gap
+
+          setButtonPosition({
+            top: relativeTop,
+            left: 0,
+          });
+        } else if (!isEmpty) {
+          // If no table but has content, position at end of content
+          const contentHeight = editorElement.scrollHeight;
+          setButtonPosition({
+            top: Math.max(contentHeight + 20, 120),
+            left: 0,
+          });
+        } else {
+          // If empty, position below placeholder
+          setButtonPosition({
+            top: 120,
+            left: 0,
+          });
+        }
+      }, 50);
+    };
+
+    // Section operation functions
+    const applySectionOperation = (operation: SectionOperation): boolean => {
+      if (!editor) return false;
+
+      try {
+        const currentHTML = editor.getHTML();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(currentHTML, "text/html");
+        let table = doc.querySelector("table");
+
+        // Create table if it doesn't exist
+        if (!table && operation.action === "add_section") {
+          const tableHTML = `<table class="border-collapse border border-gray-600 my-4 w-full">
+            <thead>
+              <tr class="border-b border-gray-600">
+                <th class="border border-gray-600 px-3 py-2 bg-gray-700 font-semibold text-left">Section</th>
+                <th class="border border-gray-600 px-3 py-2 bg-gray-700 font-semibold text-left">Content</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>`;
+          editor.commands.setContent(tableHTML);
+          const newDoc = parser.parseFromString(editor.getHTML(), "text/html");
+          table = newDoc.querySelector("table");
+        }
+
+        if (!table) return false;
+
+        let tbody = table.querySelector("tbody");
+        if (!tbody) {
+          tbody = doc.createElement("tbody");
+          table.appendChild(tbody);
+        }
+
+        switch (operation.action) {
+          case "add_section":
+            return handleAddSection(tbody, operation, doc);
+          case "remove_section":
+            return handleRemoveSection(tbody, operation, doc, editor);
+          case "move_section":
+            return handleMoveSection(tbody, operation, doc, editor);
+          case "update_section_name":
+            return handleUpdateSectionName(tbody, operation, doc, editor);
+          case "update_section_content":
+            return handleUpdateSectionContent(tbody, operation, doc, editor);
+          default:
+            return false;
+        }
+      } catch (error) {
+        console.error("Error applying section operation:", error);
+        return false;
+      }
+    };
+
+    const handleAddSection = (
+      tbody: Element,
+      operation: SectionOperation,
+      doc: Document
+    ): boolean => {
+      const newRow = doc.createElement("tr");
+      newRow.className = "border-b border-gray-600";
+
+      const sectionCell = doc.createElement("td");
+      sectionCell.className = "border border-gray-600 px-3 py-2";
+      sectionCell.textContent = operation.section_name;
+
+      const contentCell = doc.createElement("td");
+      contentCell.className = "border border-gray-600 px-3 py-2";
+      contentCell.textContent = operation.section_content || "";
+
+      newRow.appendChild(sectionCell);
+      newRow.appendChild(contentCell);
+
+      // Handle positioning
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+
+      if (operation.position === "start") {
+        tbody.insertBefore(newRow, tbody.firstChild);
+      } else if (operation.position === "after" && operation.target_section) {
+        const targetRow = findSectionRow(rows, operation.target_section);
+        if (targetRow) {
+          tbody.insertBefore(newRow, targetRow.nextSibling);
+        } else {
+          tbody.appendChild(newRow);
+        }
+      } else if (operation.position === "before" && operation.target_section) {
+        const targetRow = findSectionRow(rows, operation.target_section);
+        if (targetRow) {
+          tbody.insertBefore(newRow, targetRow);
+        } else {
+          tbody.appendChild(newRow);
+        }
+      } else {
+        // Default to end
+        tbody.appendChild(newRow);
+      }
+
+      editor?.commands.setContent(doc.body.innerHTML);
+      return true;
+    };
+
+    const handleRemoveSection = (
+      tbody: Element,
+      operation: SectionOperation,
+      doc: Document,
+      editor: Editor
+    ): boolean => {
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      const targetRow = findSectionRow(rows, operation.section_name);
+
+      if (targetRow) {
+        targetRow.remove();
+        editor.commands.setContent(doc.body.innerHTML);
+        return true;
+      }
+      return false;
+    };
+
+    const handleMoveSection = (
+      tbody: Element,
+      operation: SectionOperation,
+      doc: Document,
+      editor: Editor
+    ): boolean => {
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      const targetRow = findSectionRow(rows, operation.section_name);
+
+      if (!targetRow) return false;
+
+      // Remove the row
+      targetRow.remove();
+
+      // Re-insert at new position
+      const remainingRows = Array.from(tbody.querySelectorAll("tr"));
+
+      if (operation.position === "start") {
+        tbody.insertBefore(targetRow, tbody.firstChild);
+      } else if (operation.position === "after" && operation.target_section) {
+        const refRow = findSectionRow(remainingRows, operation.target_section);
+        if (refRow) {
+          tbody.insertBefore(targetRow, refRow.nextSibling);
+        } else {
+          tbody.appendChild(targetRow);
+        }
+      } else if (operation.position === "before" && operation.target_section) {
+        const refRow = findSectionRow(remainingRows, operation.target_section);
+        if (refRow) {
+          tbody.insertBefore(targetRow, refRow);
+        } else {
+          tbody.appendChild(targetRow);
+        }
+      } else {
+        tbody.appendChild(targetRow);
+      }
+
+      editor.commands.setContent(doc.body.innerHTML);
+      return true;
+    };
+
+    const handleUpdateSectionName = (
+      tbody: Element,
+      operation: SectionOperation,
+      doc: Document,
+      editor: Editor
+    ): boolean => {
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      const targetRow = findSectionRow(rows, operation.section_name);
+
+      if (targetRow) {
+        const sectionCell = targetRow.querySelector("td:first-child");
+        if (sectionCell && operation.new_section_name) {
+          sectionCell.textContent = operation.new_section_name;
+          editor.commands.setContent(doc.body.innerHTML);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const handleUpdateSectionContent = (
+      tbody: Element,
+      operation: SectionOperation,
+      doc: Document,
+      editor: Editor
+    ): boolean => {
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      const targetRow = findSectionRow(rows, operation.section_name);
+
+      if (targetRow) {
+        const contentCell = targetRow.querySelector("td:nth-child(2)");
+        if (contentCell && operation.section_content) {
+          contentCell.textContent = operation.section_content;
+          editor.commands.setContent(doc.body.innerHTML);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const findSectionRow = (
+      rows: Element[],
+      sectionName: string
+    ): Element | null => {
+      return (
+        rows.find((row) => {
+          const sectionCell = row.querySelector("td:first-child");
+          return (
+            sectionCell?.textContent?.trim().toLowerCase() ===
+            sectionName.toLowerCase()
+          );
+        }) || null
+      );
+    };
+
+    // Function to add a new section (for the UI button)
+    const addNewSection = () => {
+      if (!editor || isAddingSection) return;
+
+      setIsAddingSection(true);
+      const currentHTML = editor.getHTML();
+      const hasTable = currentHTML.includes("<table");
+
+      if (hasTable) {
+        // Parse current HTML and add new row
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(currentHTML, "text/html");
+        const table = doc.querySelector("table");
+
+        if (table) {
+          let tbody = table.querySelector("tbody");
+          if (!tbody) {
+            tbody = doc.createElement("tbody");
+            table.appendChild(tbody);
+          }
+
+          // Create new row
+          const newRow = doc.createElement("tr");
+          newRow.className = "border-b border-gray-600";
+
+          const sectionCell = doc.createElement("td");
+          sectionCell.className = "border border-gray-600 px-3 py-2";
+          sectionCell.textContent = "[section goes here]";
+
+          const contentCell = doc.createElement("td");
+          contentCell.className = "border border-gray-600 px-3 py-2";
+          contentCell.textContent = "[content goes here]";
+
+          newRow.appendChild(sectionCell);
+          newRow.appendChild(contentCell);
+          tbody.appendChild(newRow);
+
+          // Update editor content
+          editor.commands.setContent(doc.body.innerHTML);
+        }
+      } else {
+        // Create new table with proper styling
+        const tableHTML = `<table class="border-collapse border border-gray-600 my-4 w-full">
+          <thead>
+            <tr class="border-b border-gray-600">
+              <th class="border border-gray-600 px-3 py-2 bg-gray-700 font-semibold text-left">Section</th>
+              <th class="border border-gray-600 px-3 py-2 bg-gray-700 font-semibold text-left">Content</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-gray-600">
+              <td class="border border-gray-600 px-3 py-2">[section goes here]</td>
+              <td class="border border-gray-600 px-3 py-2">[content goes here]</td>
+            </tr>
+          </tbody>
+        </table>`;
+
+        if (editor.getText().trim().length === 0) {
+          editor.commands.setContent(tableHTML);
+        } else {
+          editor.commands.insertContent(tableHTML);
+        }
+
+        setIsEmpty(false);
+      }
+
+      // Update button position after adding content and reset debounce
+      setTimeout(() => {
+        updateButtonPosition();
+        setIsAddingSection(false);
+      }, 200);
+    };
+
+    // Update button position when editor content or size changes
+    useEffect(() => {
+      if (editor) {
+        updateButtonPosition();
+
+        // Add scroll listener to update position on scroll
+        const scrollContainer =
+          editorRef.current?.querySelector(".overflow-y-auto");
+        if (scrollContainer) {
+          const handleScroll = () => updateButtonPosition();
+          scrollContainer.addEventListener("scroll", handleScroll);
+          return () =>
+            scrollContainer.removeEventListener("scroll", handleScroll);
+        }
+      }
+    }, [editor, content, isEmpty]);
+
     // Expose editor methods via ref
     useImperativeHandle(
       ref,
@@ -217,6 +591,9 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
           if (!editor) return false;
           return applyPatchesToEditor(editor, patch);
         },
+        applySectionOperation: (operation: SectionOperation) => {
+          return applySectionOperation(operation);
+        },
         getContent: () => editor?.getHTML() || "",
         setContent: (newContent: string) => {
           if (editor) {
@@ -224,7 +601,7 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
           }
         },
       }),
-      [editor]
+      [editor, applySectionOperation]
     );
 
     // Update editor content when content prop changes
@@ -334,6 +711,67 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
               onClick={() => editor?.commands.focus()}
             >
               This campaign has no content. Start typing to add email content...
+            </div>
+          )}
+
+          {/* Add Section Button - positioned dynamically */}
+          {buttonPosition && (
+            <div
+              className="absolute z-10 flex justify-center w-full"
+              style={{
+                top: `${buttonPosition.top}px`,
+                left: 0,
+                paddingLeft: "24px", // Match editor padding
+                paddingRight: "24px",
+              }}
+            >
+              <button
+                onClick={addNewSection}
+                disabled={isAddingSection}
+                className={`flex items-center gap-2 px-4 py-2 ${
+                  isAddingSection
+                    ? "bg-blue-500 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                } text-white rounded-lg transition-colors duration-200 text-sm font-medium shadow-lg`}
+                title="Add new section"
+              >
+                {isAddingSection ? (
+                  <svg
+                    className="w-4 h-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                )}
+                {isAddingSection ? "Adding..." : "Add Section"}
+              </button>
             </div>
           )}
         </div>

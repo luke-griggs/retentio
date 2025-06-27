@@ -9,15 +9,53 @@ export interface PatchOperation {
 }
 
 export const emailEditTool = tool({
-  description: `Use this tool to apply modifications to email content. 
+  description: `Use this tool to apply modifications to email content structured as HTML tables with sections.
+
+  EMAIL STRUCTURE:
+  - Emails use HTML tables with "Section" and "Content" columns
+  - Each row represents one section of the email
+  - Table structure: <table><thead><tr><th>Section</th><th>Content</th></tr></thead><tbody><tr><td>...</td><td>...</td></tr></tbody></table>
+
+  SECTION OPERATIONS (PREFERRED):
+  Use these semantic actions for reliable table operations:
+  
+  - action: "add_section" - Add a new section row
+    Parameters: section_name, section_content, section_position ("start"|"end"|"after"|"before"), target_section
+    
+  - action: "remove_section" - Remove an entire section
+    Parameters: section_name
+    
+  - action: "move_section" - Reposition an existing section  
+    Parameters: section_name, section_position, target_section
+    
+  - action: "update_section_name" - Change a section's name
+    Parameters: section_name, new_section_name
+    
+  - action: "update_section_content" - Change a section's content
+    Parameters: section_name, section_content
+
+  LEGACY TEXT OPERATIONS:
+  - action: "replace", "insert", "delete" - For precise text modifications
+  - Require exact target text matching
+
   The tool returns patch operations that can be applied directly to the editor.
-  Be precise with the target text to ensure accurate replacements.`,
+  Always preserve the HTML table structure and CSS classes when making changes.`,
 
   parameters: z.object({
     action: z
-      .enum(["replace", "insert", "delete", "patch"])
+      .enum([
+        "replace",
+        "insert",
+        "delete",
+        "patch",
+        "add_section",
+        "remove_section",
+        "move_section",
+        "update_section_name",
+        "update_section_content",
+      ])
       .describe(
-        "The type of modification to make. Use 'patch' for complex multi-part edits"
+        "The type of modification to make. Use 'patch' for complex multi-part edits, or table-specific actions for section operations"
       ),
     target: z
       .string()
@@ -50,6 +88,33 @@ export const emailEditTool = tool({
     explanation: z
       .string()
       .describe("brief past tense explanation of the change made: < 10 words"),
+    // Table/Section-specific parameters
+    section_name: z
+      .string()
+      .optional()
+      .describe(
+        "Name of the section for section-specific operations (e.g., 'HEADER', 'BODY', 'CTA')"
+      ),
+    section_content: z
+      .string()
+      .optional()
+      .describe("Content for the section when adding or updating"),
+    new_section_name: z
+      .string()
+      .optional()
+      .describe("New name when updating a section name"),
+    section_position: z
+      .enum(["start", "end", "after", "before"])
+      .optional()
+      .describe(
+        "Where to place the section: 'start', 'end', or relative to another section"
+      ),
+    target_section: z
+      .string()
+      .optional()
+      .describe(
+        "Reference section name when using 'after' or 'before' positioning"
+      ),
   }),
 
   execute: async ({
@@ -59,7 +124,123 @@ export const emailEditTool = tool({
     position,
     patches,
     explanation,
+    section_name,
+    section_content,
+    new_section_name,
+    section_position = "end",
+    target_section,
   }) => {
+    // Handle section-specific operations
+    if (action === "add_section") {
+      if (!section_name || !section_content) {
+        return {
+          error:
+            "section_name and section_content are required for add_section",
+          success: false,
+        };
+      }
+
+      return {
+        success: true,
+        type: "section_operation",
+        operation: {
+          action: "add_section",
+          section_name,
+          section_content,
+          position: section_position,
+          target_section,
+          explanation,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    if (action === "remove_section") {
+      if (!section_name) {
+        return {
+          error: "section_name is required for remove_section",
+          success: false,
+        };
+      }
+
+      return {
+        success: true,
+        type: "section_operation",
+        operation: {
+          action: "remove_section",
+          section_name,
+          explanation,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    if (action === "move_section") {
+      if (!section_name) {
+        return {
+          error: "section_name is required for move_section",
+          success: false,
+        };
+      }
+
+      return {
+        success: true,
+        type: "section_operation",
+        operation: {
+          action: "move_section",
+          section_name,
+          position: section_position,
+          target_section,
+          explanation,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    if (action === "update_section_name") {
+      if (!section_name || !new_section_name) {
+        return {
+          error:
+            "section_name and new_section_name are required for update_section_name",
+          success: false,
+        };
+      }
+
+      return {
+        success: true,
+        type: "section_operation",
+        operation: {
+          action: "update_section_name",
+          section_name,
+          new_section_name,
+          explanation,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    if (action === "update_section_content") {
+      if (!section_name || !section_content) {
+        return {
+          error:
+            "section_name and section_content are required for update_section_content",
+          success: false,
+        };
+      }
+
+      return {
+        success: true,
+        type: "section_operation",
+        operation: {
+          action: "update_section_content",
+          section_name,
+          section_content,
+          explanation,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
     // Handle patch-based operations for streaming
     if (action === "patch" && patches) {
       return {

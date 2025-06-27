@@ -82,6 +82,29 @@ export default function EmailEditChat({
                       // Could update a progress indicator here
                     }
                   );
+                } else if (
+                  result.type === "section_operation" &&
+                  result.operation
+                ) {
+                  // Apply section operations using the new method
+                  console.log(
+                    "Processing section operation:",
+                    result.operation
+                  );
+                  const success = editorRef.current.applySectionOperation(
+                    result.operation
+                  );
+
+                  if (success) {
+                    console.log("Section operation applied successfully");
+                    description =
+                      result.operation.explanation || "Applied section changes";
+
+                    // Wait for editor to fully update before getting content
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                  } else {
+                    console.error("Failed to apply section operation");
+                  }
                 } else if (result.type === "operation" && result.operation) {
                   // Apply operation-based changes
                   const op = result.operation;

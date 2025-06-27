@@ -252,6 +252,7 @@ export default function CopyModeInterface() {
     // Add a new version when AI makes changes
     addVersion(content, "ai", description);
     setEmailContent(content);
+    setHasUnsavedChanges(true);
   };
 
   return (
