@@ -7,6 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // @ts-ignore – Supabase client for edge functions
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { emailPrompt } from "./emailPrompt.ts";
 
 // Make sure Deno env types are available
 // deno-lint-ignore no-explicit-any
@@ -19,12 +20,13 @@ declare const Deno: {
 // Env vars
 // ────────────────────────────────────────────────────────────
 const CLICKUP_KEY = Deno.env.get("CLICKUP_KEY");
+const GOOGLE_GENERATIVE_AI_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const CU_API = "https://api.clickup.com/api/v2";
 
-if (!CLICKUP_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+if (!CLICKUP_KEY || !GOOGLE_GENERATIVE_AI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("Missing one or more required environment variables");
 }
 
@@ -45,10 +47,9 @@ async function getTask(taskId: string) {
 async function upsertClickupTaskRecord(
   supabase: any,
   task: any,
-  brand: string
 ) {
-  // Resolve brand id by list → name fallback
-  let brandId: string | null = null;
+  // Resolve store id by list → name fallback
+  let storeId: string | null = null;
 
   if (task.list?.id) {
     const { data } = await supabase
@@ -56,17 +57,18 @@ async function upsertClickupTaskRecord(
       .select("id")
       .eq("clickup_list_id", task.list.id)
       .maybeSingle();
-    brandId = data?.id ?? null;
+    storeId = data?.id ?? null;
   }
 
   console.log(
-    `Upserting ClickUp task record for taskId: ${task.id}, brandId: ${brandId}`
+    `Upserting ClickUp task record for taskId: ${task.id}, storeId: ${storeId}`
   );
 
   await supabase.from("clickup_tasks").upsert(
     {
       id: task.id,
-      store_id: brandId,
+      store_id: storeId,
+      store_list_id: task.list.id,
       name: task.name,
       description: task.markdown_description ?? "",
       updated_at: task.date_updated
@@ -76,6 +78,78 @@ async function upsertClickupTaskRecord(
     { onConflict: "id" }
   );
 }
+
+async function deleteClickupTaskRecord(supabase: any, taskId: string) {
+  await supabase.from("clickup_tasks").delete().eq("id", taskId);
+}
+
+async function updateTaskDescription(taskId: string, markdownContent: string) {
+  const res = await fetch(`${CU_API}/task/${taskId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: CLICKUP_KEY ?? "",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      markdown_content: markdownContent,
+    }),
+  });
+  if (!res.ok) throw new Error(`ClickUp updateTask → ${res.status}`);
+  return res.json();
+}
+
+async function fetchBrandCartridge(supabase: any, storeListId: string) {
+  const { data, error } = await supabase
+    .from("brand_cartridges")
+    .select("content")
+    .eq("store_list_id", storeListId)
+    .limit(1);
+  if (error) throw error;
+  return data[0]?.content as string;
+}
+
+async function generateGoogleDraft(supabase: any, task: any) {
+
+  const cartridge = await fetchBrandCartridge(supabase, task.list.id);
+  console.log(`Fetched cartridge for task ${task.list.id}`);
+
+  const linksField = task.custom_fields?.find(
+    (field: any) => field.name === "Links"
+  );
+
+  const contentStrategyField = task.custom_fields?.find(
+    (field: any) => field.name === "Content Strategy"
+  );
+  const links = linksField?.value || "";
+  const contentStrategy = contentStrategyField?.value || "";
+
+  const prompt = await emailPrompt(cartridge ?? "", links, contentStrategy);
+
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" +
+      GOOGLE_GENERATIVE_AI_API_KEY,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `GEMINI API error: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+  const draft = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  return draft;
+}
+
 
 // ────────────────────────────────────────────────────────────
 // Edge handler – receives ClickUp webhook for updates/deletes
@@ -116,26 +190,73 @@ async function handleAsync(event: string, taskId: string) {
 
   const currentStatus = task.status?.status?.toLowerCase();
 
-  // Only proceed if status is "ready for writing"
+  // Only proceed if task status is "ready for writing" and remove task from database because it's status is no longer "ready for writing"
   if (currentStatus !== "ready for writing") {
-    console.log(
-      `Task ${taskId} status is "${currentStatus}", not "ready for writing". Skipping processing.`
-    );
+
+    const { data: taskData } = await supabase
+      .from("clickup_tasks")
+      .select("*")
+      .eq("id", taskId)
+      .single();
+
+    if (taskData) {
+      try {
+        console.log(`task ${taskId} is no longer "ready for writing", removing from database`);
+        await deleteClickupTaskRecord(supabase, taskId);
+      } catch (error) {
+        console.error(`Error deleting task ${taskId} from database:`, error);
+      }
+    } else {
+      console.log(
+        `arbitrary task status change for ${taskId}, no action taken`
+      );
+    }
+    return;
+  }
+
+  if (task.parent){
+    console.log(`Task ${taskId} is a subtask, skipping`);
     return;
   }
 
   try {
-    if (event === "taskUpdated") {
+
+    if (event === "taskCreated") {
+      console.log(`Processing taskCreated for taskId: ${taskId}`);
+
+      console.log(`Generating Google draft for task ${taskId}`);
+      const draft = await generateGoogleDraft(supabase, task);
+
+      await updateTaskDescription(taskId, draft);
+      console.log(`Updated task ${taskId} with Google draft`);
+
+      await upsertClickupTaskRecord(supabase, task);
+      console.log(`Upserted task ${taskId}`);
+      return;
+
+    } else if (event === "taskUpdated") {
       console.log(`Processing taskUpdated for taskId: ${taskId}`);
 
-      const store = task.folder?.name ?? "unknown";
-      await upsertClickupTaskRecord(supabase, task, store);
-      console.log(`Upserted task ${taskId} }`);
-      
+      // if task doesn't have description, generate google draft and update task description
+      if (!task.markdown_description) {
+        console.log(`task ${taskId} ready for writing, generating google draft`);
+
+        const draft = await generateGoogleDraft(supabase, task);
+        await updateTaskDescription(taskId, draft);
+        console.log(`Generated Google draft for new ready for writing task ${taskId}`);
+      }
+
+
+      await upsertClickupTaskRecord(supabase, task);
+      console.log(`Upserted task ${taskId}`);
+      return;
+
     } else if (event === "taskDeleted") {
       console.log(`Processing taskDeleted for taskId: ${taskId}`);
       await supabase.from("clickup_tasks").delete().eq("id", taskId);
       console.log(`Deleted task ${taskId}`);
+      return;
+
     } else {
       console.warn(`Unhandled ClickUp event: ${event}`);
     }

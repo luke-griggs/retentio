@@ -58,9 +58,11 @@ export async function emailPrompt(
   
   Subject, Preview, Body must be brand-agnostic unless the context explicitly demands naming.
 
-  4. LINKS USAGE
-  The following links are available for embedding in the email where appropriate:
-  ${links}
+
+  ${links ? `
+    4. LINKS USAGE
+    The following links are available for embedding in the email where appropriate:
+    ${links}` : ""}
   
   When using links:
   - Embed them naturally within the content using markdown format: [link text](url)
@@ -69,8 +71,11 @@ export async function emailPrompt(
   - If multiple links are provided, use them strategically based on their context
   - Do NOT display raw URLs - always use meaningful link text
 
-  here is the content to base the email on (if this is empty, proceed with the content strategy):
-  ${cartridge}
+  
+  ${cartridge ? `
+  5. CONTENT TO BASE THE EMAIL ON
+  here is the content to base the email on:
+  ${cartridge}` : ""}
   
   `;
 }
