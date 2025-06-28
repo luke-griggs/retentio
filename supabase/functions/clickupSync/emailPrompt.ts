@@ -16,11 +16,12 @@ export async function emailPrompt(
   
   | Section | Content |
   |---------|---------|
+  | **SUBJECT LINE** | [Your subject line here] |
+  | **PREVIEW TEXT** | [Your preview text here] |
   | **HEADER** | [Your header text here] |
   | **BODY** | [Your body text here] |
   | **CTA** | [Your CTA with link here] |
-  | **SUBJECT LINE** | [Your subject line here] |
-  | **PREVIEW TEXT** | [Your preview text here] |
+
   
   IMPORTANT: 
   - Use ONLY the table format shown above

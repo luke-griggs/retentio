@@ -18,6 +18,8 @@ interface Task {
   name: string;
   description: string;
   updated_at: string;
+  content_strategy?: string;
+  promo?: string;
 }
 
 interface EmailEditChatProps {
@@ -266,22 +268,21 @@ export default function EmailEditChat({
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center space-x-2">
-          <SparklesIcon className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-medium text-white">AI Email Editor</h3>
-        </div>
-        <p className="text-xs text-gray-400 mt-1">
-          Ask me to improve your email copy
-        </p>
-      </div>
-
+      
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <SparklesIcon className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+            <div className="flex justify-center pb-1">
+              <img
+                src="/rio.png"
+                alt="RIO"
+                width={64}
+                height={64}
+                className="rounded-full"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-white pb-4">RIO</h1>
             <p className="text-sm text-gray-400 mb-4">
               I can help you improve your email copy. Try asking me to:
             </p>

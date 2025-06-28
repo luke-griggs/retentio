@@ -34,6 +34,8 @@ interface Campaign {
   name: string;
   description: string;
   updated_at: string;
+  content_strategy?: string;
+  promo?: string;
 }
 
 export default function CopyModeInterface() {
@@ -259,18 +261,17 @@ export default function CopyModeInterface() {
     <div className="flex h-screen bg-gray-900">
       {/* Left Column - Store and Campaign Tree */}
       <div className="w-80 border-r border-gray-700 flex flex-col">
-        <div className="p-4 border-b border-gray-700">
-          {/* Return to Home Button */}
-          <div className="flex mb-3">
+        <div className="p-4 pb-0 border-b border-gray-700">
+          {/* <div className="flex mb-3">
             <Link href="/">
               <button className="flex items-center space-x-2 px-2 py-1 text-sm text-gray-400 hover:text-white transition-colors">
                 <HomeIcon className="w-4 h-4" />
                 <span>Return to Home</span>
               </button>
             </Link>
-          </div>
+          </div> */}
 
-          <h2 className="text-lg font-medium text-gray-300">Stores</h2>
+          <h2 className="text-lg font-medium text-gray-300 mb-2">Stores</h2>
         </div>
 
         {/* Scrollable content */}
@@ -414,7 +415,7 @@ export default function CopyModeInterface() {
               <button
                 onClick={handleReadyForDesign}
                 disabled={isSaving}
-                className="flex items-center space-x-2 px-3 py-1 text-sm bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 <PaintBrushIcon className="w-4 h-4" />
                 <span>Ready for Design</span>
@@ -422,7 +423,7 @@ export default function CopyModeInterface() {
               <button
                 onClick={handleUpdateCard}
                 disabled={isSaving || !hasUnsavedChanges}
-                className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 <CheckCircleIcon className="w-4 h-4" />
                 <span>Update Card</span>
@@ -450,11 +451,40 @@ export default function CopyModeInterface() {
                   />
                 )}
               </div>
-              <EmailEditor
-                ref={editorRef}
-                content={currentContent}
-                onChange={handleContentChange}
-              />
+
+              {/* Email Context Information */}
+              <div className="flex-1 flex flex-col">
+                {(selectedTask?.content_strategy || selectedTask?.promo) && (
+                  <div className=" border-b border-gray-700 p-4 space-y-3">
+                    {selectedTask.content_strategy && (
+                      <div>
+                        <h4 className="text-lg font-medium text-gray-300 mb-2">
+                          Content Strategy
+                        </h4>
+                        <p className="text-sm text-gray-400 leading-relaxed">
+                          {selectedTask.content_strategy}
+                        </p>
+                      </div>
+                    )}
+                    {selectedTask.promo && (
+                      <div>
+                        <h4 className="text-lg font-medium text-gray-300 mb-2">
+                          Promo
+                        </h4>
+                        <p className="text-sm text-gray-400 leading-relaxed">
+                          {selectedTask.promo}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <EmailEditor
+                  ref={editorRef}
+                  content={currentContent}
+                  onChange={handleContentChange}
+                />
+              </div>
             </>
           ) : selectedStore ? (
             <>

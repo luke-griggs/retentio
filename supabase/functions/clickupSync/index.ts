@@ -71,6 +71,8 @@ async function upsertClickupTaskRecord(
       store_list_id: task.list.id,
       name: task.name,
       description: task.markdown_description ?? "",
+      content_strategy: task.custom_fields?.find((field: any) => field.name === "Content Strategy")?.value ?? "",
+      promo: task.custom_fields?.find((field: any) => field.name === "Promo")?.value ?? "",
       updated_at: task.date_updated
         ? new Date(Number(task.date_updated)).toISOString()
         : new Date().toISOString(),
