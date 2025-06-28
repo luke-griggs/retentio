@@ -112,13 +112,26 @@ Deno.serve(async (req: Request) => {
 async function handleAsync(event: string, taskId: string) {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
+  const task = await getTask(taskId);
+
+  const currentStatus = task.status?.status?.toLowerCase();
+
+  // Only proceed if status is "ready for writing"
+  if (currentStatus !== "ready for writing") {
+    console.log(
+      `Task ${taskId} status is "${currentStatus}", not "ready for writing". Skipping processing.`
+    );
+    return;
+  }
+
   try {
     if (event === "taskUpdated") {
       console.log(`Processing taskUpdated for taskId: ${taskId}`);
-      const task = await getTask(taskId);
+
       const store = task.folder?.name ?? "unknown";
       await upsertClickupTaskRecord(supabase, task, store);
-      console.log(`Upserted task ${taskId}`);
+      console.log(`Upserted task ${taskId} }`);
+      
     } else if (event === "taskDeleted") {
       console.log(`Processing taskDeleted for taskId: ${taskId}`);
       await supabase.from("clickup_tasks").delete().eq("id", taskId);

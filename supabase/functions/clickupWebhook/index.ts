@@ -97,6 +97,10 @@ async function fetchBrandCartridge(supabase: any, store: string) {
   return data[0]?.content as string;
 }
 
+async function removeTaskFromDb(supabase: any, taskId: string) {
+  await supabase.from("clickup_tasks").delete().eq("id", taskId);
+}
+
 // ────────────────────────────────────────────────────────────
 // NEW: persist task into clickup_tasks table
 // ────────────────────────────────────────────────────────────
@@ -168,11 +172,23 @@ async function handleAsync(taskId: string, payload: any) {
   // 2) Check if status changed to "READY FOR WRITING"
   const currentStatus = task.status?.status?.toLowerCase();
 
-  // Only proceed if status is "ready for writing"
+  // Only proceed if task status is "ready for writing" and remove task from database because it's status is no longer "ready for writing"
   if (currentStatus !== "ready for writing") {
-    console.log(
-      `Task ${taskId} status is "${currentStatus}", not "ready for writing". Skipping processing.`
-    );
+
+    const { data: taskData, error: taskError } = await supabase
+      .from("clickup_tasks")
+      .select("*")
+      .eq("id", taskId)
+      .single();
+
+    if (taskData) {
+      await removeTaskFromDb(supabase, taskId);
+      console.log(`task ${taskId} is no longer "ready for writing", removed from database`);
+    } else {
+      console.log(
+        `arbitrary task status change for ${taskId}, no action taken`
+      );
+    }
     return;
   }
 
