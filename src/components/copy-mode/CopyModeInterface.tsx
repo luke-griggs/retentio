@@ -67,8 +67,17 @@ export default function CopyModeInterface() {
   // Initialize version history - use campaign ID as key to prevent resets on save
   const versionKey = selectedTask?.id || "";
   const initialContent = selectedTask?.description || "";
-  const { currentContent, versions, canUndo, canRedo, addVersion, undo, redo } =
-    useEmailVersions(initialContent, versionKey);
+  const {
+    currentContent,
+    versions,
+    canUndo,
+    canRedo,
+    addVersion,
+    undo,
+    redo,
+    currentVersionIndex,
+    goToVersion,
+  } = useEmailVersions(initialContent, versionKey);
 
   // Sync current content with email content state
   useEffect(() => {
@@ -461,12 +470,27 @@ export default function CopyModeInterface() {
               {versions.length > 1 && (
                 <div className="flex items-center space-x-2 text-sm text-gray-400">
                   <span>
-                    Version{" "}
-                    {versions.findIndex((v) => v.content === currentContent) +
-                      1}{" "}
-                    of {versions.length}
+                    Version {currentVersionIndex + 1} of {versions.length}
                   </span>
                 </div>
+              )}
+
+              {/* Make Current button - only show when not on the latest version */}
+              {currentVersionIndex < versions.length - 1 && (
+                <button
+                  onClick={() => {
+                    const currentVersionNumber = currentVersionIndex + 1;
+                    addVersion(
+                      currentContent,
+                      "user",
+                      `Made version ${currentVersionNumber} current`
+                    );
+                  }}
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 rounded-lg transition-colors border border-blue-600"
+                >
+                  <CheckCircleIcon className="w-4 h-4" />
+                  <span>Make Current</span>
+                </button>
               )}
 
               {canRedo && (
