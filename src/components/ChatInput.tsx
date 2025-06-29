@@ -312,7 +312,7 @@ export function ChatInput({
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
                   >
-                    Upload a Calendar
+                    Upload Calendar
                   </button>
                   <button
                     type="button"
