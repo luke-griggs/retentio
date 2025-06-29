@@ -136,6 +136,7 @@ export function CampaignUploadModal({
     followUp: "",
     notes: "",
     links: "",
+    flexibility: "",
   });
 
   const campaignTypes = [
@@ -161,14 +162,23 @@ export function CampaignUploadModal({
     "AOV Lift",
   ];
 
+  // TODO: Get this from the database
   const storeNames = [
-    // TODO: Get this from the database
-    "Drip EZ",
     "Haverhill",
-    "Life Harmony Energies",
+    "Womaness",
     "BioPower Pet",
-    "EMF Harmony",
+    "Drip EZ",
+    "ThreadBeast",
+    "Life Harmony Energies",
+    "Frey",
+    "Turn",
     "Luke Test",
+    "Mett Naturals",
+    "Monsterbass",
+    "Seatopia",
+    "ProCare",
+    "Twelve South",
+    "EMF Harmony",
   ];
 
   const handleFieldChange = (name: keyof Campaign, value: string) => {
@@ -202,13 +212,10 @@ export function CampaignUploadModal({
 
       payload.append("file", file);
 
-      const response = await fetch(
-        `/api/clickup/task-upload`,
-        {
-          method: "POST",
-          body: payload,
-        }
-      );
+      const response = await fetch(`/api/clickup/task-upload`, {
+        method: "POST",
+        body: payload,
+      });
 
       if (response.ok) {
         const result = await response.json();
@@ -233,6 +240,7 @@ export function CampaignUploadModal({
           followUp: "",
           notes: "",
           links: "",
+          flexibility: "",
         });
 
         onClose();
@@ -272,6 +280,7 @@ export function CampaignUploadModal({
       ["Follow Up", campaign.followUp],
       ["Notes", campaign.notes],
       ["Links", campaign.links],
+      ["Flexibility", campaign.flexibility],
     ];
 
     return rows
@@ -503,6 +512,15 @@ export function CampaignUploadModal({
             onChange={handleFieldChange}
             type="textarea"
             placeholder="Relevant links..."
+          />
+
+          <FormField
+            label="Flexibility"
+            name="flexibility"
+            value={formData.flexibility}
+            onChange={handleFieldChange}
+            type="select"
+            options={["Flexible", "Fixed"]}
           />
 
           <div className="flex gap-3 pt-4">

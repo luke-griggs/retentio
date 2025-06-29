@@ -67,7 +67,7 @@ export function InitialView({ fillExample, chatInputProps }: InitialViewProps) {
       {/* Content - positioned above clouds */}
       <div className="relative z-10 flex flex-col items-center">
         <Image
-          src="/rio2.png"
+          src="/rio.png"
           alt="Rio"
           width={160}
           height={160}

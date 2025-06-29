@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { UploadModal } from "./UploadModal";
+import { UploadModal } from "./CalendarUploadModal";
 import { AttachFileModal } from "./AttachFileModal";
 import { CampaignUploadModal } from "./CampaignUploadModal";
 

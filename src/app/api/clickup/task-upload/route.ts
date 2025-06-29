@@ -26,6 +26,11 @@ enum PrimaryGoal {
   "AOV Lift" = 6,
 }
 
+enum Flexibility {
+  "Flexible" = 0,
+  "Fixed" = 1,
+}
+
 // Custom field mapping interface
 interface CustomFieldMapping {
   campaignType?: string;
@@ -42,6 +47,7 @@ interface CustomFieldMapping {
   followUp?: string;
   notes?: string;
   links?: string;
+  flexibility?: string;
 }
 
 // Helper function to sanitize store name for environment variable lookup
@@ -77,6 +83,7 @@ function getCustomFieldMapping(): CustomFieldMapping {
     followUp: process.env.CLICKUP_FIELD_FOLLOW_UP,
     notes: process.env.CLICKUP_FIELD_NOTES,
     links: process.env.CLICKUP_FIELD_LINKS,
+    flexibility: process.env.CLICKUP_FIELD_FLEXIBILITY,
   };
 }
 
@@ -161,6 +168,12 @@ function buildCustomFields(
       campaignValue: campaign.links,
       getValue: (value: string) => value,
     },
+    {
+      mappingKey: "flexibility" as keyof CustomFieldMapping,
+      campaignValue: campaign.flexibility,
+      getValue: (value: string) =>
+        Flexibility[value as keyof typeof Flexibility],
+    },
   ];
 
   // Build custom fields array using the mappings
@@ -231,9 +244,7 @@ async function createClickUpTask(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-) {
+export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;

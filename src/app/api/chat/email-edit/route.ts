@@ -6,11 +6,82 @@ import { google } from "@ai-sdk/google";
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
+// Helper function to process PDF attachments and include them in messages
+// TODO: Make this actually work
+async function processAttachments(messages: any[]) {
+  const processedMessages = await Promise.all(
+    messages.map(async (message) => {
+      if (
+        message.experimental_attachments &&
+        message.experimental_attachments.length > 0
+      ) {
+        const parts = [];
+
+        // Add the text content if any
+        if (message.content) {
+          parts.push({ type: "text", text: message.content });
+        }
+
+        // Process each attachment
+        for (const attachment of message.experimental_attachments) {
+          const isPDF = attachment.contentType === "application/pdf";
+
+          if (isPDF) {
+            try {
+              console.log(`Fetching PDF from URL: ${attachment.url}`);
+              const response = await fetch(attachment.url);
+              if (!response.ok) {
+                throw new Error(`Failed to fetch PDF: ${response.status}`);
+              }
+
+              const pdfData = await response.arrayBuffer();
+              console.log(
+                `PDF fetched successfully, size: ${pdfData.byteLength} bytes`
+              );
+
+              parts.push({
+                type: "file",
+                data: pdfData,
+                mediaType: "application/pdf",
+              });
+            } catch (error) {
+              console.error(`Error fetching PDF ${attachment.name}:`, error);
+              parts.push({
+                type: "text",
+                text: `\n\n[Error: Could not read PDF file ${attachment.name}]`,
+              });
+            }
+          } else {
+            // For non-PDF files, include as text note
+            parts.push({
+              type: "text",
+              text: `\n\n[Note: File "${attachment.name}" was attached but is not a PDF]`,
+            });
+          }
+        }
+
+        return {
+          ...message,
+          content: parts,
+          experimental_attachments: undefined, // Remove attachments after processing
+        };
+      }
+
+      return message;
+    })
+  );
+
+  return processedMessages;
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, campaignId, currentContent } = await req.json();
 
     console.log("Email edit request received for campaign:", campaignId);
+
+    // Process any PDF attachments in messages
+    const processedMessages = await processAttachments(messages);
 
     // Include the current email content in the system prompt
     const systemPrompt = `${emailEditPrompt}
@@ -22,6 +93,17 @@ ${currentContent}
 ───────────────────────────────────────────────
 
 Campaign ID: ${campaignId}
+
+PDF CONTEXT HANDLING:
+═══════════════════════════════════════════════
+If the user has provided a PDF document for context, use that information to:
+- Better understand the brand, product, or campaign goals
+- Align the email copy with the provided context and guidelines
+- Reference relevant information from the PDF when making edits
+- Incorporate brand voice, messaging, or specific requirements from the document
+- Ask clarifying questions if the PDF context seems relevant but unclear
+
+The PDF content is directly accessible to you - analyze it carefully and use the insights to improve the email copy.
 
 HTML STRUCTURE GUIDELINES:
 ═══════════════════════════════════════════════
@@ -61,8 +143,8 @@ When using the email_edit tool, provide:
 2. explanation: A brief description of what you changed`;
 
     const result = streamText({
-      model: google("gemini-2.5-flash"),
-      messages: convertToCoreMessages(messages),
+      model: google("gemini-1.5-flash"),
+      messages: convertToCoreMessages(processedMessages),
       system: systemPrompt,
       tools: {
         email_edit: emailEditTool,
