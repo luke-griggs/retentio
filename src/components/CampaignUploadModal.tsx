@@ -520,7 +520,7 @@ export function CampaignUploadModal({
             value={formData.flexibility}
             onChange={handleFieldChange}
             type="select"
-            options={["Flexible", "Fixed"]}
+            options={["Fluid", "Fixed"]}
           />
 
           <div className="flex gap-3 pt-4">

@@ -27,7 +27,7 @@ enum PrimaryGoal {
 }
 
 enum Flexibility {
-  "Flexible" = 0,
+  "Fluid" = 0,
   "Fixed" = 1,
 }
 
