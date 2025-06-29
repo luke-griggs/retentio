@@ -165,6 +165,7 @@ export function CampaignUploadModal({
   // TODO: Get this from the database
   const storeNames = [
     "Haverhill",
+    "Legendary Foods",
     "Womaness",
     "BioPower Pet",
     "Drip EZ",
