@@ -18,7 +18,6 @@ import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
 import "./email-editor.css";
-import { applyPatchesToEditor, EditorPatch } from "@/utils/editor-patches";
 
 interface EmailEditorProps {
   content: string;
@@ -27,7 +26,6 @@ interface EmailEditorProps {
 
 export interface EmailEditorRef {
   editor: Editor | null;
-  applyPatch: (patch: EditorPatch) => boolean;
   getContent: () => string;
   setContent: (content: string) => void;
 }
@@ -358,10 +356,6 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
       ref,
       () => ({
         editor,
-        applyPatch: (patch: EditorPatch) => {
-          if (!editor) return false;
-          return applyPatchesToEditor(editor, patch);
-        },
         getContent: () => editor?.getHTML() || "",
         setContent: (newContent: string) => {
           if (editor) {

@@ -8,10 +8,6 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { EmailEditorRef } from "./EmailEditor";
-import {
-  applyPatchesToEditor,
-  streamPatchesToEditor,
-} from "@/utils/editor-patches";
 
 interface Task {
   id: string;
@@ -80,37 +76,6 @@ export default function EmailEditChat({
                   // Set the complete HTML content
                   editorRef.current.setContent(result.html);
                   console.log("Applied full HTML replacement");
-                } else if (result.type === "patch" && result.patches) {
-                  // Legacy patch support (if needed)
-                  await streamPatchesToEditor(
-                    editorRef.current.editor,
-                    result.patches,
-                    (progress) => {
-                      // Could update a progress indicator here
-                    }
-                  );
-                } else if (result.type === "operation" && result.operation) {
-                  // Legacy operation support (if needed)
-                  const op = result.operation;
-                  console.log("Processing operation:", op);
-
-                  if (op.patches && op.patches.length > 0) {
-                    const success = applyPatchesToEditor(
-                      editorRef.current.editor,
-                      {
-                        operations: op.patches,
-                        targetText: op.target,
-                      }
-                    );
-
-                    if (!success) {
-                      console.error(
-                        "Failed to apply patches - target text not found:",
-                        op.target
-                      );
-                    }
-                  }
-                  description = op.explanation || description;
                 }
 
                 // Get the updated content and notify parent
