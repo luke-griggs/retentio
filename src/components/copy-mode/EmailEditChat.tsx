@@ -75,8 +75,13 @@ export default function EmailEditChat({
               try {
                 let description = result.explanation || "AI edit";
 
-                if (result.type === "patch" && result.patches) {
-                  // Apply patches with streaming effect
+                // Handle full HTML replacement
+                if (result.type === "full_replacement" && result.html) {
+                  // Set the complete HTML content
+                  editorRef.current.setContent(result.html);
+                  console.log("Applied full HTML replacement");
+                } else if (result.type === "patch" && result.patches) {
+                  // Legacy patch support (if needed)
                   await streamPatchesToEditor(
                     editorRef.current.editor,
                     result.patches,
@@ -84,31 +89,8 @@ export default function EmailEditChat({
                       // Could update a progress indicator here
                     }
                   );
-                } else if (
-                  result.type === "section_operation" &&
-                  result.operation
-                ) {
-                  // Apply section operations using the new method
-                  console.log(
-                    "Processing section operation:",
-                    result.operation
-                  );
-                  const success = editorRef.current.applySectionOperation(
-                    result.operation
-                  );
-
-                  if (success) {
-                    console.log("Section operation applied successfully");
-                    description =
-                      result.operation.explanation || "Applied section changes";
-
-                    // Wait for editor to fully update before getting content
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                  } else {
-                    console.error("Failed to apply section operation");
-                  }
                 } else if (result.type === "operation" && result.operation) {
-                  // Apply operation-based changes
+                  // Legacy operation support (if needed)
                   const op = result.operation;
                   console.log("Processing operation:", op);
 
@@ -126,107 +108,6 @@ export default function EmailEditChat({
                         "Failed to apply patches - target text not found:",
                         op.target
                       );
-
-                      // Fallback: try to do a simple replace if we have the info
-                      if (
-                        op.action === "replace" &&
-                        op.target &&
-                        op.replacement
-                      ) {
-                        const content = editorRef.current.getContent();
-                        console.log("Current editor content:", content);
-
-                        // Try multiple approaches to find and replace
-                        let newContent = content;
-                        let found = false;
-
-                        // 1. Try exact match
-                        if (content.includes(op.target)) {
-                          newContent = content.replace(
-                            op.target,
-                            op.replacement
-                          );
-                          found = true;
-                        }
-
-                        // 2. Try with HTML entities decoded (for quotes, etc.)
-                        if (!found) {
-                          const decodedTarget = op.target
-                            .replace(/&quot;/g, '"')
-                            .replace(/&apos;/g, "'")
-                            .replace(/&amp;/g, "&")
-                            .replace(/&lt;/g, "<")
-                            .replace(/&gt;/g, ">");
-
-                          if (content.includes(decodedTarget)) {
-                            newContent = content.replace(
-                              decodedTarget,
-                              op.replacement
-                            );
-                            found = true;
-                          }
-                        }
-
-                        // 3. Try converting markdown to HTML
-                        if (!found) {
-                          // Convert markdown bold/italic to HTML
-                          const htmlTarget = op.target
-                            .replace(
-                              /\*\*\*(.+?)\*\*\*/g,
-                              "<strong><em>$1</em></strong>"
-                            )
-                            .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-                            .replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-                          if (content.includes(htmlTarget)) {
-                            newContent = content.replace(
-                              htmlTarget,
-                              op.replacement
-                            );
-                            found = true;
-                          }
-                        }
-
-                        // 4. Try removing all formatting
-                        if (!found) {
-                          const plainTarget = op.target
-                            .replace(/\*\*\*/g, "")
-                            .replace(/\*\*/g, "")
-                            .replace(/\*/g, "")
-                            .replace(/<[^>]*>/g, ""); // Remove HTML tags
-
-                          // Also try to find plain text in content
-                          const plainContent = content.replace(/<[^>]*>/g, "");
-                          const index = plainContent.indexOf(plainTarget);
-
-                          if (index !== -1) {
-                            console.log(
-                              "Found plain text match at index:",
-                              index
-                            );
-                            // This is more complex - we found it in plain text but need to replace in HTML
-                            // For now, just set the content directly
-                            found = true;
-                          }
-                        }
-
-                        if (found && newContent !== content) {
-                          editorRef.current.setContent(newContent);
-                          console.log("Successfully replaced content");
-                        } else {
-                          console.error(
-                            "Could not find target text in any format"
-                          );
-                          console.log("Target variations tried:", {
-                            exact: op.target,
-                            html: op.target.replace(
-                              /\*\*\*(.+?)\*\*\*/g,
-                              "<strong><em>$1</em></strong>"
-                            ),
-                            plain: op.target.replace(/\*+/g, ""),
-                          });
-                        }
-                      }
                     }
                   }
                   description = op.explanation || description;
@@ -268,18 +149,16 @@ export default function EmailEditChat({
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
-      
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <div className="flex justify-center pb-1">
+            <div className="flex justify-center pb-3">
               <img
-                src="/rio.png"
+                src="/rio-transparent.png"
                 alt="RIO"
                 width={64}
                 height={64}
-                className="rounded-full"
               />
             </div>
             <h1 className="text-2xl font-bold text-white pb-4">RIO</h1>

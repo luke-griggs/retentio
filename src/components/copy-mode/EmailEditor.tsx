@@ -28,23 +28,8 @@ interface EmailEditorProps {
 export interface EmailEditorRef {
   editor: Editor | null;
   applyPatch: (patch: EditorPatch) => boolean;
-  applySectionOperation: (operation: SectionOperation) => boolean;
   getContent: () => string;
   setContent: (content: string) => void;
-}
-
-interface SectionOperation {
-  action:
-    | "add_section"
-    | "remove_section"
-    | "move_section"
-    | "update_section_name"
-    | "update_section_content";
-  section_name: string;
-  section_content?: string;
-  new_section_name?: string;
-  position?: "start" | "end" | "after" | "before";
-  target_section?: string;
 }
 
 // Convert markdown table to HTML table
@@ -278,220 +263,6 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
       }, 50);
     };
 
-    // Section operation functions
-    const applySectionOperation = (operation: SectionOperation): boolean => {
-      if (!editor) return false;
-
-      try {
-        const currentHTML = editor.getHTML();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(currentHTML, "text/html");
-        let table = doc.querySelector("table");
-
-        // Create table if it doesn't exist
-        if (!table && operation.action === "add_section") {
-          const tableHTML = `<table class="border-collapse border border-gray-600 my-4 w-full">
-            <thead>
-              <tr class="border-b border-gray-600">
-                <th class="border border-gray-600 px-3 py-2 bg-gray-700 font-semibold text-left">Section</th>
-                <th class="border border-gray-600 px-3 py-2 bg-gray-700 font-semibold text-left">Content</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>`;
-          editor.commands.setContent(tableHTML);
-          const newDoc = parser.parseFromString(editor.getHTML(), "text/html");
-          table = newDoc.querySelector("table");
-        }
-
-        if (!table) return false;
-
-        let tbody = table.querySelector("tbody");
-        if (!tbody) {
-          tbody = doc.createElement("tbody");
-          table.appendChild(tbody);
-        }
-
-        switch (operation.action) {
-          case "add_section":
-            return handleAddSection(tbody, operation, doc);
-          case "remove_section":
-            return handleRemoveSection(tbody, operation, doc, editor);
-          case "move_section":
-            return handleMoveSection(tbody, operation, doc, editor);
-          case "update_section_name":
-            return handleUpdateSectionName(tbody, operation, doc, editor);
-          case "update_section_content":
-            return handleUpdateSectionContent(tbody, operation, doc, editor);
-          default:
-            return false;
-        }
-      } catch (error) {
-        console.error("Error applying section operation:", error);
-        return false;
-      }
-    };
-
-    const handleAddSection = (
-      tbody: Element,
-      operation: SectionOperation,
-      doc: Document
-    ): boolean => {
-      const newRow = doc.createElement("tr");
-      newRow.className = "border-b border-gray-600";
-
-      const sectionCell = doc.createElement("td");
-      sectionCell.className = "border border-gray-600 px-3 py-2";
-      sectionCell.textContent = operation.section_name;
-
-      const contentCell = doc.createElement("td");
-      contentCell.className = "border border-gray-600 px-3 py-2";
-      contentCell.textContent = operation.section_content || "";
-
-      newRow.appendChild(sectionCell);
-      newRow.appendChild(contentCell);
-
-      // Handle positioning
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-
-      if (operation.position === "start") {
-        tbody.insertBefore(newRow, tbody.firstChild);
-      } else if (operation.position === "after" && operation.target_section) {
-        const targetRow = findSectionRow(rows, operation.target_section);
-        if (targetRow) {
-          tbody.insertBefore(newRow, targetRow.nextSibling);
-        } else {
-          tbody.appendChild(newRow);
-        }
-      } else if (operation.position === "before" && operation.target_section) {
-        const targetRow = findSectionRow(rows, operation.target_section);
-        if (targetRow) {
-          tbody.insertBefore(newRow, targetRow);
-        } else {
-          tbody.appendChild(newRow);
-        }
-      } else {
-        // Default to end
-        tbody.appendChild(newRow);
-      }
-
-      editor?.commands.setContent(doc.body.innerHTML);
-      return true;
-    };
-
-    const handleRemoveSection = (
-      tbody: Element,
-      operation: SectionOperation,
-      doc: Document,
-      editor: Editor
-    ): boolean => {
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-      const targetRow = findSectionRow(rows, operation.section_name);
-
-      if (targetRow) {
-        targetRow.remove();
-        editor.commands.setContent(doc.body.innerHTML);
-        return true;
-      }
-      return false;
-    };
-
-    const handleMoveSection = (
-      tbody: Element,
-      operation: SectionOperation,
-      doc: Document,
-      editor: Editor
-    ): boolean => {
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-      const targetRow = findSectionRow(rows, operation.section_name);
-
-      if (!targetRow) return false;
-
-      // Remove the row
-      targetRow.remove();
-
-      // Re-insert at new position
-      const remainingRows = Array.from(tbody.querySelectorAll("tr"));
-
-      if (operation.position === "start") {
-        tbody.insertBefore(targetRow, tbody.firstChild);
-      } else if (operation.position === "after" && operation.target_section) {
-        const refRow = findSectionRow(remainingRows, operation.target_section);
-        if (refRow) {
-          tbody.insertBefore(targetRow, refRow.nextSibling);
-        } else {
-          tbody.appendChild(targetRow);
-        }
-      } else if (operation.position === "before" && operation.target_section) {
-        const refRow = findSectionRow(remainingRows, operation.target_section);
-        if (refRow) {
-          tbody.insertBefore(targetRow, refRow);
-        } else {
-          tbody.appendChild(targetRow);
-        }
-      } else {
-        tbody.appendChild(targetRow);
-      }
-
-      editor.commands.setContent(doc.body.innerHTML);
-      return true;
-    };
-
-    const handleUpdateSectionName = (
-      tbody: Element,
-      operation: SectionOperation,
-      doc: Document,
-      editor: Editor
-    ): boolean => {
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-      const targetRow = findSectionRow(rows, operation.section_name);
-
-      if (targetRow) {
-        const sectionCell = targetRow.querySelector("td:first-child");
-        if (sectionCell && operation.new_section_name) {
-          sectionCell.textContent = operation.new_section_name;
-          editor.commands.setContent(doc.body.innerHTML);
-          return true;
-        }
-      }
-      return false;
-    };
-
-    const handleUpdateSectionContent = (
-      tbody: Element,
-      operation: SectionOperation,
-      doc: Document,
-      editor: Editor
-    ): boolean => {
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-      const targetRow = findSectionRow(rows, operation.section_name);
-
-      if (targetRow) {
-        const contentCell = targetRow.querySelector("td:nth-child(2)");
-        if (contentCell && operation.section_content) {
-          contentCell.textContent = operation.section_content;
-          editor.commands.setContent(doc.body.innerHTML);
-          return true;
-        }
-      }
-      return false;
-    };
-
-    const findSectionRow = (
-      rows: Element[],
-      sectionName: string
-    ): Element | null => {
-      return (
-        rows.find((row) => {
-          const sectionCell = row.querySelector("td:first-child");
-          return (
-            sectionCell?.textContent?.trim().toLowerCase() ===
-            sectionName.toLowerCase()
-          );
-        }) || null
-      );
-    };
-
     // Function to add a new section (for the UI button)
     const addNewSection = () => {
       if (!editor || isAddingSection) return;
@@ -591,9 +362,6 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
           if (!editor) return false;
           return applyPatchesToEditor(editor, patch);
         },
-        applySectionOperation: (operation: SectionOperation) => {
-          return applySectionOperation(operation);
-        },
         getContent: () => editor?.getHTML() || "",
         setContent: (newContent: string) => {
           if (editor) {
@@ -601,7 +369,7 @@ export default forwardRef<EmailEditorRef, EmailEditorProps>(
           }
         },
       }),
-      [editor, applySectionOperation]
+      [editor]
     );
 
     // Update editor content when content prop changes
