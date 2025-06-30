@@ -655,9 +655,9 @@ export default function CopyModeInterface() {
             <div className="flex-1 flex items-center justify-center text-gray-500">
               <div className="text-center">
                 <FolderIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-                <p className="text-lg">Select a store to view campaigns</p>
+                <p className="text-lg">Select a client to view campaigns</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Choose a store from the sidebar to get started
+                  Choose a client from the sidebar to get started
                 </p>
               </div>
             </div>

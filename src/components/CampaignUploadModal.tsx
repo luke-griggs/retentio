@@ -191,7 +191,7 @@ export function CampaignUploadModal({
 
     // Validate required fields
     if (!formData.storeName) {
-      alert("Please select a store for the campaign");
+      alert("Please select a client for the campaign");
       return;
     }
     if (!formData.date) {
