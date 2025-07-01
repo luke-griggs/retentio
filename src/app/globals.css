@@ -1,14 +1,21 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* 
+  RECOMMENDATION: Since your components use hardcoded dark mode Tailwind classes,
+  consider forcing dark mode globally to prevent light/dark mode conflicts.
+  Add this line to your <html> tag: class="dark"
+  Or configure Tailwind to use class-based dark mode in tailwind.config.js
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --navbar-bg: #ffffff;
+  --background: #111827;
+  --foreground: #f9fafb;
+  --navbar-bg: #111827;
   --accent: #3b82f6;
   --accent-light: #93c5fd;
   --muted: #94a3b8;
-  --border: #e2e8f0;
+  --border: #374151;
 }
 
 @theme inline {
@@ -16,18 +23,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111827;
-    --foreground: #f9fafb;
-    --navbar-bg: #111827;
-    --accent: #3b82f6;
-    --accent-light: #93c5fd;
-    --muted: #94a3b8;
-    --border: #374151;
-  }
 }
 
 body {

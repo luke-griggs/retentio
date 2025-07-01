@@ -76,9 +76,17 @@ async function processAttachments(messages: any[]) {
 
 export async function POST(req: Request) {
   try {
-    const { messages, campaignId, currentContent } = await req.json();
+    const body = await req.json();
+    const { messages } = body;
 
-    console.log("Email edit request received for campaign:", campaignId);
+    // Extract taskId and currentContent from the request body
+    // These are now passed with each message submission
+    const taskId = body.taskId || body.body?.taskId;
+    const currentContent =
+      body.currentContent || body.body?.currentContent || "";
+
+    console.log("Email edit request received for task:", taskId);
+    console.log("Current content length:", currentContent.length);
 
     // Process any PDF attachments in messages
     const processedMessages = await processAttachments(messages);
@@ -92,7 +100,7 @@ CURRENT EMAIL CONTENT
 ${currentContent}
 ───────────────────────────────────────────────
 
-Campaign ID: ${campaignId}
+Task ID: ${taskId}
 
 PDF CONTEXT HANDLING:
 ═══════════════════════════════════════════════

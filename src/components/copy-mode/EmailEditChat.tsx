@@ -47,16 +47,24 @@ export default function EmailEditChat({
     messages,
     input,
     handleInputChange,
-    handleSubmit,
+    handleSubmit: originalHandleSubmit,
     isLoading,
     append,
+    setMessages,
   } = useChat({
     api: "/api/chat/email-edit",
-    body: {
-      taskId: task.id,
-      currentContent: emailContent,
-    },
   });
+
+  // Reset chat when task changes
+  useEffect(() => {
+    // Clear messages when switching tasks
+    setMessages([]);
+    // Clear any attached files
+    setAttachedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [task.id, setMessages]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -178,6 +186,10 @@ export default function EmailEditChat({
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    // Get the current content directly from the editor
+    const currentEditorContent =
+      editorRef.current?.getContent() || emailContent;
+
     // Create experimental_attachments array if file is attached
     const attachments = attachedFile
       ? [
@@ -189,9 +201,13 @@ export default function EmailEditChat({
         ]
       : undefined;
 
-    // Submit with attachments
-    handleSubmit(e, {
+    // Submit with attachments AND current content
+    originalHandleSubmit(e, {
       experimental_attachments: attachments,
+      body: {
+        taskId: task.id,
+        currentContent: currentEditorContent, // Use content directly from editor
+      },
     });
 
     // Clear the attached file after sending
@@ -215,6 +231,23 @@ export default function EmailEditChat({
     "Add personalization tags",
   ];
 
+  // Update suggested prompts to also pass current content
+  const handleSuggestedPrompt = (prompt: string) => {
+    // Get the current content directly from the editor
+    const currentEditorContent =
+      editorRef.current?.getContent() || emailContent;
+
+    append(
+      { role: "user", content: prompt },
+      {
+        body: {
+          taskId: task.id,
+          currentContent: currentEditorContent, // Use content directly from editor
+        },
+      }
+    );
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-900">
       {/* Messages Area */}
@@ -237,7 +270,7 @@ export default function EmailEditChat({
               {suggestedPrompts.map((prompt, index) => (
                 <button
                   key={index}
-                  onClick={() => append({ role: "user", content: prompt })}
+                  onClick={() => handleSuggestedPrompt(prompt)}
                   className="block w-full text-left px-3 py-2 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition-colors"
                 >
                   {prompt}

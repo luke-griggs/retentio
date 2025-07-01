@@ -218,6 +218,7 @@ async function createClickUpTask(
     custom_fields: buildCustomFields(campaign, customFieldMapping),
   };
 
+  console.log("TASK DATA", taskData);
   try {
     const response = await fetch(clickUpUrl, {
       method: "POST",

@@ -460,7 +460,7 @@ export default function CopyModeInterface() {
                 <button
                   onClick={undo}
                   disabled={!canUndo}
-                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-white"
                 >
                   <ArrowLeftIcon className="w-4 h-4" />
                   <span>Undo</span>
@@ -486,7 +486,7 @@ export default function CopyModeInterface() {
                       `Made version ${currentVersionNumber} current`
                     );
                   }}
-                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 rounded-lg transition-colors border border-blue-600"
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 rounded-lg transition-colors border border-blue-600 text-white"
                 >
                   <CheckCircleIcon className="w-4 h-4" />
                   <span>Make Current</span>
@@ -496,7 +496,7 @@ export default function CopyModeInterface() {
               {canRedo && (
                 <button
                   onClick={redo}
-                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-white"
                 >
                   <span>Redo</span>
                   <ChevronRightIcon className="w-4 h-4" />
@@ -508,7 +508,7 @@ export default function CopyModeInterface() {
               <button
                 onClick={handleReadyForDesign}
                 disabled={isSaving}
-                className="flex items-center space-x-2 px-3 py-3 text-sm bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-3 py-3 text-sm bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-white"
               >
                 <PaintBrushIcon className="w-4 h-4" />
                 <span>Ready for Design</span>
@@ -516,7 +516,7 @@ export default function CopyModeInterface() {
               <button
                 onClick={handleUpdateCard}
                 disabled={isSaving || !hasUnsavedChanges}
-                className="flex items-center space-x-2 px-3 py-3 text-sm bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-3 py-3 text-sm bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-white"
               >
                 <CheckCircleIcon className="w-4 h-4" />
                 <span>Update Card</span>
