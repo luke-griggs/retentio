@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FolderIcon,
@@ -17,6 +18,7 @@ import {
   PencilIcon,
   CheckIcon,
   XMarkIcon,
+  HomeIcon,
 } from "@heroicons/react/24/outline";
 
 interface Store {
@@ -316,161 +318,179 @@ export default function PromptWarehouseInterface() {
             </div>
 
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto">
-              {/* GLOBAL PROMPTING Section */}
-              <div className="py-2">
-                <motion.button
-                  onClick={() =>
-                    setIsGlobalPromptingExpanded(!isGlobalPromptingExpanded)
-                  }
-                  className="w-full flex items-center space-x-2 px-3 py-2 -mb-2text-left transition-colors hover:bg-gray-800"
-                  whileHover={{ backgroundColor: "rgba(31, 41, 55, 0.8)" }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {isGlobalPromptingExpanded ? (
-                    <ChevronDownIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
-                  ) : (
-                    <ChevronRightIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
-                  )}
-                  <GlobeAltIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
-                  <span className="text-white font-medium text-base">
-                    GLOBAL PROMPTING
-                  </span>
-                </motion.button>
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              <div className="flex-1">
+                {/* GLOBAL PROMPTING Section */}
+                <div className="py-2">
+                  <motion.button
+                    onClick={() =>
+                      setIsGlobalPromptingExpanded(!isGlobalPromptingExpanded)
+                    }
+                    className="w-full flex items-center space-x-2 px-3 py-2 -mb-2text-left transition-colors hover:bg-gray-800"
+                    whileHover={{ backgroundColor: "rgba(31, 41, 55, 0.8)" }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {isGlobalPromptingExpanded ? (
+                      <ChevronDownIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
+                    ) : (
+                      <ChevronRightIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
+                    )}
+                    <GlobeAltIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
+                    <span className="text-gray-300 font-medium text-base">
+                      GLOBAL PROMPTING
+                    </span>
+                  </motion.button>
 
-                <AnimatePresence>
-                  {isGlobalPromptingExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="ml-6 border-l border-gray-700 pl-3 overflow-hidden"
-                    >
-                      {globalPromptTypes.map((prompt, index) => {
-                        const IconComponent = prompt.icon;
-                        return (
-                          <motion.button
-                            key={prompt.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.02 }}
-                            onClick={() => handleGlobalPromptClick(prompt)}
-                            className={`w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 ${
-                              selectedGlobalPrompt?.id === prompt.id
-                                ? "bg-gray-800 text-white"
-                                : "text-gray-400"
-                            }`}
-                            whileHover={{
-                              backgroundColor: "rgba(31, 41, 55, 0.8)",
-                            }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            <IconComponent className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{prompt.name}</span>
-                          </motion.button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Clients Header */}
-              <div className="px-3 py-2 border-t border-gray-700">
-                <h3 className="text-white font-medium text-base">CLIENTS</h3>
-              </div>
-
-              {/* List all brands (stores) in the root, no PER BRAND folder */}
-              <div className="py-2">
-                {isLoadingStores && (
-                  <div className="px-3 py-2 text-gray-400 text-sm">
-                    Loading stores...
-                  </div>
-                )}
-
-                {storeError && (
-                  <div className="px-3 py-2 text-red-400 text-sm">
-                    {storeError}
-                  </div>
-                )}
-
-                {!isLoadingStores && !storeError && stores.length === 0 && (
-                  <div className="px-3 py-2 text-gray-400 text-sm">
-                    No stores available
-                  </div>
-                )}
-
-                {!isLoadingStores &&
-                  !storeError &&
-                  stores.map((store, index) => (
-                    <motion.div
-                      key={store.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      {/* Store Button */}
-                      <motion.button
-                        onClick={() => handleStoreClick(store)}
-                        className={`w-full flex items-center space-x-2 px-3 py-1.5 text-sm text-left transition-colors hover:bg-gray-800 ${
-                          selectedStore?.id === store.id
-                            ? "bg-gray-800 text-white"
-                            : "text-gray-300"
-                        }`}
-                        whileHover={{
-                          backgroundColor: "rgba(31, 41, 55, 0.8)",
-                        }}
-                        whileTap={{ scale: 0.98 }}
+                  <AnimatePresence>
+                    {isGlobalPromptingExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="ml-6 border-l border-gray-700 pl-3 overflow-hidden"
                       >
-                        {selectedStore?.id === store.id ? (
-                          <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
-                        ) : (
-                          <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
-                        )}
-                        <FolderIcon className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{store.name}</span>
-                      </motion.button>
+                        {globalPromptTypes.map((prompt, index) => {
+                          const IconComponent = prompt.icon;
+                          return (
+                            <motion.button
+                              key={prompt.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.02 }}
+                              onClick={() => handleGlobalPromptClick(prompt)}
+                              className={`w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 ${
+                                selectedGlobalPrompt?.id === prompt.id
+                                  ? "bg-gray-800 text-white"
+                                  : "text-gray-400"
+                              }`}
+                              whileHover={{
+                                backgroundColor: "rgba(31, 41, 55, 0.8)",
+                              }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <IconComponent className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{prompt.name}</span>
+                            </motion.button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-                      {/* Cartridge under selected store */}
-                      <AnimatePresence>
-                        {selectedStore?.id === store.id && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="ml-6 border-l border-gray-700 pl-3 overflow-hidden"
-                          >
-                            {isLoadingCartridge ? (
-                              <div className="py-2 text-gray-400 text-xs">
-                                Loading cartridge...
-                              </div>
-                            ) : cartridgeError ? (
-                              <div className="py-2 text-red-400 text-xs">
-                                {cartridgeError}
-                              </div>
-                            ) : (
-                              <motion.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="py-1"
-                              >
-                                <button
-                                  className="w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 text-gray-400"
-                                  onClick={() => handleCartridgeClick(store)}
+                {/* Clients Header */}
+                <div className="px-3 pt-4 border-t border-gray-700">
+                  <h3 className="text-gray-300 font-medium text-base">
+                    CLIENTS
+                  </h3>
+                </div>
+
+                {/* List all brands (stores) in the root, no PER BRAND folder */}
+                <div className="py-2">
+                  {isLoadingStores && (
+                    <div className="px-3 py-2 text-gray-400 text-sm">
+                      Loading stores...
+                    </div>
+                  )}
+
+                  {storeError && (
+                    <div className="px-3 py-2 text-red-400 text-sm">
+                      {storeError}
+                    </div>
+                  )}
+
+                  {!isLoadingStores && !storeError && stores.length === 0 && (
+                    <div className="px-3 py-2 text-gray-400 text-sm">
+                      No stores available
+                    </div>
+                  )}
+
+                  {!isLoadingStores &&
+                    !storeError &&
+                    stores.map((store, index) => (
+                      <motion.div
+                        key={store.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        {/* Store Button */}
+                        <motion.button
+                          onClick={() => handleStoreClick(store)}
+                          className={`w-full flex items-center space-x-2 px-3 py-1.5 text-sm text-left transition-colors hover:bg-gray-800 ${
+                            selectedStore?.id === store.id
+                              ? "bg-gray-800 text-white"
+                              : "text-gray-300"
+                          }`}
+                          whileHover={{
+                            backgroundColor: "rgba(31, 41, 55, 0.8)",
+                          }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {selectedStore?.id === store.id ? (
+                            <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
+                          ) : (
+                            <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
+                          )}
+                          <FolderIcon className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{store.name}</span>
+                        </motion.button>
+
+                        {/* Cartridge under selected store */}
+                        <AnimatePresence>
+                          {selectedStore?.id === store.id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="ml-6 border-l border-gray-700 pl-3 overflow-hidden"
+                            >
+                              {isLoadingCartridge ? (
+                                <div className="py-2 text-gray-400 text-xs">
+                                  Loading cartridge...
+                                </div>
+                              ) : cartridgeError ? (
+                                <div className="py-2 text-red-400 text-xs">
+                                  {cartridgeError}
+                                </div>
+                              ) : (
+                                <motion.div
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.1 }}
+                                  className="py-1"
                                 >
-                                  <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">CARTRIDGE</span>
-                                </button>
-                              </motion.div>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  ))}
+                                  <button
+                                    className="w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 text-gray-400"
+                                    onClick={() => handleCartridgeClick(store)}
+                                  >
+                                    <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
+                                    <span className="truncate">CARTRIDGE</span>
+                                  </button>
+                                </motion.div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Return to Home Button */}
+              <div className="border-t border-gray-700 p-3">
+                <Link href="/" className="block w-full">
+                  <motion.button
+                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                    whileHover={{ backgroundColor: "rgba(31, 41, 55, 0.8)" }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <HomeIcon className="w-4 h-4 flex-shrink-0" />
+                    <span>Return to Home</span>
+                  </motion.button>
+                </Link>
               </div>
             </div>
           </motion.div>

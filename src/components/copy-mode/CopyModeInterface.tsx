@@ -323,9 +323,9 @@ export default function CopyModeInterface() {
             </div>
 
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto flex flex-col">
               {/* Store Folders */}
-              <div className="py-2">
+              <div className="flex-1 py-2">
                 {isLoadingStores && (
                   <div className="px-3 py-2 text-gray-400 text-sm">
                     Loading stores...
@@ -444,6 +444,20 @@ export default function CopyModeInterface() {
                       </AnimatePresence>
                     </motion.div>
                   ))}
+              </div>
+
+              {/* Return to Home Button */}
+              <div className="border-t border-gray-700 p-3">
+                <Link href="/" className="block w-full">
+                  <motion.button
+                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                    whileHover={{ backgroundColor: "rgba(31, 41, 55, 0.8)" }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <HomeIcon className="w-4 h-4 flex-shrink-0" />
+                    <span>Return to Home</span>
+                  </motion.button>
+                </Link>
               </div>
             </div>
           </motion.div>
