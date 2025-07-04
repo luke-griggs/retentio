@@ -2,6 +2,7 @@ import { convertToCoreMessages, streamText } from "ai";
 import { emailEditTool } from "../../tools/emailEditTool";
 import { emailEditPrompt } from "@/prompts/emailEdit";
 import { google } from "@ai-sdk/google";
+import getEmailEditPrompt from "../../prompts/getEmailEditPrompt";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -151,7 +152,7 @@ When using the email_edit tool, provide:
 2. explanation: A brief description of what you changed`;
 
     const result = streamText({
-      model: google("gemini-1.5-flash"),
+      model: google("gemini-2.5-flash-lite-preview-06-17"),
       messages: convertToCoreMessages(processedMessages),
       system: systemPrompt,
       tools: {
