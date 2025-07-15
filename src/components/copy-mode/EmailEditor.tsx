@@ -84,11 +84,33 @@ const convertMarkdownTableToHtml = (markdown: string): string => {
           .replace(/\*(.+?)\*/g, "<em>$1</em>")
           .replace(/`(.+?)`/g, "<code>$1</code>");
 
-        const formattedContent = content
+        let formattedContent = content
           .replace(/\*\*_(.+?)_\*\*/g, "<strong><em>$1</em></strong>")
           .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
           .replace(/\*(.+?)\*/g, "<em>$1</em>")
           .replace(/`(.+?)`/g, "<code>$1</code>");
+
+        // Handle numbered lists
+        const numberedListRegex = /(?:^|\n)((?:\d+\.\s+.+(?:\n|$))+)/g;
+        formattedContent = formattedContent.replace(numberedListRegex, (match, listContent) => {
+          const items = listContent.trim().split(/\n(?=\d+\.)/);
+          const listItems = items.map((item: string) => {
+            const text = item.replace(/^\d+\.\s+/, '').trim();
+            return `<li>${text}</li>`;
+          }).join('');
+          return `<ol>${listItems}</ol>`;
+        });
+
+        // Handle bullet lists
+        const bulletListRegex = /(?:^|\n)((?:[•\-\*]\s+.+(?:\n|$))+)/g;
+        formattedContent = formattedContent.replace(bulletListRegex, (match, listContent) => {
+          const items = listContent.trim().split(/\n(?=[•\-\*])/);
+          const listItems = items.map((item: string) => {
+            const text = item.replace(/^[•\-\*]\s+/, '').trim();
+            return `<li>${text}</li>`;
+          }).join('');
+          return `<ul>${listItems}</ul>`;
+        });
 
         html += `<tr><td>${formattedSection}</td><td>${formattedContent}</td></tr>`;
       });

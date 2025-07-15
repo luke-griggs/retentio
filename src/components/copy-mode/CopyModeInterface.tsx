@@ -39,6 +39,7 @@ interface Campaign {
   updated_at: string;
   content_strategy?: string;
   promo?: string;
+  notes?: string;
 }
 
 export default function CopyModeInterface() {
@@ -584,6 +585,16 @@ export default function CopyModeInterface() {
                         </h4>
                         <p className="text-sm text-gray-400 leading-relaxed">
                           {selectedTask.promo}
+                        </p>
+                      </div>
+                    )}
+                    {selectedTask.notes && (
+                      <div>
+                        <h4 className="text-lg font-medium text-gray-300 mb-2">
+                          Notes
+                        </h4>
+                        <p className="text-sm text-gray-400 leading-relaxed">
+                          {selectedTask.notes}
                         </p>
                       </div>
                     )}

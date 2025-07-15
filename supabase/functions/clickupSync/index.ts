@@ -83,6 +83,9 @@ async function upsertClickupTaskRecord(supabase: any, task: any) {
       promo:
         task.custom_fields?.find((field: any) => field.name === "Promo")
           ?.value ?? "",
+      notes:
+        task.custom_fields?.find((field: any) => field.name === "Notes")
+          ?.value ?? "",
       updated_at: task.date_updated
         ? new Date(Number(task.date_updated)).toISOString()
         : new Date().toISOString(),

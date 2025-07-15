@@ -152,7 +152,7 @@ When using the email_edit tool, provide:
 2. explanation: A brief description of what you changed`;
 
     const result = streamText({
-      model: google("gemini-2.5-flash-lite-preview-06-17"),
+      model: google("gemini-2.5-flash"),
       messages: convertToCoreMessages(processedMessages),
       system: systemPrompt,
       tools: {

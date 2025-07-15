@@ -34,7 +34,7 @@ export async function emailPrompt(
   Header: ≤ 60 characters (including spaces)
   Body: ≤ 240 characters total (including spaces & any emphasis markers)
   CTA: ≤ 20 characters
-  Subject Line: ≤ 45 characters
+  Subject Line: ≤ 45 characters each
   Preview Text: ≤ 60 characters
   If any section goes over its limit, revise automatically until it fits.
   
@@ -59,6 +59,15 @@ export async function emailPrompt(
   
   Subject, Preview, Body must be brand-agnostic unless the context explicitly demands naming.
 
+  4. Subject Line
+  Include 3 potential subject lines with a blank line between each.
+  example:
+  Subject Line 1: [Subject line 1 goes here]
+  [blank line]
+  Subject Line 2: [Subject line 2 goes here]
+  [blank line]
+  Subject Line 3: [Subject line 3 goes here]
+  [blank line]
 
   ${links ? `
     4. LINKS USAGE
