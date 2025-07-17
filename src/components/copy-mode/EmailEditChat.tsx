@@ -8,7 +8,7 @@ import {
   ArrowPathIcon,
   PaperClipIcon,
 } from "@heroicons/react/24/outline";
-import { EmailEditorRef } from "./EmailEditor";
+import { DraggableEmailTableRef } from "./DraggableEmailTable";
 
 interface Task {
   id: string;
@@ -23,7 +23,7 @@ interface EmailEditChatProps {
   task: Task;
   emailContent: string;
   onContentChange: (content: string, description?: string) => void;
-  editorRef: React.RefObject<EmailEditorRef | null>;
+  editorRef: React.RefObject<DraggableEmailTableRef | null>;
 }
 
 export default function EmailEditChat({

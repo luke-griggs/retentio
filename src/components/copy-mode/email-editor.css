@@ -112,3 +112,69 @@
   color: #d1d5db;
   font-style: italic;
 }
+
+/* Table row drag handle styles */
+.ProseMirror table {
+  position: relative;
+}
+
+.ProseMirror tr {
+  position: relative;
+  transition: opacity 0.2s;
+}
+
+.ProseMirror td:first-child {
+  position: relative;
+  padding-left: 40px !important;
+}
+
+.table-row-drag-handle {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: move;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  color: #9ca3af;
+  border-radius: 4px;
+}
+
+.ProseMirror tr:hover .table-row-drag-handle {
+  opacity: 1;
+}
+
+.table-row-drag-handle:hover {
+  color: #d1d5db;
+  background: #4b5563;
+}
+
+/* Dragging state */
+.ProseMirror tr.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+/* Drop zone indicators */
+.ProseMirror tr.drop-zone-above {
+  box-shadow: 0 -2px 0 0 #3b82f6;
+}
+
+.ProseMirror tr.drop-zone-below {
+  box-shadow: 0 2px 0 0 #3b82f6;
+}
+
+/* Ensure table cells maintain their styling during drag */
+.ProseMirror tr.dragging td {
+  background: inherit;
+}
+
+/* Hide drag handles on header rows */
+.ProseMirror thead tr .table-row-drag-handle {
+  display: none;
+}

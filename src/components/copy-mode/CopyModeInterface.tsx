@@ -20,7 +20,7 @@ import {
   ChevronDoubleLeftIcon,
 } from "@heroicons/react/24/outline";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-import EmailEditor, { EmailEditorRef } from "./EmailEditor";
+import DraggableEmailTable, { DraggableEmailTableRef } from "./DraggableEmailTable";
 import EmailEditChat from "./EmailEditChat";
 import { useEmailVersions } from "@/hooks/use-email-versions";
 import { toast } from "sonner"; // TODO: set up toast
@@ -43,7 +43,7 @@ interface Campaign {
 }
 
 export default function CopyModeInterface() {
-  const editorRef = useRef<EmailEditorRef>(null);
+  const editorRef = useRef<DraggableEmailTableRef>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoadingStores, setIsLoadingStores] = useState(true);
   const [storeError, setStoreError] = useState<string | null>(null);
@@ -601,7 +601,7 @@ export default function CopyModeInterface() {
                   </div>
                 )}
 
-                <EmailEditor
+                <DraggableEmailTable
                   ref={editorRef}
                   content={currentContent}
                   onChange={handleContentChange}

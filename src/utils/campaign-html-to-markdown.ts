@@ -21,8 +21,8 @@ export function campaignHtmlToMarkdown(html: string): string {
     return html; // Return original if no table found
   }
 
-  // Get all rows except the header
-  const rows = Array.from(table.querySelectorAll("tbody tr")).slice(1);
+  // Get all data rows from tbody (thead already excludes header)
+  const rows = Array.from(table.querySelectorAll("tbody tr"));
 
   // Build the markdown table
   const markdownRows: string[] = [
