@@ -57,8 +57,13 @@ const DraggableRow = ({
   // Focus input when editing starts
   useEffect(() => {
     if (editingCell && editInputRef.current) {
-      editInputRef.current.focus();
-      editInputRef.current.select();
+      const textarea = editInputRef.current;
+      // Set initial height to match content first
+      textarea.style.height = "auto";
+      textarea.style.height = textarea.scrollHeight + "px";
+      textarea.focus();
+      // Place cursor at end instead of selecting all text
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
     }
   }, [editingCell]);
 
@@ -84,7 +89,7 @@ const DraggableRow = ({
         borderTop: "1px solid #4b5563",
       }}
     >
-      <div className="grid grid-cols-2 relative">
+      <div className="grid grid-cols-[200px_1fr] relative">
         {/* Drag Handle */}
         <div
           className="absolute left-2 top-1/2 transform -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
@@ -112,14 +117,28 @@ const DraggableRow = ({
             <textarea
               ref={editInputRef}
               defaultValue={row.section}
-              className="w-full bg-transparent text-white resize-none border-none outline-none"
-              rows={1}
+              className="w-full bg-transparent text-white resize-none border-none outline-none min-h-[1.5rem] leading-6 p-0 m-0"
+              style={{
+                height: "auto",
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                lineHeight: "1.5",
+                padding: "0",
+                margin: "0",
+                border: "none",
+                overflow: "hidden",
+              }}
               onBlur={(e) => onCellUpdate(e.target.value)}
               onKeyDown={handleKeyDown}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = "auto";
+                target.style.height = target.scrollHeight + "px";
+              }}
             />
           ) : (
             <div
-              className="text-white cursor-text min-h-[1.5rem] whitespace-pre-wrap"
+              className="text-white cursor-text min-h-[1.5rem] whitespace-pre-wrap leading-6"
               onClick={() => onCellEdit(row.id, "section")}
               dangerouslySetInnerHTML={{
                 __html: row.section
@@ -140,14 +159,28 @@ const DraggableRow = ({
             <textarea
               ref={editInputRef}
               defaultValue={row.content}
-              className="w-full bg-transparent text-white resize-none border-none outline-none"
-              rows={3}
+              className="w-full bg-transparent text-white resize-none border-none outline-none min-h-[1.5rem] leading-6 p-0 m-0"
+              style={{
+                height: "auto",
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                lineHeight: "1.5",
+                padding: "0",
+                margin: "0",
+                border: "none",
+                overflow: "hidden",
+              }}
               onBlur={(e) => onCellUpdate(e.target.value)}
               onKeyDown={handleKeyDown}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = "auto";
+                target.style.height = target.scrollHeight + "px";
+              }}
             />
           ) : (
             <div
-              className="text-white cursor-text min-h-[1.5rem] whitespace-pre-wrap"
+              className="text-white cursor-text min-h-[1.5rem] whitespace-pre-wrap leading-6"
               onClick={() => onCellEdit(row.id, "content")}
               dangerouslySetInnerHTML={{
                 __html: row.content
@@ -366,7 +399,7 @@ const DraggableEmailTable = React.forwardRef<
       <div className="flex-1 overflow-y-auto p-6">
         {/* Table Header */}
         <div className="mb-4">
-          <div className="grid grid-cols-2 bg-gray-700 border border-gray-600 rounded-lg text-center">
+          <div className="grid grid-cols-[200px_1fr] bg-gray-700 border border-gray-600 rounded-lg text-center">
             <div className="px-4 py-3 font-semibold text-white border-r border-gray-600">
               Section
             </div>
