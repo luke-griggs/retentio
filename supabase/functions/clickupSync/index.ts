@@ -42,12 +42,12 @@ if (
 // ────────────────────────────────────────────────────────────
 async function getTask(taskId: string) {
   try {
-  const res = await fetch(
-    `${CU_API}/task/${taskId}/?include_markdown_description=true`,
-    {
-      headers: { Authorization: CLICKUP_KEY ?? "" },
-    }
-  );
+    const res = await fetch(
+      `${CU_API}/task/${taskId}/?include_markdown_description=true`,
+      {
+        headers: { Authorization: CLICKUP_KEY ?? "" },
+      }
+    );
     if (!res.ok) throw new Error(`ClickUp getTask → ${res.statusText}`);
     return res.json();
   } catch (error) {
@@ -135,34 +135,47 @@ async function generateGoogleDraft(supabase: any, task: any) {
   const contentStrategyField = task.custom_fields?.find(
     (field: any) => field.name === "Content Strategy"
   );
+
+  const notesField = task.custom_fields?.find(
+    (field: any) => field.name === "Notes"
+  );
+
   const links = linksField?.value || "";
   const contentStrategy = contentStrategyField?.value || "";
+  const notes = (notesField?.value || "").toString().trim().toLowerCase();
 
   const prompt = await emailPrompt(cartridge ?? "", links, contentStrategy);
 
-  const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" +
-      GOOGLE_GENERATIVE_AI_API_KEY,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `GEMINI API error: ${response.status} ${response.statusText}`
+  if (!notes.includes("exclude")) {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" +
+        GOOGLE_GENERATIVE_AI_API_KEY,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
     );
-  }
 
-  const data = await response.json();
-  const draft = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  return draft;
+    if (!response.ok) {
+      throw new Error(
+        `GEMINI API error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    const draft = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    return draft;
+  } else {
+    console.log(
+      `Task ${task.id} has notes field set to "exclude", skipping draft generation`
+    );
+    return null;
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -194,7 +207,7 @@ Deno.serve(async (req: Request) => {
     console.log(`Deleted task ${taskId}`);
     return new Response("ok");
   }
-  
+
   // Fire-and-forget background processing for fast 200 to ClickUp
   handleAsync(event as string, taskId as string).catch((e) =>
     console.error("clickupSync error:", e)
@@ -246,12 +259,16 @@ async function handleAsync(event: string, taskId: string) {
   try {
     if (event === "taskStatusUpdated") {
       console.log(`Processing taskStatusUpdated for taskId: ${taskId}`);
-      
+
       if (!task.markdown_description) {
         console.log(`Generating Google draft for task ${taskId}`);
         const draft = await generateGoogleDraft(supabase, task);
-        await updateTaskDescription(taskId, draft);
-        console.log(`Updated task ${taskId} with Google draft`);
+        if (draft) {
+          await updateTaskDescription(taskId, draft);
+          console.log(`Updated task ${taskId} with Google draft`);
+        } else {
+          console.log(`No draft generated for task ${taskId}`);
+        }
       } else {
         console.log(`Task ${taskId} already has a description, skipping`);
       }
@@ -263,7 +280,7 @@ async function handleAsync(event: string, taskId: string) {
       await upsertClickupTaskRecord(supabase, task);
       console.log(`Upserted task ${taskId}`);
       return;
-    }  else {
+    } else {
       console.warn(`Unhandled ClickUp event: ${event}`);
     }
   } catch (error) {
