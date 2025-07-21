@@ -20,6 +20,7 @@ declare const Deno: {
 // Env vars
 // ────────────────────────────────────────────────────────────
 const CLICKUP_KEY = Deno.env.get("CLICKUP_KEY");
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const GOOGLE_GENERATIVE_AI_API_KEY = Deno.env.get(
   "GOOGLE_GENERATIVE_AI_API_KEY"
 );
@@ -30,6 +31,7 @@ const CU_API = "https://api.clickup.com/api/v2";
 
 if (
   !CLICKUP_KEY ||
+  !OPENAI_API_KEY ||
   !GOOGLE_GENERATIVE_AI_API_KEY ||
   !SUPABASE_URL ||
   !SUPABASE_SERVICE_ROLE_KEY
@@ -57,7 +59,6 @@ async function getTask(taskId: string) {
 }
 
 async function upsertClickupTaskRecord(supabase: any, task: any) {
-  // Resolve store id by list → name fallback
   let storeId: string | null = null;
 
   if (task.list?.id) {
@@ -128,6 +129,11 @@ async function generateGoogleDraft(supabase: any, task: any) {
   const cartridge = await fetchBrandCartridge(supabase, task.list.id);
   console.log(`Fetched cartridge for task ${task.id}`);
 
+  const taskName = task.name;
+  const emotionalDriver = task.custom_fields?.find(
+    (field: any) => field.name === "Emotional Driver"
+  )?.value;
+
   const linksField = task.custom_fields?.find(
     (field: any) => field.name === "Links"
   );
@@ -144,38 +150,37 @@ async function generateGoogleDraft(supabase: any, task: any) {
   const contentStrategy = contentStrategyField?.value || "";
   const notes = (notesField?.value || "").toString().trim().toLowerCase();
 
-  const prompt = await emailPrompt(cartridge ?? "", links, contentStrategy);
+  const prompt = await emailPrompt(
+    taskName,
+    cartridge ?? "",
+    links,
+    contentStrategy,
+    emotionalDriver
+  );
 
-  if (!notes.includes("exclude")) {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" +
-        GOOGLE_GENERATIVE_AI_API_KEY,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4.1-2025-04-14",
+      input: [{ role: "developer", content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `OpenAI API error: ${response.status} ${response.statusText}`
     );
-
-    if (!response.ok) {
-      throw new Error(
-        `GEMINI API error: ${response.status} ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-    const draft = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    return draft;
-  } else {
-    console.log(
-      `Task ${task.id} has notes field set to "exclude", skipping draft generation`
-    );
-    return null;
   }
+
+  const data = await response.json();
+  const draft = data.output[0].content[0].text;
+  console.log("DRAFT:", draft);
+
+  return draft;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -276,6 +281,8 @@ async function handleAsync(event: string, taskId: string) {
       return;
     } else if (event === "taskUpdated") {
       console.log(`Processing taskUpdated for taskId: ${taskId}`);
+
+      console.log("EMAIL OF TASK UPDATED:", task.markdown_description);
 
       await upsertClickupTaskRecord(supabase, task);
       console.log(`Upserted task ${taskId}`);

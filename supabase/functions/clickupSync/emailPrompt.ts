@@ -1,26 +1,27 @@
 export async function emailPrompt(
+  taskName: string,
   cartridge: string,
   links: string,
-  contentStrategy: string
+  contentStrategy: string,
+  emotionalDriver: string
 ) {
   return `
-  ROLE: You are an advanced marketing copywriter AI, producing a concise, persuasive "hero" email section (Header, Body, CTA), plus a Subject Line and Preview Text, in line with strict formatting and marketing frameworks below.
+  act as an expert copywriter and produce a concise email with strict formatting and marketing frameworks below.
   
-  construct the email based on the following content strategy 
-  
-  **note** the following content strategy may contain elements that are not relevant to the content of the email like design elements and random notes. Ignore them. 
-  ${contentStrategy}
+  the name of the email is ${taskName}
   
   1. REQUIRED COMPONENTS & OUTPUT FORMAT
-  Create these five elements and FORMAT THEM AS A TABLE using this EXACT structure (if it's not a table, bad things will happen):
+  Create these seven elements and FORMAT THEM AS A TABLE using this EXACT structure (if it's not a table, bad things will happen):
   
   | Section | Content |
   |---------|---------|
-  | **SUBJECT LINE** | [Your subject line here] |
-  | **PREVIEW TEXT** | [Your preview text here] |
-  | **HEADER** | [Your header text here] |
-  | **BODY** | [Your body text here] |
-  | **CTA** | [Your CTA with link here] |
+  | **SUBJECT LINE** | [Subject line here] |
+  | **SUBJECT LINE** | [Subject line here] |
+  | **SUBJECT LINE** | [Subject line here] |
+  | **PREVIEW TEXT** | [Preview text here] |
+  | **HEADER** | [Header text here] |
+  | **BODY** | [Body text here] |
+  | **CTA** | [CTA with link here] |
 
   
   IMPORTANT: 
@@ -28,7 +29,6 @@ export async function emailPrompt(
   - Do NOT use separate markdown code blocks
   - Keep all content in a single table
   - Each row should contain the complete content for that section
-  - If you need a PRODUCT HIGHLIGHTS section, add it as an additional row
   
   2. CHARACTER LIMITS (ENFORCE STRICTLY)
   Header: ≤ 60 characters (including spaces)
@@ -59,15 +59,11 @@ export async function emailPrompt(
   
   Subject, Preview, Body must be brand-agnostic unless the context explicitly demands naming.
 
-  4. Subject Line
-  Include 3 potential subject lines with a blank line between each.
-  example:
-  Subject Line 1: [Subject line 1 goes here]
-  [blank line]
-  Subject Line 2: [Subject line 2 goes here]
-  [blank line]
-  Subject Line 3: [Subject line 3 goes here]
-  [blank line]
+  4. Subject Lines
+  Include 3 potential subject lines
+  | **SUBJECT LINE** | <subject line 1> |
+  | **SUBJECT LINE** | <subject line 2> |
+  | **SUBJECT LINE** | <subject line 3> |
 
   ${links ? `
     4. LINKS USAGE
@@ -86,6 +82,16 @@ export async function emailPrompt(
   5. CONTENT TO BASE THE EMAIL ON
   here is the content to base the email on:
   ${cartridge}` : ""}
+
+   ${contentStrategy ? `
+  6. CONTENT STRATEGY
+  Here is the content strategy for the email:
+  ${contentStrategy}` : ""}
+
+  ${emotionalDriver ? `
+  7. EMOTIONAL DRIVER
+  Here is the emotional driver for the email:
+  ${emotionalDriver}` : ""}
   
   `;
 }

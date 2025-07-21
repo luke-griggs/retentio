@@ -266,6 +266,7 @@ export default function CopyModeInterface() {
 
   const handleAIContentChange = (content: string, description?: string) => {
     // Add a new version when AI makes changes
+    console.log("AI made changes:", content, description);
     addVersion(content, "ai", description);
     setEmailContent(content);
     setHasUnsavedChanges(true);

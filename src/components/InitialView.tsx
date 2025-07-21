@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ChatInput, ChatInputProps } from "@/components/ChatInput";
+import Script from "next/script";
 
 interface ExamplePrompts {
   title: string;

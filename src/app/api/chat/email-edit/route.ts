@@ -101,18 +101,6 @@ CURRENT EMAIL CONTENT
 ${currentContent}
 ───────────────────────────────────────────────
 
-Task ID: ${taskId}
-
-PDF CONTEXT HANDLING:
-═══════════════════════════════════════════════
-If the user has provided a PDF document for context, use that information to:
-- Better understand the brand, product, or campaign goals
-- Align the email copy with the provided context and guidelines
-- Reference relevant information from the PDF when making edits
-- Incorporate brand voice, messaging, or specific requirements from the document
-- Ask clarifying questions if the PDF context seems relevant but unclear
-
-The PDF content is directly accessible to you - analyze it carefully and use the insights to improve the email copy.
 
 HTML STRUCTURE GUIDELINES:
 ═══════════════════════════════════════════════
@@ -149,7 +137,7 @@ IMPORTANT:
 
 When using the email_edit tool, provide:
 1. updatedHtml: The complete HTML table with all your changes
-2. explanation: A brief description of what you changed`;
+2. explanation: A brief description of what you changed (<8 words)`;
 
     const result = streamText({
       model: google("gemini-2.5-flash"),

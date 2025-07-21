@@ -268,12 +268,16 @@ const DraggableEmailTable = React.forwardRef<
     const parsed = parseMarkdownTable(content);
     return parsed.rows.length === 0;
   });
+  
+  // Use ref to store the latest table data for synchronous access
+  const latestTableRef = useRef<ParsedEmailTable>(table);
 
   // Update table state when content prop changes (e.g., when switching campaigns)
   useEffect(() => {
     const parsed = parseMarkdownTable(content);
     setTable(parsed);
     setIsEmpty(parsed.rows.length === 0);
+    latestTableRef.current = parsed; // Update ref
     // Clear any active editing when content changes
     setEditingCell(null);
   }, [content]);
@@ -282,6 +286,7 @@ const DraggableEmailTable = React.forwardRef<
   const handleTableChange = (newTable: ParsedEmailTable) => {
     setTable(newTable);
     setIsEmpty(newTable.rows.length === 0);
+    latestTableRef.current = newTable; // Update ref immediately
     const markdown = serializeToMarkdown(newTable);
     onChange(markdown);
   };
@@ -309,7 +314,10 @@ const DraggableEmailTable = React.forwardRef<
         },
       },
     },
-    getContent: () => serializeToMarkdown(table),
+    getContent: () => {
+      console.log("getContent called, using latestTableRef");
+      return serializeToMarkdown(latestTableRef.current);
+    },
     setContent: (newContent: string) => {
       console.log("Direct setContent called with:", newContent);
 
