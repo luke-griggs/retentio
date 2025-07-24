@@ -3,7 +3,7 @@
 import { forwardRef } from "react";
 import ReactMarkdownBase from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChartRenderer } from "@/components/ChartRenderer";
+// import { ChartRenderer } from "@/components/ChartRenderer";
 import DbTable from "@/components/DbTable";
 import { getToolResult } from "@/app/utils/chat";
 
@@ -139,7 +139,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
             /* -------- generic tool result (chart / db table ) -------- */
             const res = getToolResult(part as MessagePart);
             if (res?.spec) {
-              return <ChartRenderer key={`chart-${i}`} spec={res.spec} />;
+              // return <ChartRenderer key={`chart-${i}`} spec={res.spec} />;
             }
 
             if (res?.db) {
