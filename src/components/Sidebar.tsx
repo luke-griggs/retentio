@@ -13,6 +13,7 @@ import {
   ChevronDoubleLeftIcon,
   DocumentTextIcon,
   CogIcon,
+  BeakerIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -156,6 +157,20 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               <div className="group-hover:opacity-100 transition-opacity flex items-center text-white">
                 <CogIcon className="w-5 h-5 mr-2 text-white" />
                 Prompt Warehouse
+              </div>
+            </motion.button>
+          </Link>
+        </div>
+        <div className="px-4 pb-2 group">
+          <Link href="/prompt-lab">
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="w-full text-left text-sm py-2 px-2 rounded-md transition-all duration-200 hover:bg-gray-800/50"
+            >
+              <div className="group-hover:opacity-100 transition-opacity flex items-center text-white">
+                <BeakerIcon className="w-5 h-5 mr-2 text-white" />
+                Prompt Lab
               </div>
             </motion.button>
           </Link>
