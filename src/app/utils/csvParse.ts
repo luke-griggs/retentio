@@ -14,6 +14,7 @@ export interface Campaign {
   sendTime: string;
   abTest: string;
   sms: string;
+  mms: string;
   plainText: string;
   followUp: string;
   notes: string;
@@ -49,9 +50,9 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
       const dateRow = row;
 
       // The next 15 rows contain the campaign fields
-      if (i + 16 >= rows.length) break; // Not enough rows remaining
+      if (i + 17 >= rows.length) break; // Not enough rows remaining
 
-      const fieldRows = rows.slice(i + 1, i + 17);
+      const fieldRows = rows.slice(i + 1, i + 18);
 
       // Check that we have the expected field structure
       if (
@@ -92,18 +93,19 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
           sendTime: cleanString(fieldRows[8]?.[col] || ""),
           abTest: cleanString(fieldRows[9]?.[col] || ""),
           sms: cleanString(fieldRows[10]?.[col] || ""),
-          plainText: cleanString(fieldRows[11]?.[col] || ""),
-          followUp: cleanString(fieldRows[12]?.[col] || ""),
-          notes: cleanString(fieldRows[13]?.[col] || ""),
-          links: cleanString(fieldRows[14]?.[col] || ""),
-          flexibility: cleanString(fieldRows[15]?.[col] || ""),
+          mms: cleanString(fieldRows[11]?.[col] || ""),
+          plainText: cleanString(fieldRows[12]?.[col] || ""),
+          followUp: cleanString(fieldRows[13]?.[col] || ""),
+          notes: cleanString(fieldRows[14]?.[col] || ""),
+          links: cleanString(fieldRows[15]?.[col] || ""),
+          flexibility: cleanString(fieldRows[16]?.[col] || ""),
         };
 
         campaigns.push(campaign);
       }
 
       // Skip the field rows we just processed
-      i += 16;
+      i += 17;
     }
   }
 
@@ -137,6 +139,7 @@ export function campaignsToCSV(campaigns: Campaign[]): string {
     "Send Time",
     "A/B Test",
     "SMS",
+    "MMS",
     "Plain Text",
     "Follow Up",
     "Notes",
@@ -159,6 +162,7 @@ export function campaignsToCSV(campaigns: Campaign[]): string {
       campaign.sendTime,
       campaign.abTest,
       campaign.sms,
+      campaign.mms,
       campaign.plainText,
       campaign.followUp,
       campaign.notes,

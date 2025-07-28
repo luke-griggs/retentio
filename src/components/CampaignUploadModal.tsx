@@ -132,6 +132,7 @@ export function CampaignUploadModal({
     sendTime: "",
     abTest: "",
     sms: "",
+    mms: "",
     plainText: "",
     followUp: "",
     notes: "",
@@ -237,6 +238,7 @@ export function CampaignUploadModal({
           sendTime: "",
           abTest: "",
           sms: "",
+          mms: "",
           plainText: "",
           followUp: "",
           notes: "",
@@ -277,6 +279,7 @@ export function CampaignUploadModal({
       ["Send Time", campaign.sendTime],
       ["A/B Test", campaign.abTest],
       ["SMS", campaign.sms],
+      ["MMS", campaign.mms],
       ["Plain Text", campaign.plainText],
       ["Follow Up", campaign.followUp],
       ["Notes", campaign.notes],
@@ -481,11 +484,27 @@ export function CampaignUploadModal({
             />
 
             <FormField
+              label="MMS"
+              name="mms"
+              value={formData.mms}
+              onChange={handleFieldChange}
+              placeholder="Yes/No"
+            />
+
+            <FormField
               label="Plain Text"
               name="plainText"
               value={formData.plainText}
               onChange={handleFieldChange}
               placeholder="Yes/No"
+            />
+            <FormField
+              label="Flexibility"
+              name="flexibility"
+              value={formData.flexibility}
+              onChange={handleFieldChange}
+              type="select"
+              options={["Fluid", "Fixed"]}
             />
           </div>
 
@@ -513,15 +532,6 @@ export function CampaignUploadModal({
             onChange={handleFieldChange}
             type="textarea"
             placeholder="Relevant links..."
-          />
-
-          <FormField
-            label="Flexibility"
-            name="flexibility"
-            value={formData.flexibility}
-            onChange={handleFieldChange}
-            type="select"
-            options={["Fluid", "Fixed"]}
           />
 
           <div className="flex gap-3 pt-4">

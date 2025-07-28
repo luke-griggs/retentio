@@ -43,6 +43,7 @@ interface CustomFieldMapping {
   sendTime?: string;
   abTest?: string;
   sms?: string;
+  mms?: string;
   plainText?: string;
   followUp?: string;
   notes?: string;
@@ -79,6 +80,7 @@ function getCustomFieldMapping(): CustomFieldMapping {
     sendTime: process.env.CLICKUP_FIELD_SEND_TIME,
     abTest: process.env.CLICKUP_FIELD_AB_TEST,
     sms: process.env.CLICKUP_FIELD_SMS,
+    mms: process.env.CLICKUP_FIELD_MMS,
     plainText: process.env.CLICKUP_FIELD_PLAIN_TEXT,
     followUp: process.env.CLICKUP_FIELD_FOLLOW_UP,
     notes: process.env.CLICKUP_FIELD_NOTES,
@@ -149,6 +151,11 @@ function buildCustomFields(
       getValue: (value: string) => value,
     },
     {
+      mappingKey: "mms" as keyof CustomFieldMapping,
+      campaignValue: campaign.mms,
+      getValue: (value: string) => value,
+    },
+    {
       mappingKey: "plainText" as keyof CustomFieldMapping,
       campaignValue: campaign.plainText,
       getValue: (value: string) => value,
@@ -173,7 +180,7 @@ function buildCustomFields(
       campaignValue: campaign.flexibility,
       getValue: (value: string) =>
         Flexibility[value as keyof typeof Flexibility],
-    },
+    },    
   ];
 
   // Build custom fields array using the mappings
