@@ -138,6 +138,7 @@ export function CampaignUploadModal({
     notes: "",
     links: "",
     flexibility: "",
+    infoComplete: "",
   });
 
   const campaignTypes = [
@@ -244,6 +245,7 @@ export function CampaignUploadModal({
           notes: "",
           links: "",
           flexibility: "",
+          infoComplete: "",
         });
 
         onClose();
@@ -285,6 +287,7 @@ export function CampaignUploadModal({
       ["Notes", campaign.notes],
       ["Links", campaign.links],
       ["Flexibility", campaign.flexibility],
+      ["Info Complete", campaign.infoComplete],
     ];
 
     return rows
@@ -480,7 +483,8 @@ export function CampaignUploadModal({
               name="sms"
               value={formData.sms}
               onChange={handleFieldChange}
-              placeholder="Yes/No"
+              type="select"
+              options={["Yes", "No"]}
             />
 
             <FormField
@@ -488,7 +492,8 @@ export function CampaignUploadModal({
               name="mms"
               value={formData.mms}
               onChange={handleFieldChange}
-              placeholder="Yes/No"
+              type="select"
+              options={["Yes", "No"]}
             />
 
             <FormField
@@ -496,9 +501,21 @@ export function CampaignUploadModal({
               name="plainText"
               value={formData.plainText}
               onChange={handleFieldChange}
-              placeholder="Yes/No"
+              type="select"
+              options={["Yes", "No"]}
             />
+
             <FormField
+              label="Info Complete"
+              name="infoComplete"
+              value={formData.infoComplete}
+              onChange={handleFieldChange}
+              type="select"
+              options={["Yes", "No"]}
+            />
+            
+          </div>
+          <FormField
               label="Flexibility"
               name="flexibility"
               value={formData.flexibility}
@@ -506,8 +523,6 @@ export function CampaignUploadModal({
               type="select"
               options={["Fluid", "Fixed"]}
             />
-          </div>
-
           <FormField
             label="Follow Up"
             name="followUp"
@@ -515,7 +530,7 @@ export function CampaignUploadModal({
             onChange={handleFieldChange}
             placeholder="e.g., Reminder in 24 hours"
           />
-
+          
           <FormField
             label="Notes"
             name="notes"
