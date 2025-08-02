@@ -48,7 +48,7 @@ export default function CopyModeInterface() {
   const [isLoadingStores, setIsLoadingStores] = useState(true);
   const [storeError, setStoreError] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
-  const [selectedStoreName, setSelectedStoreName] = useState<string>("");
+  const [selectedClientName, setSelectedClientName] = useState<string>("");
   const [tasks, setTasks] = useState<Campaign[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
   const [taskError, setTaskError] = useState<string | null>(null);
@@ -614,7 +614,7 @@ export default function CopyModeInterface() {
               {/* Store Overview - Centered Layout */}
               <div className="flex-1 flex flex-col items-center justify-start pt-16 px-6">
                 <div className="max-w-2xl w-full">
-                  {/* Store Name - Large Centered Title */}
+                  {/* client - Large Centered Title */}
                   <div className="flex items-center justify-center mb-2">
                     <h1 className="text-4xl font-semibold text-white text-center">
                       {selectedStore.name}

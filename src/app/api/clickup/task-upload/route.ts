@@ -33,6 +33,7 @@ enum Flexibility {
 
 // Custom field mapping interface
 interface CustomFieldMapping {
+  client?: string;
   campaignType?: string;
   promo?: string;
   primaryGoal?: string;
@@ -51,18 +52,18 @@ interface CustomFieldMapping {
   flexibility?: string;
 }
 
-// Helper function to sanitize store name for environment variable lookup
-function sanitizeStoreName(storeName: string): string {
-  return storeName
+// Helper function to sanitize client name for environment variable lookup
+function sanitizeClientName(clientName: string): string {
+  return clientName
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
 }
 
-// Helper function to get ClickUp list ID for a store
-function getClickUpListId(storeName: string): string | null {
-  const sanitizedName = sanitizeStoreName(storeName);
+// Helper function to get ClickUp list ID for a client
+function getClickUpListId(clientName: string): string | null {
+  const sanitizedName = sanitizeClientName(clientName);
   const envVarName = `CLICKUP_LIST_ID_${sanitizedName}`;
   return process.env[envVarName] || null;
 }
@@ -70,6 +71,7 @@ function getClickUpListId(storeName: string): string | null {
 // Helper function to get Space-level custom field mapping from environment variables
 function getCustomFieldMapping(): CustomFieldMapping {
   return {
+    client: process.env.CLICKUP_FIELD_CLIENT,
     campaignType: process.env.CLICKUP_FIELD_CAMPAIGN_TYPE,
     promo: process.env.CLICKUP_FIELD_PROMO,
     primaryGoal: process.env.CLICKUP_FIELD_PRIMARY_GOAL,
@@ -98,6 +100,11 @@ function buildCustomFields(
 
   // Define field mappings with their corresponding enum/value extractors
   const fieldMappings = [
+    {
+      mappingKey: "Client" as keyof CustomFieldMapping,
+      campaignValue: campaign.client,
+      getValue: (value: string) => value,
+    },
     {
       mappingKey: "campaignType" as keyof CustomFieldMapping,
       campaignValue: campaign.campaignType,
@@ -281,12 +288,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const storeName = campaigns[0].storeName;
-    if (!storeName) {
+    const client = campaigns[0].client;
+    if (!client) {
       return NextResponse.json(
         {
           error:
-            "No store name found in CSV. Please ensure the store name is in the first cell.",
+            "No client found in CSV. Please ensure the client is in the first cell.",
         },
         { status: 400 }
       );
@@ -294,7 +301,7 @@ export async function POST(request: NextRequest) {
 
     // Get configuration from environment variables
     const CLICKUP_KEY = process.env.CLICKUP_KEY;
-    const CLICKUP_LIST_ID = getClickUpListId(storeName);
+    const CLICKUP_LIST_ID = getClickUpListId(client);
 
     if (!CLICKUP_KEY) {
       return NextResponse.json(
@@ -309,7 +316,7 @@ export async function POST(request: NextRequest) {
     if (!CLICKUP_LIST_ID) {
       return NextResponse.json(
         {
-          error: `ClickUp List ID not configured for store`,
+          error: `ClickUp List ID not configured for client`,
         },
         { status: 500 }
       );
@@ -331,7 +338,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `Using ${configuredFields} configured custom fields for store: ${storeName}`
+      `Using ${configuredFields} configured custom fields for client: ${client}`
     );
 
     const createdTasks = [];
@@ -341,7 +348,7 @@ export async function POST(request: NextRequest) {
     for (const campaign of campaigns) {
       try {
         console.log(
-          `Creating ClickUp task for campaign: ${campaign.campaignName} (Store: ${storeName})`
+          `Creating ClickUp task for campaign: ${campaign.campaignName} (Client: ${client})`
         );
         const task = await createClickUpTask(
           campaign,
@@ -367,13 +374,13 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `Successfully created ${createdTasks.length} tasks, ${failedTasks.length} failed for store: ${storeName}`
+      `Successfully created ${createdTasks.length} tasks, ${failedTasks.length} failed for client: ${client}`
     );
 
     return NextResponse.json({
       success: true,
-      message: `Successfully processed ${campaigns.length} campaigns for ${storeName}. Created ${createdTasks.length} tasks using Space-level custom fields.`,
-      storeName,
+      message: `Successfully processed ${campaigns.length} campaigns for ${client}. Created ${createdTasks.length} tasks using Space-level custom fields.`,
+      client,
       campaignCount: campaigns.length,
       createdTasks: createdTasks.length,
       failedTasks: failedTasks.length,

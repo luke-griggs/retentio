@@ -7,7 +7,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // @ts-ignore – Supabase client for edge functions
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { emailPrompt } from "./emailPrompt.ts";
+import { getEmailPrompt } from "./emailPrompt.ts";
+import { getSMSPrompt } from "./getSmsPrompt.ts";
+import { getMMSPrompt } from "./getMMSPrompt.ts";
+import { getPlainTextPrompt } from "./getPlainTextPrompt.ts";
 
 // Make sure Deno env types are available
 // deno-lint-ignore no-explicit-any
@@ -42,6 +45,16 @@ if (
 // ────────────────────────────────────────────────────────────
 // Helper functions
 // ────────────────────────────────────────────────────────────
+type FieldType = "isSMS" | "isMMS" | "isPlainText";
+
+function getFieldIds() {
+  return {
+    isSMS: Deno.env.get("CLICKUP_FIELD_IS_SMS"),
+    isMMS: Deno.env.get("CLICKUP_FIELD_IS_MMS"),
+    isPlainText: Deno.env.get("CLICKUP_FIELD_IS_PLAIN_TEXT"),
+  };
+}
+
 async function getTask(taskId: string) {
   try {
     const res = await fetch(
@@ -125,11 +138,9 @@ async function fetchBrandCartridge(supabase: any, storeListId: string) {
   return data[0]?.content as string;
 }
 
-async function generateGoogleDraft(supabase: any, task: any) {
-  const cartridge = await fetchBrandCartridge(supabase, task.list.id);
-  console.log(`Fetched cartridge for task ${task.id}`);
-
+async function generateDraft(task: any, prompt: string) {
   const taskName = task.name;
+
   const emotionalDriver = task.custom_fields?.find(
     (field: any) => field.name === "Emotional Driver"
   )?.value;
@@ -149,14 +160,6 @@ async function generateGoogleDraft(supabase: any, task: any) {
   const links = linksField?.value || "";
   const contentStrategy = contentStrategyField?.value || "";
   const notes = (notesField?.value || "").toString().trim().toLowerCase();
-
-  const prompt = await emailPrompt(
-    taskName,
-    cartridge ?? "",
-    links,
-    contentStrategy,
-    emotionalDriver
-  );
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -181,6 +184,49 @@ async function generateGoogleDraft(supabase: any, task: any) {
   console.log("DRAFT:", draft);
 
   return draft;
+}
+
+async function createSupplementalTask(
+  taskName: string,
+  listId: string,
+  dueDate: string,
+  links: string,
+  type: FieldType
+) {
+  const clickUpUrl = `https://api.clickup.com/api/v2/list/${listId}/task`;
+
+  const fieldIds = getFieldIds();
+
+  const taskData = {
+    name: taskName + " " + type,
+    due_date: dueDate,
+    custom_fields: [
+      {id: fieldIds[type]!, value: "yes"},
+      {id: Deno.env.get("CLICKUP_FIELD_LINKS")!, value: links},
+    ],
+  };
+
+  try {
+    const response = await fetch(clickUpUrl, {
+      method: "POST",
+      headers: {
+        Authorization: CLICKUP_KEY ?? "",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(taskData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ClickUp API Error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error(`Failed to create task "${taskName}":`, error);
+    throw error;
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -214,7 +260,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // Fire-and-forget background processing for fast 200 to ClickUp
-  handleAsync(event as string, taskId as string).catch((e) =>
+  handleAsync(event as string, taskId as string, supabase).catch((e) =>
     console.error("clickupSync error:", e)
   );
 
@@ -224,12 +270,17 @@ Deno.serve(async (req: Request) => {
 // ────────────────────────────────────────────────────────────
 // Background worker
 // ────────────────────────────────────────────────────────────
-async function handleAsync(event: string, taskId: string) {
-  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-
+async function handleAsync(event: string, taskId: string, supabase: any) {
   const task = await getTask(taskId);
 
   const currentStatus = task.status?.status?.toLowerCase();
+
+  const cartridge = await fetchBrandCartridge(supabase, task.list.id);
+  console.log(`Fetched cartridge for task ${task.id}`);
+
+  const client = task.custom_fields?.find(
+    (field: any) => field.name === "Client"
+  )?.value;
 
   // Only proceed if task status is "ready for writing" and remove task from database because it's status is no longer "ready for writing"
   if (currentStatus !== "ready for writing") {
@@ -266,19 +317,164 @@ async function handleAsync(event: string, taskId: string) {
       console.log(`Processing taskStatusUpdated for taskId: ${taskId}`);
 
       if (!task.markdown_description) {
-        console.log(`Generating Google draft for task ${taskId}`);
-        const draft = await generateGoogleDraft(supabase, task);
-        if (draft) {
-          await updateTaskDescription(taskId, draft);
+        const emotionalDriverField = task.custom_fields?.find(
+          (field: any) => field.name === "Emotional Driver"
+        );
+
+        const linksField = task.custom_fields?.find(
+          (field: any) => field.name === "Links"
+        );
+
+        const contentStrategyField = task.custom_fields?.find(
+          (field: any) => field.name === "Content Strategy"
+        );
+
+        const isSMSField = task.custom_fields?.find(
+          (field: any) => field.name === "isSMS"
+        );
+        const isMMSField = task.custom_fields?.find(
+          (field: any) => field.name === "isMMS"
+        );
+        const isPlainTextField = task.custom_fields?.find(
+          (field: any) => field.name === "isPlainText"
+        );
+
+        console.log("isSMSField", isSMSField);
+
+        const contentStrategy = contentStrategyField?.value || "";
+        const emotionalDriver = emotionalDriverField?.value || "";
+        const links = linksField?.value || "";
+        const isSMS = isSMSField?.value === "yes";
+        const isMMS = isMMSField?.value === "yes";
+        const isPlainText = isPlainTextField?.value === "yes";
+
+        console.log("isSMS", isSMS);
+
+        try {
+          // Check if task is SMS, MMS, or Plain Text else generate normal email draft
+          // Note: We check both field naming conventions (e.g., "isSMS" and "SMS") for compatibility
+          if (isSMS) {
+            const smsPrompt = await getSMSPrompt(
+              client,
+              cartridge ?? "",
+              task.name,
+              links,
+              contentStrategy,
+              emotionalDriver
+            );
+            console.log("GENERATING SMS DRAFT");
+
+            const smsDraft = await generateDraft(task, smsPrompt);
+            await updateTaskDescription(taskId, smsDraft);
+            console.log(`Updated SMS task ${taskId} with draft`);
+            return;
+          }
+
+          if (isMMS) {
+            const mmsPrompt = await getMMSPrompt(
+              client,
+              cartridge ?? "",
+              task.name,
+              links,
+              contentStrategy,
+              emotionalDriver
+            );
+
+            const mmsDraft = await generateDraft(task, mmsPrompt);
+            await updateTaskDescription(taskId, mmsDraft);
+            console.log(`Updated MMS task ${taskId} with draft`);
+            return;
+          }
+
+          if (isPlainText) {
+            const plainTextPrompt = await getPlainTextPrompt(
+              client,
+              cartridge ?? "",
+              task.name,
+              links,
+              contentStrategy
+            );
+
+            const plainTextDraft = await generateDraft(task, plainTextPrompt);
+            await updateTaskDescription(taskId, plainTextDraft);
+            console.log(`Updated Plain Text task ${taskId} with draft`);
+            return;
+          }
+
+          const emailPrompt = await getEmailPrompt(
+            task.name,
+            cartridge ?? "",
+            task.links,
+            contentStrategy,
+            emotionalDriver
+          );
+
+          const isSupplementalTask =
+            task.name.includes(" isSMS") ||
+            task.name.includes(" isMMS") ||
+            task.name.includes(" isPlainText");
+
+          if (isSupplementalTask) {
+            console.log(
+              `Task ${taskId} is a supplemental task, skipping supplemental task creation`
+            );
+            return;
+          }
+
+          console.log(`Generating Google draft for task ${taskId}`);
+          const emailDraft = await generateDraft(task, emailPrompt);
+          await updateTaskDescription(taskId, emailDraft);
           console.log(`Updated task ${taskId} with Google draft`);
-        } else {
-          console.log(`No draft generated for task ${taskId}`);
+
+          const dueDate = task.due_date;
+          const listId = task.list.id;
+
+          // Create supplemental tasks only for email tasks (not for tasks that are already SMS/MMS/PlainText)
+          if (task.custom_fields?.find((field: any) => field.name === "SMS" && field.value === "yes")) {
+            const type = "isSMS";
+            await createSupplementalTask(
+              task.name,
+              listId,
+              dueDate,
+              task.links,
+              type
+            );
+            console.log(`Created supplemental SMS task for ${taskId}`);
+          }
+
+          if (task.custom_fields?.find((field: any) => field.name === "MMS" && field.value === "yes")) {
+            const type = "isMMS";
+            await createSupplementalTask(
+              task.name,
+              listId,
+              dueDate,
+              task.links,
+              type
+            );
+            console.log(`Created supplemental MMS task for ${taskId}`);
+          }
+
+          if (
+            task.custom_fields?.find(
+              (field: any) => field.name === "Plain Text" && field.value === "yes"
+            )
+          ) {
+            const type = "isPlainText";
+            await createSupplementalTask(
+              task.name,
+              listId,
+              dueDate,
+              task.links,
+              type
+            );
+            console.log(`Created supplemental Plain Text task for ${taskId}`);
+          }
+        } catch (error) {
+          console.error(`Error generating draft for task ${taskId}:`, error);
         }
       } else {
         console.log(`Task ${taskId} already has a description, skipping`);
       }
-
-      return;
     } else if (event === "taskUpdated") {
       console.log(`Processing taskUpdated for taskId: ${taskId}`);
 
@@ -286,7 +482,6 @@ async function handleAsync(event: string, taskId: string) {
 
       await upsertClickupTaskRecord(supabase, task);
       console.log(`Upserted task ${taskId}`);
-      return;
     } else {
       console.warn(`Unhandled ClickUp event: ${event}`);
     }

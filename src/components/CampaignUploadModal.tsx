@@ -119,7 +119,7 @@ export function CampaignUploadModal({
 }: CampaignUploadModalProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState<Campaign>({
-    storeName: "",
+    client: "",
     date: "",
     campaignName: "",
     campaignType: "",
@@ -164,7 +164,7 @@ export function CampaignUploadModal({
   ];
 
   // TODO: Get this from the database
-  const storeNames = [
+  const clients = [
     "Haverhill",
     "Legendary Foods",
     "Womaness",
@@ -191,7 +191,7 @@ export function CampaignUploadModal({
     e.preventDefault();
 
     // Validate required fields
-    if (!formData.storeName) {
+    if (!formData.client) {
       alert("Please select a client for the campaign");
       return;
     }
@@ -225,7 +225,7 @@ export function CampaignUploadModal({
 
         // Reset form
         setFormData({
-          storeName: "",
+          client: "",
           date: "",
           campaignName: "",
           campaignType: "",
@@ -261,12 +261,12 @@ export function CampaignUploadModal({
 
   const createSingleCampaignCSV = (campaign: Campaign): string => {
     // Create CSV in the format expected by the parser
-    const storeName = campaign.storeName;
+    const client = campaign.client; // client's name
     const date = campaign.date;
 
     // Build the CSV structure that matches the parser expectations
     const rows = [
-      [storeName], // First row: store name
+      [client], // First row: client name
       ["", date], // Date row
       ["Campaign Name", campaign.campaignName],
       ["Campaign Type", campaign.campaignType],
@@ -327,12 +327,12 @@ export function CampaignUploadModal({
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
-              label="Store Name"
-              name="storeName"
-              value={formData.storeName}
+              label="Client"
+              name="client"
+              value={formData.client}
               onChange={handleFieldChange}
               type="select"
-              options={storeNames}
+              options={clients}
               required
             />
 

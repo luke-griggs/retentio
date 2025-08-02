@@ -1,4 +1,4 @@
-export async function emailPrompt(
+export async function getEmailPrompt(
   taskName: string,
   cartridge: string,
   links: string,

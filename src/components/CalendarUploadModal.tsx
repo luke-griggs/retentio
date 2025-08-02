@@ -113,7 +113,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       const uploadData = await uploadResponse.json();
       const fileUrl = uploadData.attachments[0].url;
 
-      // --- New logic to parse CSV and get store name ---
+      // --- New logic to parse CSV and get client ---
       const fileContent = await file.text();
 
 

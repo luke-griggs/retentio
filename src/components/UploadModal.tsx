@@ -1,5 +1,7 @@
 "use client";
 
+//todo: The Problem
+// Before: Your API route was always returning success: true with a 200 status code, even when tasks failed. The frontend only checks response.ok (which is true for 200 status), so it showed success even when server logs showed "Failed to create task..."
 import { useState, useRef } from "react";
 import { parseCampaignCalendarCSV } from "@/app/utils/csvParse";
 
@@ -113,13 +115,13 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       const uploadData = await uploadResponse.json();
       const fileUrl = uploadData.attachments[0].url;
 
-      // --- New logic to parse CSV and get store name ---
+      // --- New logic to parse CSV and get client name ---
       const fileContent = await file.text();
       const campaigns = parseCampaignCalendarCSV(fileContent);
 
-      if (campaigns.length === 0 || !campaigns[0].storeName) {
+      if (campaigns.length === 0 || !campaigns[0].client) {
         alert(
-          "Could not find a valid store name in the CSV. Please check the file."
+          "Could not find a valid client in the CSV. Please check the file."
         );
         setIsUploading(false);
         setShowLoadingModal(false);
