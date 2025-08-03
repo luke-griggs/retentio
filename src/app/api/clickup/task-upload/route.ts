@@ -50,6 +50,7 @@ interface CustomFieldMapping {
   notes?: string;
   links?: string;
   flexibility?: string;
+  infoComplete?: string;
 }
 
 // Helper function to sanitize client name for environment variable lookup
@@ -88,6 +89,7 @@ function getCustomFieldMapping(): CustomFieldMapping {
     notes: process.env.CLICKUP_FIELD_NOTES,
     links: process.env.CLICKUP_FIELD_LINKS,
     flexibility: process.env.CLICKUP_FIELD_FLEXIBILITY,
+    infoComplete: process.env.CLICKUP_FIELD_INFO_COMPLETE,
   };
 }
 
@@ -187,7 +189,12 @@ function buildCustomFields(
       campaignValue: campaign.flexibility,
       getValue: (value: string) =>
         Flexibility[value as keyof typeof Flexibility],
-    },    
+    },
+    {
+      mappingKey: "infoComplete" as keyof CustomFieldMapping,
+      campaignValue: campaign.infoComplete,
+      getValue: (value: string) => value,
+    },
   ];
 
   // Build custom fields array using the mappings
