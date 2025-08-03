@@ -100,6 +100,12 @@ async function upsertClickupTaskRecord(supabase: any, task: any) {
       notes:
         task.custom_fields?.find((field: any) => field.name === "Notes")
           ?.value ?? "",
+      links:
+        task.custom_fields?.find((field: any) => field.name === "Links")
+          ?.value ?? "",
+      info_complete:
+        task.custom_fields?.find((field: any) => field.name === "Info Complete")
+          ?.value ?? "",
       updated_at: task.date_updated
         ? new Date(Number(task.date_updated)).toISOString()
         : new Date().toISOString(),
@@ -197,8 +203,9 @@ async function createSupplementalTask(
 
   const fieldIds = getFieldIds();
 
+  const taskType = type === "isSMS" ? "SMS" : type === "isMMS" ? "MMS" : type === "isPlainText" ? "Plain Text" : "";
   const taskData = {
-    name: taskName + " " + type,
+    name: taskName + " " + taskType,
     due_date: dueDate,
     custom_fields: [
       {id: fieldIds[type]!, value: "yes"},
@@ -430,45 +437,45 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
           const listId = task.list.id;
 
           // Create supplemental tasks only for email tasks (not for tasks that are already SMS/MMS/PlainText)
-          if (task.custom_fields?.find((field: any) => field.name === "SMS" && field.value === "yes")) {
-            const type = "isSMS";
-            await createSupplementalTask(
-              task.name,
-              listId,
-              dueDate,
-              task.links,
-              type
-            );
-            console.log(`Created supplemental SMS task for ${taskId}`);
-          }
+          // if (task.custom_fields?.find((field: any) => field.name === "SMS" && field.value === "yes")) {
+          //   const type = "isSMS";
+          //   await createSupplementalTask(
+          //     task.name,
+          //     listId,
+          //     dueDate,
+          //     task.links,
+          //     type
+          //   );
+          //   console.log(`Created supplemental SMS task for ${taskId}`);
+          // }
 
-          if (task.custom_fields?.find((field: any) => field.name === "MMS" && field.value === "yes")) {
-            const type = "isMMS";
-            await createSupplementalTask(
-              task.name,
-              listId,
-              dueDate,
-              task.links,
-              type
-            );
-            console.log(`Created supplemental MMS task for ${taskId}`);
-          }
+          // if (task.custom_fields?.find((field: any) => field.name === "MMS" && field.value === "yes")) {
+          //   const type = "isMMS";
+          //   await createSupplementalTask(
+          //     task.name,
+          //     listId,
+          //     dueDate,
+          //     task.links,
+          //     type
+          //   );
+          //   console.log(`Created supplemental MMS task for ${taskId}`);
+          // }
 
-          if (
-            task.custom_fields?.find(
-              (field: any) => field.name === "Plain Text" && field.value === "yes"
-            )
-          ) {
-            const type = "isPlainText";
-            await createSupplementalTask(
-              task.name,
-              listId,
-              dueDate,
-              task.links,
-              type
-            );
-            console.log(`Created supplemental Plain Text task for ${taskId}`);
-          }
+          // if (
+          //   task.custom_fields?.find(
+          //     (field: any) => field.name === "Plain Text" && field.value === "yes"
+          //   )
+          // ) {
+          //   const type = "isPlainText";
+          //   await createSupplementalTask(
+          //     task.name,
+          //     listId,
+          //     dueDate,
+          //     task.links,
+          //     type
+          //   );
+          //   console.log(`Created supplemental Plain Text task for ${taskId}`);
+          // }
         } catch (error) {
           console.error(`Error generating draft for task ${taskId}:`, error);
         }

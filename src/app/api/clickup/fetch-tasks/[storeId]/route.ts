@@ -19,9 +19,9 @@ export async function GET(
     // Fetch clickup tasks for the specified store
     const { data: tasks, error } = await supabaseAdmin
       .from("clickup_tasks")
-      .select("id, name, description, updated_at, content_strategy, promo, notes")
+      .select("id, name, description, updated_at, content_strategy, promo, notes, links, info_complete")
       .eq("store_id", storeId)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false }); 
 
     if (error) {
       console.error("Error fetching clickup tasks:", error);

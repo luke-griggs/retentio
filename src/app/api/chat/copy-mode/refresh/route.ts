@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/utils/supabase/supabaseAdmin";
+import { OpenAI } from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+function getEmailPromptHtml(
+  taskName: string,
+  cartridge: string,
+  links: string,
+  contentStrategy: string,
+  emotionalDriver: string,
+  promo: string
+) {
+  return `
+  Act as an expert copywriter and produce a concise email with strict formatting and marketing frameworks below.
+  
+  The name of the email is ${taskName}
+  
+  1. REQUIRED COMPONENTS & OUTPUT FORMAT
+  Create these seven elements and FORMAT THEM AS AN HTML TABLE using this EXACT structure:
+  
+  <table>
+    <tr>
+      <td><strong>SUBJECT LINE</strong></td>
+      <td>[Subject line here]</td>
+    </tr>
+    <tr>
+      <td><strong>SUBJECT LINE</strong></td>
+      <td>[Subject line here]</td>
+    </tr>
+    <tr>
+      <td><strong>SUBJECT LINE</strong></td>
+      <td>[Subject line here]</td>
+    </tr>
+    <tr>
+      <td><strong>PREVIEW TEXT</strong></td>
+      <td>[Preview text here]</td>
+    </tr>
+    <tr>
+      <td><strong>HEADER</strong></td>
+      <td>[Header text here]</td>
+    </tr>
+    <tr>
+      <td><strong>BODY</strong></td>
+      <td>[Body text here]</td>
+    </tr>
+    <tr>
+      <td><strong>CTA</strong></td>
+      <td>[CTA with link here]</td>
+    </tr>
+  </table>
+  
+  IMPORTANT: 
+  - Use ONLY the HTML table format shown above
+  - Return ONLY the table HTML, no additional text or markdown
+  - Keep all content in a single table
+  - Each row should contain the complete content for that section
+  - Use HTML tags for formatting: <strong> for bold, <em> for italics, <strong><em> for both
+  - Use HTML links: <a href="url">link text</a>
+  
+  2. CHARACTER LIMITS (ENFORCE STRICTLY)
+  Header: ≤ 60 characters (including spaces)
+  Body: ≤ 240 characters total (including spaces & any emphasis markers)
+  CTA: ≤ 20 characters
+  Subject Line: ≤ 45 characters each
+  Preview Text: ≤ 60 characters
+  If any section goes over its limit, revise automatically until it fits.
+  
+  3. FORMAT & STYLE RULES
+  No Colons or Dashes
+  
+  Do not use colons (:) or any form of dash (-, –, —) in the Header, Subject Line, or Preview Text.
+  If absolutely necessary in the Body, keep it minimal—but ideally avoid them altogether.
+  Title Case for Subject & Preview
+  
+  Capitalize Each Word in the Subject Line and Preview Text. (Small filler words can stay lowercase if that's your house style.)
+  Emphasis
+  
+  You may apply bold + italics together on the same word or short phrase, like <strong><em>example</em></strong>.
+  Limit to 3 instances of emphasis in the Body.
+  Do not bold one word and italicize a different word; emphasis must be on the same word/phrase if used.
+  No Banned Words as Openers
+  
+  Never start any section (Header, Body, CTA, Subject, Preview) with "Transform," "Discover," "Experience," "Reimagine," or "Elevate."
+  Avoid generic marketing clichés such as "unlock," "epic," "ultimate," etc. If you catch yourself using them, pick synonyms or rephrase.
+  No Brand or Endorser/Product Names (Subject, Preview, Body)
+  
+  Subject, Preview, Body must be brand-agnostic unless the context explicitly demands naming.
+
+  ${links ? `
+    4. LINKS USAGE
+    The following links are available for embedding in the email where appropriate:
+    ${links}` : ""}
+  
+  When using links:
+  - Embed them naturally within the content using HTML format: <a href="url">link text</a>
+  - The link text should be contextual and action-oriented (e.g., "Shop Now", "Learn More", "Get Started")
+  - You can use links in the Body or CTA sections
+  - If multiple links are provided, use them strategically based on their context
+  - Do NOT display raw URLs - always use meaningful link text
+
+  ${cartridge ? `
+  5. CONTENT TO BASE THE EMAIL ON
+  Here is the content to base the email on:
+  ${cartridge}` : ""}
+
+  ${contentStrategy ? `
+  6. CONTENT STRATEGY
+  Here is the content strategy for the email:
+  ${contentStrategy}` : ""}
+
+  ${emotionalDriver ? `
+  7. EMOTIONAL DRIVER
+  Here is the emotional driver for the email:
+  ${emotionalDriver}` : ""}
+
+  ${promo ? `
+  8. PROMO
+  Here is the promo for the email:
+  ${promo}` : ""}
+  `;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { taskId, taskName, storeId, contentStrategy, emotionalDriver, promo, links } = await request.json();
+
+    // Validate required fields
+    if (!taskId || !taskName || !storeId) {
+      return NextResponse.json(
+        { error: "Task ID, Task Name, and Store ID are required" },
+        { status: 400 }
+      );
+    }
+
+    // First, get the store's clickup_list_id
+    const { data: store, error: storeError } = await supabaseAdmin
+      .from("stores")
+      .select("clickup_list_id")
+      .eq("id", storeId)
+      .single();
+
+    if (storeError || !store) {
+      console.error("Error fetching store:", storeError);
+      return NextResponse.json(
+        { error: "Failed to fetch store" },
+        { status: 500 }
+      );
+    }
+
+    // Fetch brand cartridge content
+    const { data: cartridge, error: cartridgeError } = await supabaseAdmin
+      .from("brand_cartridges")
+      .select("content")
+      .eq("store_list_id", store.clickup_list_id)
+      .limit(1)
+      .single();
+
+    let brandCartridgeContent = "";
+    if (!cartridgeError && cartridge) {
+      brandCartridgeContent = cartridge.content || "";
+    }
+
+    // Generate new email content using OpenAI
+    const prompt = getEmailPromptHtml(
+      taskName,
+      brandCartridgeContent,
+      links || "",
+      contentStrategy || "",
+      emotionalDriver || "",
+      promo || ""
+    );
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert email copywriter. Generate email content in HTML table format as specified."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500,
+    });
+
+    const generatedContent = completion.choices[0]?.message?.content || "";
+
+    // Clean up the content to ensure it's just the HTML table
+    const tableMatch = generatedContent.match(/<table>[\s\S]*<\/table>/);
+    const htmlTable = tableMatch ? tableMatch[0] : generatedContent;
+
+    return NextResponse.json({
+      content: htmlTable,
+      success: true
+    });
+
+  } catch (error) {
+    console.error("Error generating new campaign content:", error);
+    return NextResponse.json(
+      { error: "Failed to generate new campaign content" },
+      { status: 500 }
+    );
+  }
+}

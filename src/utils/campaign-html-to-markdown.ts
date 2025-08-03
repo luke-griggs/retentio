@@ -21,8 +21,11 @@ export function campaignHtmlToMarkdown(html: string): string {
     return html; // Return original if no table found
   }
 
-  // Get all data rows from tbody (thead already excludes header)
-  const rows = Array.from(table.querySelectorAll("tbody tr"));
+  // Get all data rows - handle both with and without tbody
+  const rows = Array.from(table.querySelectorAll("tr")).filter(row => {
+    // Skip header rows that contain th elements
+    return row.querySelectorAll("td").length > 0;
+  });
 
   // Build the markdown table
   const markdownRows: string[] = [
@@ -58,13 +61,46 @@ function extractTextWithFormatting(element: Element): string {
       const el = node as Element;
 
       if (el.tagName === "STRONG" || el.tagName === "B") {
-        result += "**";
-        Array.from(el.childNodes).forEach(processNode);
-        result += "**";
+        // Check if child is EM/I for combined formatting
+        const hasEmChild = Array.from(el.children).some(child => 
+          child.tagName === "EM" || child.tagName === "I"
+        );
+        if (hasEmChild) {
+          result += "**_";
+          Array.from(el.childNodes).forEach(child => {
+            if (child.nodeType === Node.ELEMENT_NODE && 
+                ((child as Element).tagName === "EM" || (child as Element).tagName === "I")) {
+              // Process the content of the em/i tag without adding extra markers
+              Array.from(child.childNodes).forEach(processNode);
+            } else {
+              processNode(child);
+            }
+          });
+          result += "_**";
+        } else {
+          result += "**";
+          Array.from(el.childNodes).forEach(processNode);
+          result += "**";
+        }
       } else if (el.tagName === "EM" || el.tagName === "I") {
-        result += "*";
-        Array.from(el.childNodes).forEach(processNode);
-        result += "*";
+        // Skip if parent is already STRONG/B (handled above)
+        const parent = el.parentElement;
+        if (parent && (parent.tagName === "STRONG" || parent.tagName === "B")) {
+          Array.from(el.childNodes).forEach(processNode);
+        } else {
+          result += "*";
+          Array.from(el.childNodes).forEach(processNode);
+          result += "*";
+        }
+      } else if (el.tagName === "A") {
+        // Handle links - convert HTML links to markdown format
+        const href = el.getAttribute("href");
+        const linkText = el.textContent || "";
+        if (href) {
+          result += `[${linkText}](${href})`;
+        } else {
+          result += linkText;
+        }
       } else if (el.tagName === "BR") {
         result += " ";
       } else {

@@ -96,7 +96,8 @@ function getCustomFieldMapping(): CustomFieldMapping {
 // Helper function to build custom fields array
 function buildCustomFields(
   campaign: Campaign,
-  customFieldMapping: CustomFieldMapping
+  customFieldMapping: CustomFieldMapping,
+  client: string
 ) {
   const customFields = [];
 
@@ -104,8 +105,7 @@ function buildCustomFields(
   const fieldMappings = [
     {
       mappingKey: "Client" as keyof CustomFieldMapping,
-      campaignValue: campaign.client,
-      getValue: (value: string) => value,
+      campaignValue: client,
     },
     {
       mappingKey: "campaignType" as keyof CustomFieldMapping,
@@ -157,17 +157,17 @@ function buildCustomFields(
     {
       mappingKey: "sms" as keyof CustomFieldMapping,
       campaignValue: campaign.sms,
-      getValue: (value: string) => value,
+      getValue: (value: string) => value.toLowerCase(),
     },
     {
       mappingKey: "mms" as keyof CustomFieldMapping,
       campaignValue: campaign.mms,
-      getValue: (value: string) => value,
+      getValue: (value: string) => value.toLowerCase(),
     },
     {
       mappingKey: "plainText" as keyof CustomFieldMapping,
       campaignValue: campaign.plainText,
-      getValue: (value: string) => value,
+      getValue: (value: string) => value.toLowerCase(),
     },
     {
       mappingKey: "followUp" as keyof CustomFieldMapping,
@@ -200,7 +200,7 @@ function buildCustomFields(
   // Build custom fields array using the mappings
   for (const mapping of fieldMappings) {
     const fieldId = customFieldMapping[mapping.mappingKey];
-    if (fieldId && mapping.campaignValue) {
+    if (fieldId && mapping.campaignValue && mapping.getValue) {
       customFields.push({
         id: fieldId,
         value: mapping.getValue(mapping.campaignValue),
@@ -216,7 +216,8 @@ async function createClickUpTask(
   campaign: Campaign,
   listId: string,
   apiToken: string,
-  customFieldMapping: CustomFieldMapping
+  customFieldMapping: CustomFieldMapping,
+  client: string
 ) {
   const clickUpUrl = `https://api.clickup.com/api/v2/list/${listId}/task`;
 
@@ -236,7 +237,7 @@ async function createClickUpTask(
   const taskData = {
     name: campaign.campaignName,
     due_date: parseDateToUnix(campaign.date),
-    custom_fields: buildCustomFields(campaign, customFieldMapping),
+    custom_fields: buildCustomFields(campaign, customFieldMapping, client),
   };
 
   try {
@@ -361,7 +362,8 @@ export async function POST(request: NextRequest) {
           campaign,
           CLICKUP_LIST_ID,
           CLICKUP_KEY,
-          customFieldMapping
+          customFieldMapping,
+          client
         );
         createdTasks.push({
           campaignName: campaign.campaignName,

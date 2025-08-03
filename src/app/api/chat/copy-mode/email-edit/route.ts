@@ -1,8 +1,8 @@
 import { convertToCoreMessages, streamText } from "ai";
-import { emailEditTool } from "../../tools/emailEditTool";
+import { emailEditTool } from "../../../tools/emailEditTool";
 import { emailEditPrompt } from "@/prompts/emailEdit";
 import { google } from "@ai-sdk/google";
-import getEmailEditPrompt from "../../prompts/getEmailEditPrompt";
+import getEmailEditPrompt from "../../../prompts/getEmailEditPrompt";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;

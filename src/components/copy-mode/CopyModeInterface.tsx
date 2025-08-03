@@ -38,8 +38,10 @@ interface Campaign {
   description: string;
   updated_at: string;
   content_strategy?: string;
+  links?: string;
   promo?: string;
   notes?: string;
+  info_complete?: string;
 }
 
 export default function CopyModeInterface() {
@@ -64,6 +66,7 @@ export default function CopyModeInterface() {
   const [emailUpdating, setEmailUpdating] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Initialize version history - use campaign ID as key to prevent resets on save
   const versionKey = selectedTask?.id || "";
@@ -274,6 +277,52 @@ export default function CopyModeInterface() {
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleRefreshCampaign = async () => {
+    if (!selectedTask || !selectedStore) return;
+
+    setIsRefreshing(true);
+    setSaveError(null);
+    
+    try {
+      const response = await fetch("/api/chat/copy-mode/refresh", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskId: selectedTask.id,
+          taskName: selectedTask.name,
+          storeId: selectedStore.id,
+          contentStrategy: selectedTask.content_strategy || "",
+          emotionalDriver: "", // Add if available
+          promo: selectedTask.promo || "",
+          links: selectedTask.links || "", // Add if available
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate new campaign content");
+      }
+
+      const data = await response.json();
+      
+      if (data.content) {
+        console.log("Refresh API returned content:", data.content);
+        // Add the new content as a version
+        addVersion(data.content, "ai", "Generated new campaign content");
+        setEmailContent(data.content);
+        setHasUnsavedChanges(true);
+        toast.success("New campaign content generated successfully!");
+      }
+    } catch (error) {
+      console.error("Error refreshing campaign:", error);
+      setSaveError("Failed to generate new campaign content");
+      toast.error("Failed to generate new campaign content");
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -522,6 +571,24 @@ export default function CopyModeInterface() {
 
             <div className="flex items-center space-x-3">
               <button
+                onClick={handleRefreshCampaign}
+                disabled={isSaving || isRefreshing}
+                className="flex items-center space-x-2 px-3 py-3 text-sm bg-purple-700 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-white"
+                title="Generate a new campaign from scratch"
+              >
+                {isRefreshing ? (
+                  <>
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                    <span>Refreshing...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowPathIcon className="w-4 h-4" />
+                    <span>Refresh</span>
+                  </>
+                )}
+              </button>
+              <button
                 onClick={handleReadyForDesign}
                 disabled={isSaving}
                 className="flex items-center space-x-2 px-3 py-3 text-sm bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-white"
@@ -596,6 +663,16 @@ export default function CopyModeInterface() {
                         </h4>
                         <p className="text-sm text-gray-400 leading-relaxed">
                           {selectedTask.notes}
+                        </p>
+                      </div>
+                    )}
+                    {selectedTask.info_complete && (
+                      <div>
+                        <h4 className="text-lg font-medium text-gray-300 mb-2">
+                          Info Complete
+                        </h4>
+                        <p className="text-sm text-gray-400 leading-relaxed">
+                          {selectedTask.info_complete}
                         </p>
                       </div>
                     )}

@@ -52,7 +52,7 @@ export default function EmailEditChat({
     append,
     setMessages,
   } = useChat({
-    api: "/api/chat/email-edit",
+    api: "/api/chat/copy-mode/email-edit",
   });
 
   // Reset chat when task changes

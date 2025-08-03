@@ -191,6 +191,11 @@ const DraggableRow = ({
                     /`(.+?)`/g,
                     "<code class='bg-gray-700 px-1 rounded'>$1</code>"
                   )
+                  // Handle markdown links
+                  .replace(
+                    /\[([^\]]+)\]\(([^)]+)\)/g,
+                    '<a href="$2" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
+                  )
                   // Handle numbered lists
                   .replace(
                     /(?:^|\n)((?:\d+\.\s+.+(?:\n|$))+)/g,
@@ -274,7 +279,17 @@ const DraggableEmailTable = React.forwardRef<
 
   // Update table state when content prop changes (e.g., when switching campaigns)
   useEffect(() => {
-    const parsed = parseMarkdownTable(content);
+    console.log("DraggableEmailTable received content:", content);
+    // Check if content is HTML and convert it to markdown first
+    let contentToUse = content;
+    if (content && (content.includes("<table") || content.includes("<tr"))) {
+      console.log("Detected HTML content, converting to markdown");
+      contentToUse = campaignHtmlToMarkdown(content);
+      console.log("Converted markdown:", contentToUse);
+    }
+    
+    const parsed = parseMarkdownTable(contentToUse);
+    console.log("Parsed table:", parsed);
     setTable(parsed);
     setIsEmpty(parsed.rows.length === 0);
     latestTableRef.current = parsed; // Update ref
