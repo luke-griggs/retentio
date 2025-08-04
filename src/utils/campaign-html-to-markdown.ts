@@ -27,6 +27,43 @@ export function campaignHtmlToMarkdown(html: string): string {
     return row.querySelectorAll("td").length > 0;
   });
 
+  // Always use table format to maintain consistency with AI prompts
+  // The issue with ClickUp is not the table format itself, but how we handle the content
+  return campaignHtmlToTableFormatWithBetterHandling(rows);
+}
+
+/**
+ * Convert to structured format (non-table) for better handling of long content
+ */
+function campaignHtmlToStructuredFormat(rows: Element[]): string {
+  const sections: string[] = [];
+
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length >= 2) {
+      const section = extractTextWithFormatting(cells[0]);
+      const content = extractTextWithFormatting(cells[1]);
+
+      // Clean up the section name
+      const cleanSection = section.replace(/\*/g, "").trim();
+      
+      // Format as header and content
+      if (cleanSection && content.trim()) {
+        // Use consistent formatting with bold headers
+        sections.push(`**${cleanSection}**`);
+        sections.push(content.trim());
+        sections.push(""); // Empty line for spacing
+      }
+    }
+  });
+
+  return sections.join("\n").trim();
+}
+
+/**
+ * Convert to markdown table format with better handling for ClickUp
+ */
+function campaignHtmlToTableFormatWithBetterHandling(rows: Element[]): string {
   // Build the markdown table
   const markdownRows: string[] = [
     "| Section | Content |",
@@ -37,8 +74,81 @@ export function campaignHtmlToMarkdown(html: string): string {
     const cells = row.querySelectorAll("td");
     if (cells.length >= 2) {
       // Extract text content from cells, preserving bold markers
-      const section = extractTextWithFormatting(cells[0]);
-      const content = extractTextWithFormatting(cells[1]);
+      let section = extractTextWithFormatting(cells[0]);
+      let content = extractTextWithFormatting(cells[1]);
+
+      // The text extraction should have already cleaned up newlines, but double-check
+      section = section.trim();
+      content = content.trim();
+      
+      // Additional cleanup for any missed whitespace issues
+      // Replace any remaining newlines or tabs with spaces
+      section = section.replace(/[\n\r\t]+/g, " ");
+      content = content.replace(/[\n\r\t]+/g, " ");
+      
+      // Collapse multiple spaces into single spaces
+      section = section.replace(/\s+/g, " ");
+      content = content.replace(/\s+/g, " ");
+
+      // For ClickUp compatibility, we need to ensure proper escaping
+      // Escape backslashes first
+      section = section.replace(/\\/g, "\\\\");
+      content = content.replace(/\\/g, "\\\\");
+      
+      // Escape pipe characters to prevent table breaking
+      section = section.replace(/\|/g, "\\|");
+      content = content.replace(/\|/g, "\\|");
+      
+      // Remove any zero-width spaces or other invisible characters
+      content = content.replace(/[\u200B-\u200D\uFEFF]/g, '');
+      section = section.replace(/[\u200B-\u200D\uFEFF]/g, '');
+      
+      // Ensure no stray formatting characters
+      content = content.replace(/\u00A0/g, ' '); // Replace non-breaking spaces
+      section = section.replace(/\u00A0/g, ' ');
+      
+      // Final trim to ensure no trailing/leading spaces
+      section = section.trim();
+      content = content.trim();
+
+      // Add the row to our markdown table
+      markdownRows.push(`| ${section} | ${content} |`);
+    }
+  });
+
+  const result = markdownRows.join("\n");
+  
+  // Log for debugging
+  console.log("Generated markdown table:");
+  console.log(result.substring(0, 500) + (result.length > 500 ? "..." : ""));
+  
+  return result;
+}
+
+/**
+ * Convert to standard markdown table format
+ */
+function campaignHtmlToTableFormat(rows: Element[]): string {
+  // Build the markdown table
+  const markdownRows: string[] = [
+    "| Section | Content |",
+    "|---------|---------|",
+  ];
+
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length >= 2) {
+      // Extract text content from cells, preserving bold markers
+      let section = extractTextWithFormatting(cells[0]);
+      let content = extractTextWithFormatting(cells[1]);
+
+      // Clean up whitespace and newlines for table format
+      section = section.replace(/\n+/g, " ").trim();
+      content = content.replace(/\n+/g, " ").trim();
+
+      // Escape pipe characters to prevent table breaking
+      section = section.replace(/\|/g, "\\|");
+      content = content.replace(/\|/g, "\\|");
 
       // Add the row to our markdown table
       markdownRows.push(`| ${section} | ${content} |`);
@@ -102,7 +212,17 @@ function extractTextWithFormatting(element: Element): string {
           result += linkText;
         }
       } else if (el.tagName === "BR") {
-        result += " ";
+        // Preserve line breaks
+        result += "\n";
+      } else if (el.tagName === "P" || el.tagName === "DIV") {
+        // Add line breaks for block elements
+        if (result.length > 0 && !result.endsWith("\n")) {
+          result += "\n";
+        }
+        Array.from(el.childNodes).forEach(processNode);
+        if (!result.endsWith("\n")) {
+          result += "\n";
+        }
       } else {
         // Process child nodes for other elements
         Array.from(el.childNodes).forEach(processNode);
@@ -112,6 +232,20 @@ function extractTextWithFormatting(element: Element): string {
 
   Array.from(element.childNodes).forEach(processNode);
 
-  // Clean up whitespace
-  return result.trim().replace(/\s+/g, " ");
+  // Clean up whitespace more carefully
+  // First trim the entire result
+  result = result.trim();
+  
+  // Replace multiple spaces/tabs with single space, but keep newlines
+  result = result.replace(/[^\S\n]+/g, " ");
+  
+  // Remove trailing spaces from each line
+  result = result.replace(/ +$/gm, "");
+  
+  // Replace multiple newlines with single space for table compatibility
+  // This is crucial - tables can't have newlines in cells
+  result = result.replace(/\n+/g, " ");
+  
+  // Final trim to ensure no leading/trailing spaces
+  return result.trim();
 }
