@@ -168,6 +168,7 @@ export default function CopyModeInterface() {
     try {
       // Convert HTML table back to markdown format
       const markdownContent = campaignHtmlToMarkdown(emailContent);
+      console.log("Updating task with markdown:", markdownContent.length, "characters");
 
       const response = await fetch(
         `/api/clickup/update-task/${selectedTask.id}`,

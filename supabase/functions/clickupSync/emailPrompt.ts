@@ -31,11 +31,11 @@ export async function getEmailPrompt(
   - Each row should contain the complete content for that section
   
   2. CHARACTER LIMITS (ENFORCE STRICTLY)
-  Header: ≤ 60 characters (including spaces)
-  Body: ≤ 240 characters total (including spaces & any emphasis markers)
-  CTA: ≤ 20 characters
-  Subject Line: ≤ 45 characters each
-  Preview Text: ≤ 60 characters
+  Header: ≤ 40-60 characters (including spaces)
+  Body: ≤ 200-240 characters total (including spaces & any emphasis markers)
+  CTA: ≤ 15-20 characters
+  Subject Line: ≤ 30-45 characters each
+  Preview Text: ≤ 40-60 characters
   If any section goes over its limit, revise automatically until it fits.
   
   3. FORMAT & STYLE RULES

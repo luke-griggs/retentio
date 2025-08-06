@@ -74,44 +74,59 @@ async function getTask(taskId: string) {
 async function upsertClickupTaskRecord(supabase: any, task: any) {
   let storeId: string | null = null;
 
-  if (task.list?.id) {
-    const { data } = await supabase
-      .from("stores")
-      .select("id")
-      .eq("clickup_list_id", task.list.id)
-      .maybeSingle();
-    storeId = data?.id ?? null;
-  }
+  try {
+    if (task.list?.id) {
+      const { data, error } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("clickup_list_id", task.list.id)
+        .maybeSingle();
 
-  await supabase.from("clickup_tasks").upsert(
-    {
-      id: task.id,
-      store_id: storeId,
-      store_list_id: task.list.id,
-      name: task.name,
-      description: task.markdown_description ?? "",
-      content_strategy:
-        task.custom_fields?.find(
-          (field: any) => field.name === "Content Strategy"
-        )?.value ?? "",
-      promo:
-        task.custom_fields?.find((field: any) => field.name === "Promo")
-          ?.value ?? "",
-      notes:
-        task.custom_fields?.find((field: any) => field.name === "Notes")
-          ?.value ?? "",
-      links:
-        task.custom_fields?.find((field: any) => field.name === "Links")
-          ?.value ?? "",
-      info_complete:
-        task.custom_fields?.find((field: any) => field.name === "Info Complete")
-          ?.value ?? "",
-      updated_at: task.date_updated
-        ? new Date(Number(task.date_updated)).toISOString()
-        : new Date().toISOString(),
-    },
-    { onConflict: "id" }
-  );
+      if (error) {
+        console.error(`Error fetching store for list id ${task.list.id}:`, error);
+        // Optionally, you could throw here or just continue with storeId as null
+      }
+      storeId = data?.id ?? null;
+    }
+
+    const { error: upsertError } = await supabase.from("clickup_tasks").upsert(
+      {
+        id: task.id,
+        store_id: storeId,
+        store_list_id: task.list.id,
+        name: task.name,
+        description: task.markdown_description ?? "",
+        content_strategy:
+          task.custom_fields?.find(
+            (field: any) => field.name === "Content Strategy"
+          )?.value ?? "",
+        promo:
+          task.custom_fields?.find((field: any) => field.name === "Promo")
+            ?.value ?? "",
+        notes:
+          task.custom_fields?.find((field: any) => field.name === "Notes")
+            ?.value ?? "",
+        links:
+          task.custom_fields?.find((field: any) => field.name === "Links")
+            ?.value ?? "",
+        info_complete:
+          task.custom_fields?.find((field: any) => field.name === "Info Complete")
+            ?.value ?? "",
+        updated_at: task.date_updated
+          ? new Date(Number(task.date_updated)).toISOString()
+          : new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
+
+    if (upsertError) {
+      console.error(`Error upserting clickup_task record for task id ${task.id}:`, upsertError);
+      throw upsertError;
+    }
+  } catch (err) {
+    console.error(`upsertClickupTaskRecord failed for task id ${task.id}:`, err);
+    throw err;
+  }
 }
 
 async function deleteClickupTaskRecord(supabase: any, taskId: string) {
@@ -488,7 +503,6 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
       console.log("EMAIL OF TASK UPDATED:", task.markdown_description);
 
       await upsertClickupTaskRecord(supabase, task);
-      console.log(`Upserted task ${taskId}`);
     } else {
       console.warn(`Unhandled ClickUp event: ${event}`);
     }
