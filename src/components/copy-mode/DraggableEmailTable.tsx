@@ -13,7 +13,6 @@ import {
   type TableRow,
   type ParsedEmailTable,
 } from "@/utils/email-table-parser";
-import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
 
 interface DraggableEmailTableProps {
   content: string;
@@ -280,15 +279,7 @@ const DraggableEmailTable = React.forwardRef<
   // Update table state when content prop changes (e.g., when switching campaigns)
   useEffect(() => {
     console.log("DraggableEmailTable received content:", content);
-    // Check if content is HTML and convert it to markdown first
-    let contentToUse = content;
-    if (content && (content.includes("<table") || content.includes("<tr"))) {
-      console.log("Detected HTML content, converting to markdown");
-      contentToUse = campaignHtmlToMarkdown(content);
-      console.log("Converted markdown:", contentToUse);
-    }
-    
-    const parsed = parseMarkdownTable(contentToUse);
+    const parsed = parseMarkdownTable(content);
     console.log("Parsed table:", parsed);
     setTable(parsed);
     setIsEmpty(parsed.rows.length === 0);
@@ -313,16 +304,7 @@ const DraggableEmailTable = React.forwardRef<
       commands: {
         setContent: (newContent: string) => {
           console.log("AI setContent called with:", newContent);
-
-          // Check if content is HTML (contains table tags) and convert to markdown
-          let contentToUse = newContent;
-          if (newContent.includes("<table") || newContent.includes("<tr")) {
-            console.log("Converting HTML to markdown");
-            contentToUse = campaignHtmlToMarkdown(newContent);
-            console.log("Converted to markdown:", contentToUse);
-          }
-
-          const parsed = parseMarkdownTable(contentToUse);
+          const parsed = parseMarkdownTable(newContent);
           console.log("Parsed table:", parsed);
           const newTable = { rows: parsed.rows };
           handleTableChange(newTable); // Use handleTableChange to trigger onChange
@@ -335,16 +317,7 @@ const DraggableEmailTable = React.forwardRef<
     },
     setContent: (newContent: string) => {
       console.log("Direct setContent called with:", newContent);
-
-      // Check if content is HTML (contains table tags) and convert to markdown
-      let contentToUse = newContent;
-      if (newContent.includes("<table") || newContent.includes("<tr")) {
-        console.log("Converting HTML to markdown");
-        contentToUse = campaignHtmlToMarkdown(newContent);
-        console.log("Converted to markdown:", contentToUse);
-      }
-
-      const parsed = parseMarkdownTable(contentToUse);
+      const parsed = parseMarkdownTable(newContent);
       console.log("Parsed table:", parsed);
       const newTable = { rows: parsed.rows };
       handleTableChange(newTable); // Use handleTableChange to trigger onChange

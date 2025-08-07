@@ -46,9 +46,10 @@ export function parseMarkdownTable(markdown: string): ParsedEmailTable {
   // Extract section/content pairs
   for (let i = dataStartIndex; i < parts.length - 1; i += 2) {
     const section = parts[i];
-    const content = parts[i + 1];
+    const content = parts[i + 1] || ""; // Default to empty string if undefined
 
-    if (section && content) {
+    // Allow rows with empty content, but section must exist
+    if (section) {
       rows.push({
         id: `row-${Date.now()}-${i}`, // Generate unique ID
         section: section.trim(),
@@ -74,7 +75,28 @@ export function serializeToMarkdown(table: ParsedEmailTable): string {
   ];
 
   table.rows.forEach((row) => {
-    markdownRows.push(`| ${row.section} | ${row.content} |`);
+    // Escape special characters for markdown table cells
+    let section = row.section;
+    let content = row.content;
+    
+    // Replace newlines with spaces to prevent table breaking
+    section = section.replace(/[\n\r]+/g, " ");
+    content = content.replace(/[\n\r]+/g, " ");
+    
+    // Escape pipe characters
+    section = section.replace(/\|/g, "\\|");
+    content = content.replace(/\|/g, "\\|");
+    
+    // Trim excess whitespace
+    section = section.trim();
+    content = content.trim();
+    
+    // If content is empty, use a space to prevent row combining
+    if (!content) {
+      content = " ";
+    }
+    
+    markdownRows.push(`| ${section} | ${content} |`);
   });
 
   return markdownRows.join("\n");

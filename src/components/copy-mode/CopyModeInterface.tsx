@@ -23,8 +23,8 @@ import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import DraggableEmailTable, { DraggableEmailTableRef } from "./DraggableEmailTable";
 import EmailEditChat from "./EmailEditChat";
 import { useEmailVersions } from "@/hooks/use-email-versions";
-import { toast } from "sonner"; // TODO: set up toast
-import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
+import { toast } from "sonner"; // TODO: set up toast instead of alert
+import { sanitizeMarkdownForClickUp, reconstructMarkdownTable } from "@/utils/sanitize-markdown-for-clickup";
 
 interface Store {
   id: string;
@@ -166,8 +166,8 @@ export default function CopyModeInterface() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      // Convert HTML table back to markdown format
-      const markdownContent = campaignHtmlToMarkdown(emailContent);
+      // Sanitize markdown content for ClickUp
+      const markdownContent = sanitizeMarkdownForClickUp(emailContent);
       console.log("Updating task with markdown:", markdownContent.length, "characters");
 
       const response = await fetch(
@@ -209,8 +209,8 @@ export default function CopyModeInterface() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      // Convert HTML table back to markdown format
-      const markdownContent = campaignHtmlToMarkdown(emailContent);
+      // Sanitize markdown content for ClickUp
+      const markdownContent = sanitizeMarkdownForClickUp(emailContent);
 
       const response = await fetch(
         `/api/clickup/update-task/${selectedTask.id}`,
