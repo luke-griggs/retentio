@@ -25,6 +25,7 @@ import EmailEditChat from "./EmailEditChat";
 import { useEmailVersions } from "@/hooks/use-email-versions";
 import { toast } from "sonner"; // TODO: set up toast instead of alert
 import { sanitizeMarkdownForClickUp, reconstructMarkdownTable } from "@/utils/sanitize-markdown-for-clickup";
+import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
 
 interface Store {
   id: string;
@@ -310,10 +311,13 @@ export default function CopyModeInterface() {
       const data = await response.json();
       
       if (data.content) {
-        console.log("Refresh API returned content:", data.content);
+        console.log("Refresh API returned HTML content:", data.content);
+        // Convert HTML to markdown format
+        const markdownContent = campaignHtmlToMarkdown(data.content);
+        console.log("Converted to markdown:", markdownContent);
         // Add the new content as a version
-        addVersion(data.content, "ai", "Generated new campaign content");
-        setEmailContent(data.content);
+        addVersion(markdownContent, "ai", "Generated new campaign content");
+        setEmailContent(markdownContent);
         setHasUnsavedChanges(true);
         toast.success("New campaign content generated successfully!");
       }

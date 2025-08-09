@@ -28,7 +28,7 @@ IMPORTANT:
 
  2. CHARACTER COUNTS
   Header: 40-60 characters (including spaces)
-  Body: 200-240 characters total (including spaces & any emphasis markers)
+  Body: 200-300 characters total (including spaces & any emphasis markers)
   CTA: 15-20 characters
   Subject Line: 30-45 characters each
   Preview Text: 40-60 characters
@@ -78,7 +78,7 @@ function parseEmailTable(tableContent: string) {
 
 /** Choose which client to hit, keep call signature identical */
 async function callLLM(
-  model: "gpt-4o" | "claude-4-sonnet" | "claude-4-sonnet-thinking",
+  model: "gpt-4o" | "claude-4-sonnet" | "claude-4-sonnet-thinking" | "gpt-5",
   payload: {
     system: string;
     user: string;
@@ -101,7 +101,7 @@ async function callLLM(
     console.log("Calling Claude API with thinking mode...");
     console.log("System prompt length:", system.length);
     console.log("User prompt length:", user.length);
-    
+
     try {
       const r = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
@@ -115,13 +115,34 @@ async function callLLM(
       });
       console.log("Claude API raw response:", JSON.stringify(r, null, 2));
       const text = r.content[1].type === "text" ? r.content[1].text : "";
-      
+
       return text;
     } catch (error) {
       console.error("Error in Claude API call:", error);
       throw error;
     }
-  }
+  } 
+  // else if (model === "gpt-5") {
+  //   try {
+  //     console.log("Calling GPT-5 API with reasoning effort 'low'...");
+  //     const r = await openai.responses.create({
+  //       model: "gpt-5",
+  //       reasoning: { effort: "low" },
+  //       input: [
+  //         { role: "system", content: system },
+  //         { role: "user", content: user },
+  //       ],
+  //       text: {
+  //         verbosity: "low",
+  //       },
+  //     });
+
+  //     return (r as any).output_text ?? "";
+  //   } catch (error) {
+  //     console.error("Error in OpenAI GPT-5 thinking call:", error);
+  //     throw error;
+  //   }
+  // }
 
   const r = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -149,16 +170,18 @@ export async function POST(req: NextRequest) {
     /* === 1) DRAFT ===================================================== */
     const ideationSystem = `
     You are the senior copywriter of our retention agency. You write the best goddamn copy we've ever seen kid. You've just received the initial template for the brand's next marketing email 
-    **Task:** Deeply analyze the content strategy and use your expertise to provide a clear set of instructions for the content of the email based on the instructions from the content strategy
+    **Task:** Deeply analyze the content strategy and use your expertise to provide a clear set of instructions for the content of the email based on the content strategy
     
     Sidenotes:
+    - The instructions you provide don't need to be verbose, we're just trying to provide a solid direction for the email
     - the subject line should be based on the name of the campaign (not fully but use it as inspiration)
     - you don't need to provide any word count suggestions
     - the final email will consist of 5 sections: subject line, preview text, header, body, and cta.
-    `
 
-    
-    const outline = await callLLM("claude-4-sonnet-thinking", {
+    Your instructions are going to be used by the other copywriter to write the email. The final body will be 200-300 characters, so ensure your instructions aren't information overload and don't include too much information that would be hard to fit into that count.
+    `;
+
+    const outline = await callLLM("gpt-5", {
       system: ideationSystem,
       user: `Template:\n${emailPrompt}`,
     });
@@ -169,12 +192,49 @@ export async function POST(req: NextRequest) {
     Based on your expertise, carefully craft one of your signature marketing email based on the following outline and writing instructions. The email needs the following sections: subject line, preview text, header, body, and cta.
     
     ${outline}
-      
+
+    Here are some examples of quality emails you've written in the past. emulate the style and tone of these emails. 
+
+    ## Example 1
+    SUBJECT LINE: Refresh Your Self Care Routine
+    PLAIN TEXT: With Our Rejuvenate & Restore Bundle
+    HEADER: Refresh Your Self Care Routine With Our Rejuvenate & Restore Bundle
+    BODY: We've partnered with our sister company Mett Wellness to bring you the ultimate skin restoration bundle. This harmonious trio makes the perfect Valentine's gift for someone special (including yourself!), working together to protect, rejuvenate, and balance skin naturally.
+    CTA: SHOP THE BUNDLE
+
+    ## Example 2
+    SUBJECT LINE: Final Hours For Valentine's Delivery
+    PLAIN TEXT: Gift Bundles For Every Self-Care Style
+    HEADER: Final Hours For Valentine's Delivery
+    BODY: Today is the final day to order the Rejuvenate & Restore Bundle for Valentine's Day delivery. Give them the gift of natural balance with our pure hemp extract collection.
+    CTA: GIVE THE GIFT OF WELLNESS
+
+    ## Example 3
+    SUBJECT LINE: Your Skin Craves Balance
+    PLAIN TEXT: Save 15% On All Skincare Products
+    HEADER: Save 15% on Skincare Products
+    BODY: Your skin craves balance and nourishment during these harsh winter months. Our pure hemp extract-infused topicals work in harmony with your body's natural processes to promote radiant, healthy-looking skin.
+    CTA: SHOP ALL SKINCARE
+
+    ## Example 4
+    SUBJECT LINE: Balance Your Day Naturally
+    PLAIN TEXT: Tackle The Week With Calm Energy And Focus
+    HEADER: Natural Mood Support For Your Busy Day
+    BODY: Life's demands don't have to feel overwhelming. Our Sweet Orange Hemp Extract Tinctures helps regulate your nervous system to reduce stress, combat fatigue, and promote a sense of calm when you need it most.* Keep your mood support consistent and save 20% by subscribing today!
+    CTA: SHOP DAILY HEMP EXTRACT
+
+    ## Example 5
+    SUBJECT LINE: Two Limited-Time Mother's Day Bundles
+    PLAIN TEXT: Save 15% On Thoughtful Gifts
+    HEADER: Gifts That Support Her Wellness
+    BODY: Mother's Day is almost here, and we've curated two special bundles that make it easy to give a gift with lasting impact. Order by Wednesday to ensure on-time delivery!
+    CTA: SHOP THE MOTHER'S DAY COLLECTION
+    
     Additionally, here are a few formatting guidelines you should use while writing. Don't let these guidelines get in the way of your creativity, but do ensure they're followed. You may override the guidelines if the instructions explicity ask for it
     ${formatInstructions}
 
 `;
-    const email = await callLLM("claude-4-sonnet-thinking", {
+    const email = await callLLM("gpt-5", {
       system: writeSystem,
       user: `Template:\n${emailPrompt}`,
     });
