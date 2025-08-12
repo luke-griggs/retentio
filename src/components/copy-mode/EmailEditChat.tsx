@@ -9,6 +9,7 @@ import {
   PaperClipIcon,
 } from "@heroicons/react/24/outline";
 import { DraggableEmailTableRef } from "./DraggableEmailTable";
+import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
 
 interface Task {
   id: string;
@@ -99,9 +100,13 @@ export default function EmailEditChat({
 
                 // Handle full HTML replacement
                 if (result.type === "full_replacement" && result.html) {
-                  // Set the complete HTML content
-                  editorRef.current.setContent(result.html);
-                  console.log("Applied full HTML replacement");
+                  // Convert HTML to markdown format that the editor expects
+                  const markdownContent = campaignHtmlToMarkdown(result.html);
+                  console.log("Converted HTML to markdown:", markdownContent.substring(0, 200) + "...");
+                  
+                  // Set the markdown content
+                  editorRef.current.setContent(markdownContent);
+                  console.log("Applied markdown content to editor");
                   
                   // Get the updated content and notify parent
                   const newContent = editorRef.current.getContent();

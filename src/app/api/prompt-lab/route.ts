@@ -30,7 +30,7 @@ IMPORTANT:
   Header: 40-60 characters (including spaces)
   Body: 200-300 characters total (including spaces & any emphasis markers)
   CTA: 15-20 characters
-  Subject Line: 30-45 characters each
+  Subject Line: <= 35 characters
   Preview Text: 40-60 characters
 
 3. FORMAT & STYLE RULES
@@ -78,7 +78,12 @@ function parseEmailTable(tableContent: string) {
 
 /** Choose which client to hit, keep call signature identical */
 async function callLLM(
-  model: "gpt-4o" | "claude-4-sonnet" | "claude-4-sonnet-thinking" | "gpt-5",
+  model:
+    | "gpt-4o"
+    | "claude-4-sonnet"
+    | "claude-4-sonnet-thinking"
+    | "gpt-5"
+    | "gpt-5-mini",
   payload: {
     system: string;
     user: string;
@@ -121,28 +126,23 @@ async function callLLM(
       console.error("Error in Claude API call:", error);
       throw error;
     }
-  } 
-  // else if (model === "gpt-5") {
-  //   try {
-  //     console.log("Calling GPT-5 API with reasoning effort 'low'...");
-  //     const r = await openai.responses.create({
-  //       model: "gpt-5",
-  //       reasoning: { effort: "low" },
-  //       input: [
-  //         { role: "system", content: system },
-  //         { role: "user", content: user },
-  //       ],
-  //       text: {
-  //         verbosity: "low",
-  //       },
-  //     });
+  } else if (model === "gpt-5-mini") {
+    try {
+      console.log("Calling GPT-5 API with reasoning effort 'low'...");
+      const r = await openai.responses.create({
+        model: "gpt-5-mini",
+        input: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      });
 
-  //     return (r as any).output_text ?? "";
-  //   } catch (error) {
-  //     console.error("Error in OpenAI GPT-5 thinking call:", error);
-  //     throw error;
-  //   }
-  // }
+      return (r as any).output_text ?? "";
+    } catch (error) {
+      console.error("Error in OpenAI GPT-5 thinking call:", error);
+      throw error;
+    }
+  }
 
   const r = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -169,19 +169,18 @@ export async function POST(req: NextRequest) {
 
     /* === 1) DRAFT ===================================================== */
     const ideationSystem = `
-    You are the senior copywriter of our retention agency. You write the best goddamn copy we've ever seen kid. You've just received the initial template for the brand's next marketing email 
+    You are the senior copywriter of our retention agency. You write the best goddamn copy we've ever seen kid. You've just received the content strategy for the brand's next marketing email 
     **Task:** Deeply analyze the content strategy and use your expertise to provide a clear set of instructions for the content of the email based on the content strategy
     
     Sidenotes:
     - The instructions you provide don't need to be verbose, we're just trying to provide a solid direction for the email
-    - the subject line should be based on the name of the campaign (not fully but use it as inspiration)
     - you don't need to provide any word count suggestions
-    - the final email will consist of 5 sections: subject line, preview text, header, body, and cta.
+    - the final email(not this outline) will consist of 5 sections: subject line, preview text, header, body, and cta.
 
     Your instructions are going to be used by the other copywriter to write the email. The final body will be 200-300 characters, so ensure your instructions aren't information overload and don't include too much information that would be hard to fit into that count.
     `;
 
-    const outline = await callLLM("gpt-5", {
+    const outline = await callLLM("gpt-5-mini", {
       system: ideationSystem,
       user: `Template:\n${emailPrompt}`,
     });
@@ -193,7 +192,7 @@ export async function POST(req: NextRequest) {
     
     ${outline}
 
-    Here are some examples of quality emails you've written in the past. emulate the style and tone of these emails. 
+    Here are some examples of quality emails you've written in the past.
 
     ## Example 1
     SUBJECT LINE: Refresh Your Self Care Routine
@@ -230,11 +229,13 @@ export async function POST(req: NextRequest) {
     BODY: Mother's Day is almost here, and we've curated two special bundles that make it easy to give a gift with lasting impact. Order by Wednesday to ensure on-time delivery!
     CTA: SHOP THE MOTHER'S DAY COLLECTION
     
-    Additionally, here are a few formatting guidelines you should use while writing. Don't let these guidelines get in the way of your creativity, but do ensure they're followed. You may override the guidelines if the instructions explicity ask for it
-    ${formatInstructions}
-
+    
 `;
-    const email = await callLLM("gpt-5", {
+
+// Additionally, here are a few formatting guidelines you should use while writing. Don't let these guidelines get in the way of your creativity, but do ensure they're followed. You may override the guidelines if the instructions explicity ask for it
+//     ${formatInstructions}
+
+    const email = await callLLM("gpt-5-mini", {
       system: writeSystem,
       user: `Template:\n${emailPrompt}`,
     });
