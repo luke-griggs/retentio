@@ -26,6 +26,7 @@ import { useEmailVersions } from "@/hooks/use-email-versions";
 import { toast } from "sonner"; // TODO: set up toast instead of alert
 import { sanitizeMarkdownForClickUp, reconstructMarkdownTable } from "@/utils/sanitize-markdown-for-clickup";
 import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
+import { parseMarkdownTable, serializeToMarkdown } from "@/utils/email-table-parser";
 
 interface Store {
   id: string;
@@ -313,13 +314,79 @@ export default function CopyModeInterface() {
       if (data.content) {
         console.log("Refresh API returned HTML content:", data.content);
         // Convert HTML to markdown format
-        const markdownContent = campaignHtmlToMarkdown(data.content);
-        console.log("Converted to markdown:", markdownContent);
+        const newMarkdownContent = campaignHtmlToMarkdown(data.content);
+        console.log("New markdown content:", newMarkdownContent);
+        
+        const existingParsed = parseMarkdownTable(emailContent);
+        const newParsed = parseMarkdownTable(newMarkdownContent);
+        
+        const refreshableSections = ['SUBJECT LINE', 'PREVIEW TEXT', 'HEADER', 'CTA', 'BODY'];
+        
+        // Track subject line usage to handle multiple subject lines
+        let subjectLineIndex = 0;
+        const newSubjectLines = newParsed.rows.filter(r => 
+          r.section.replace(/\*/g, '').trim().toUpperCase() === 'SUBJECT LINE'
+        );
+        
+        // Merge the content: keep existing non-refreshable sections, update refreshable ones
+        const mergedRows = existingParsed.rows.map(existingRow => {
+          const sectionName = existingRow.section.replace(/\*/g, '').trim().toUpperCase();
+          
+          // Check if this section should be refreshed
+          if (refreshableSections.includes(sectionName)) {
+            // Special handling for SUBJECT LINE to support multiple variants
+            if (sectionName === 'SUBJECT LINE') {
+              if (subjectLineIndex < newSubjectLines.length) {
+                const newContent = newSubjectLines[subjectLineIndex].content;
+                subjectLineIndex++;
+                return {
+                  ...existingRow,
+                  content: newContent
+                };
+              }
+              // If we run out of new subject lines, keep the existing one
+              return existingRow;
+            } else {
+              // For other refreshable sections, find the first matching row
+              const newRow = newParsed.rows.find(r => 
+                r.section.replace(/\*/g, '').trim().toUpperCase() === sectionName
+              );
+              
+              if (newRow) {
+                // Use the new content for this section
+                return {
+                  ...existingRow,
+                  content: newRow.content
+                };
+              }
+            }
+          }
+          
+          return existingRow;
+        });
+        
+        // Add any new refreshable sections that didn't exist before (except SUBJECT LINE which was handled above)
+        newParsed.rows.forEach(newRow => {
+          const sectionName = newRow.section.replace(/\*/g, '').trim().toUpperCase();
+          if (refreshableSections.includes(sectionName) && sectionName !== 'SUBJECT LINE') {
+            const exists = mergedRows.some(r => 
+              r.section.replace(/\*/g, '').trim().toUpperCase() === sectionName
+            );
+            if (!exists) {
+              mergedRows.push(newRow);
+            }
+          }
+        });
+        
+        // Convert back to markdown
+        const mergedMarkdown = serializeToMarkdown({ rows: mergedRows });
+        console.log("Merged markdown:", mergedMarkdown);
+        
         // Add the new content as a version
-        addVersion(markdownContent, "ai", "Generated new campaign content");
-        setEmailContent(markdownContent);
+        addVersion(mergedMarkdown, "ai", "Refreshed campaign sections");
+        setEmailContent(mergedMarkdown);
         setHasUnsavedChanges(true);
-        toast.success("New campaign content generated successfully!");
+        toast.success("Campaign sections refreshed successfully!");
       }
     } catch (error) {
       console.error("Error refreshing campaign:", error);

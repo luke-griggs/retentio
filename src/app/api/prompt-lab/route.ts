@@ -170,14 +170,10 @@ export async function POST(req: NextRequest) {
     /* === 1) DRAFT ===================================================== */
     const ideationSystem = `
     You are the senior copywriter of our retention agency. You write the best goddamn copy we've ever seen kid. You've just received the content strategy for the brand's next marketing email 
-    **Task:** Deeply analyze the content strategy and use your expertise to provide a clear set of instructions for the content of the email based on the content strategy
+    **Task:** analyze thecontent strategy and use your expertise to provide a clear set of instructions by completing the following template(anywhere you see <>, replace it with the appropriate content): 
     
-    Sidenotes:
-    - The instructions you provide don't need to be verbose, we're just trying to provide a solid direction for the email
-    - you don't need to provide any word count suggestions
-    - the final email(not this outline) will consist of 5 sections: subject line, preview text, header, body, and cta.
 
-    Your instructions are going to be used by the other copywriter to write the email. The final body will be 200-300 characters, so ensure your instructions aren't information overload and don't include too much information that would be hard to fit into that count.
+
     `;
 
     const outline = await callLLM("gpt-5-mini", {
@@ -196,39 +192,38 @@ export async function POST(req: NextRequest) {
 
     ## Example 1
     SUBJECT LINE: Refresh Your Self Care Routine
-    PLAIN TEXT: With Our Rejuvenate & Restore Bundle
+    PREVIEW TEXT: With Our Rejuvenate & Restore Bundle
     HEADER: Refresh Your Self Care Routine With Our Rejuvenate & Restore Bundle
     BODY: We've partnered with our sister company Mett Wellness to bring you the ultimate skin restoration bundle. This harmonious trio makes the perfect Valentine's gift for someone special (including yourself!), working together to protect, rejuvenate, and balance skin naturally.
     CTA: SHOP THE BUNDLE
 
     ## Example 2
     SUBJECT LINE: Final Hours For Valentine's Delivery
-    PLAIN TEXT: Gift Bundles For Every Self-Care Style
+    PREVIEW TEXT: Gift Bundles For Every Self-Care Style
     HEADER: Final Hours For Valentine's Delivery
     BODY: Today is the final day to order the Rejuvenate & Restore Bundle for Valentine's Day delivery. Give them the gift of natural balance with our pure hemp extract collection.
     CTA: GIVE THE GIFT OF WELLNESS
 
     ## Example 3
     SUBJECT LINE: Your Skin Craves Balance
-    PLAIN TEXT: Save 15% On All Skincare Products
+    PREVIEW TEXT: Save 15% On All Skincare Products
     HEADER: Save 15% on Skincare Products
     BODY: Your skin craves balance and nourishment during these harsh winter months. Our pure hemp extract-infused topicals work in harmony with your body's natural processes to promote radiant, healthy-looking skin.
     CTA: SHOP ALL SKINCARE
 
     ## Example 4
     SUBJECT LINE: Balance Your Day Naturally
-    PLAIN TEXT: Tackle The Week With Calm Energy And Focus
+    PREVIEW TEXT: Tackle The Week With Calm Energy And Focus
     HEADER: Natural Mood Support For Your Busy Day
     BODY: Life's demands don't have to feel overwhelming. Our Sweet Orange Hemp Extract Tinctures helps regulate your nervous system to reduce stress, combat fatigue, and promote a sense of calm when you need it most.* Keep your mood support consistent and save 20% by subscribing today!
     CTA: SHOP DAILY HEMP EXTRACT
 
     ## Example 5
     SUBJECT LINE: Two Limited-Time Mother's Day Bundles
-    PLAIN TEXT: Save 15% On Thoughtful Gifts
+    PREVIEW TEXT: Save 15% On Thoughtful Gifts
     HEADER: Gifts That Support Her Wellness
     BODY: Mother's Day is almost here, and we've curated two special bundles that make it easy to give a gift with lasting impact. Order by Wednesday to ensure on-time delivery!
     CTA: SHOP THE MOTHER'S DAY COLLECTION
-    
     
 `;
 

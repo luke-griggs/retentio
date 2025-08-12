@@ -24,12 +24,24 @@ export function sanitizeMarkdownForClickUp(markdownTable: string): string {
     
     // Process table data rows
     if (line.startsWith('|') && line.endsWith('|')) {
-      // Split by pipe, but be careful with escaped pipes
-      const parts = line.split('|').map(part => part.trim());
+      // More robust parsing for table cells
+      // Remove leading and trailing pipes first
+      const trimmedLine = line.substring(1, line.length - 1);
       
-      // Skip first and last empty parts from split
-      const section = parts[1] || '';
-      const content = parts[2] || '';
+      // Split by pipe - but we need exactly 2 parts (section and content)
+      const pipeIndex = trimmedLine.indexOf('|');
+      
+      let section = '';
+      let content = '';
+      
+      if (pipeIndex !== -1) {
+        section = trimmedLine.substring(0, pipeIndex).trim();
+        content = trimmedLine.substring(pipeIndex + 1).trim();
+      } else {
+        // Malformed row - treat entire content as section
+        section = trimmedLine.trim();
+        content = '';
+      }
       
       // Sanitize section and content
       const sanitizedSection = sanitizeTableCell(section);
@@ -130,12 +142,23 @@ export function reconstructMarkdownTable(content: string): string {
           rows.push(currentRow);
         }
         
-        // Parse this row
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length >= 3) {
+        // Parse this row more carefully
+        // Remove leading and trailing pipes
+        const trimmedLine = line.substring(1, line.endsWith('|') ? line.length - 1 : line.length);
+        
+        // Find the first unescaped pipe to separate section from content
+        const pipeIndex = trimmedLine.indexOf('|');
+        
+        if (pipeIndex !== -1) {
           currentRow = {
-            section: parts[1] || '',
-            content: parts[2] || ''
+            section: trimmedLine.substring(0, pipeIndex).trim(),
+            content: trimmedLine.substring(pipeIndex + 1).trim()
+          };
+        } else {
+          // No separator found - treat as section only
+          currentRow = {
+            section: trimmedLine.trim(),
+            content: ''
           };
         }
       } else if (currentRow && line.trim()) {

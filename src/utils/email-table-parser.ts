@@ -24,37 +24,53 @@ export function parseMarkdownTable(markdown: string): ParsedEmailTable {
     return { rows };
   }
 
-  // Split by | and filter out empty parts and separators
-  const parts = markdown
-    .split("|")
-    .map((part) => part.trim())
-    .filter((part) => part && !part.match(/^-+$/)); // Filter out any string that's only dashes
-
-  // Find the start of actual data (after "Section" and "Content" headers)
-  let dataStartIndex = -1;
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (parts[i] === "Section" && parts[i + 1] === "Content") {
-      dataStartIndex = i + 2;
-      break;
+  // Split into lines for more accurate parsing
+  const lines = markdown.split('\n');
+  
+  let inTable = false;
+  let headerSeen = false;
+  
+  let rowIndex = 0;
+  for (const line of lines) {
+    // Check for header
+    if (line.includes('| Section | Content |')) {
+      inTable = true;
+      headerSeen = true;
+      continue;
     }
-  }
-
-  if (dataStartIndex === -1) {
-    return { rows };
-  }
-
-  // Extract section/content pairs
-  for (let i = dataStartIndex; i < parts.length - 1; i += 2) {
-    const section = parts[i];
-    const content = parts[i + 1] || ""; // Default to empty string if undefined
-
-    // Allow rows with empty content, but section must exist
-    if (section) {
-      rows.push({
-        id: `row-${Date.now()}-${i}`, // Generate unique ID
-        section: section.trim(),
-        content: content.trim(),
-      });
+    
+    // Skip separator line (various formats)
+    if (headerSeen && (line.includes('|---') || line.match(/^\s*\|\s*-+\s*\|\s*-+\s*\|\s*$/))) {
+      continue;
+    }
+    
+    // Parse data rows
+    if (inTable && line.startsWith('|') && line.endsWith('|')) {
+      // Remove leading and trailing pipes
+      const trimmedLine = line.substring(1, line.length - 1);
+      
+      // Find the first pipe to separate section from content
+      // This correctly handles empty content cells
+      const pipeIndex = trimmedLine.indexOf('|');
+      
+      if (pipeIndex !== -1) {
+        const section = trimmedLine.substring(0, pipeIndex).trim();
+        const content = trimmedLine.substring(pipeIndex + 1).trim();
+        
+        // Skip rows that are just separators (containing only dashes)
+        if (section.match(/^-+$/) && content.match(/^-*$/)) {
+          continue;
+        }
+        
+        // Only add if section exists (even if content is empty)
+        if (section) {
+          rows.push({
+            id: `row-${Date.now()}-${rowIndex++}-${Math.random().toString(36).substr(2, 9)}`,
+            section: section,
+            content: content || "", // Ensure empty string for empty content
+          });
+        }
+      }
     }
   }
 
@@ -107,7 +123,7 @@ export function serializeToMarkdown(table: ParsedEmailTable): string {
  */
 export function createNewRow(): TableRow {
   return {
-    id: `row-${Date.now()}-${Math.random()}`,
+    id: `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     section: "[section goes here]",
     content: "[content goes here]",
   };
