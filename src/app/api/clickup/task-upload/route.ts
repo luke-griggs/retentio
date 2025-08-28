@@ -104,8 +104,9 @@ function buildCustomFields(
   // Define field mappings with their corresponding enum/value extractors
   const fieldMappings = [
     {
-      mappingKey: "Client" as keyof CustomFieldMapping,
+      mappingKey: "client" as keyof CustomFieldMapping,
       campaignValue: client,
+      getValue: (value: string) => value,
     },
     {
       mappingKey: "campaignType" as keyof CustomFieldMapping,
