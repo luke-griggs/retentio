@@ -37,7 +37,7 @@ enum Client {
   "Womaness" = 2,
   "BioPower Pet" = 3,
   "Drip EZ" = 4,
-  "ThreadBeast" = 5,
+  "Threadbeast" = 5,
   "Life Harmony Energies" = 6,
   "Frey" = 7,
   "Turn" = 8,
@@ -45,9 +45,18 @@ enum Client {
   "Mett Naturals" = 10,
   "Monsterbass" = 11,
   "Seatopia" = 12,
-  "ProCare" = 13,
+  "Procare" = 13,
   "Twelve South" = 14,
   "EMF Harmony" = 15,
+  "Portal Sphere" = 16,
+  "IV His Glory" = 17,
+  "Retentio Internal" = 18,
+  "Barebones" = 19,
+  "Dilettoso" = 20,
+  "DrinkinBuds" = 21,
+  "Lucent" = 22,
+  "Velora" = 23,
+  "BPP/EMFH/LHE" = 24,
 }
 
 // Custom field mapping interface

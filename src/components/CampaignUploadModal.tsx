@@ -171,7 +171,7 @@ export function CampaignUploadModal({
     "Womaness",
     "BioPower Pet",
     "Drip EZ",
-    "ThreadBeast",
+    "Threadbeast",
     "Life Harmony Energies",
     "Frey",
     "Turn",
@@ -179,9 +179,18 @@ export function CampaignUploadModal({
     "Mett Naturals",
     "Monsterbass",
     "Seatopia",
-    "ProCare",
+    "Procare",
     "Twelve South",
     "EMF Harmony",
+    "Portal Sphere",
+    "IV His Glory",
+    "Retentio Internal",
+    "Barebones",
+    "Dilettoso",
+    "DrinkinBuds",
+    "Lucent",
+    "Velora",
+    "BPP/EMFH/LHE",
   ];
 
   const handleFieldChange = (name: keyof Campaign, value: string) => {
@@ -513,16 +522,15 @@ export function CampaignUploadModal({
               type="select"
               options={["Yes", "No"]}
             />
-            
           </div>
           <FormField
-              label="Flexibility"
-              name="flexibility"
-              value={formData.flexibility}
-              onChange={handleFieldChange}
-              type="select"
-              options={["Fluid", "Fixed"]}
-            />
+            label="Flexibility"
+            name="flexibility"
+            value={formData.flexibility}
+            onChange={handleFieldChange}
+            type="select"
+            options={["Fluid", "Fixed"]}
+          />
           <FormField
             label="Follow Up"
             name="followUp"
@@ -530,7 +538,7 @@ export function CampaignUploadModal({
             onChange={handleFieldChange}
             placeholder="e.g., Reminder in 24 hours"
           />
-          
+
           <FormField
             label="Notes"
             name="notes"
