@@ -31,6 +31,25 @@ enum Flexibility {
   "Fixed" = 1,
 }
 
+enum Client {
+  "Haverhill" = 0,
+  "Legendary Foods" = 1,
+  "Womaness" = 2,
+  "BioPower Pet" = 3,
+  "Drip EZ" = 4,
+  "ThreadBeast" = 5,
+  "Life Harmony Energies" = 6,
+  "Frey" = 7,
+  "Turn" = 8,
+  "Luke Test" = 9,
+  "Mett Naturals" = 10,
+  "Monsterbass" = 11,
+  "Seatopia" = 12,
+  "ProCare" = 13,
+  "Twelve South" = 14,
+  "EMF Harmony" = 15,
+}
+
 // Custom field mapping interface
 interface CustomFieldMapping {
   client?: string;
@@ -96,7 +115,7 @@ function getCustomFieldMapping(): CustomFieldMapping {
 // Helper function to build custom fields array
 function buildCustomFields(
   campaign: Campaign,
-  customFieldMapping: CustomFieldMapping,
+  customFieldMapping: CustomFieldMapping
 ) {
   const customFields = [];
 
@@ -105,7 +124,7 @@ function buildCustomFields(
     {
       mappingKey: "client" as keyof CustomFieldMapping,
       campaignValue: campaign.client,
-      getValue: (value: string) => value,
+      getValue: (value: string) => Client[value as keyof typeof Client],
     },
     {
       mappingKey: "campaignType" as keyof CustomFieldMapping,
@@ -216,7 +235,7 @@ async function createClickUpTask(
   campaign: Campaign,
   listId: string,
   apiToken: string,
-  customFieldMapping: CustomFieldMapping,
+  customFieldMapping: CustomFieldMapping
 ) {
   const clickUpUrl = `https://api.clickup.com/api/v2/list/${listId}/task`;
 
