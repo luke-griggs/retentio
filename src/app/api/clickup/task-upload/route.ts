@@ -97,7 +97,6 @@ function getCustomFieldMapping(): CustomFieldMapping {
 function buildCustomFields(
   campaign: Campaign,
   customFieldMapping: CustomFieldMapping,
-  client: string
 ) {
   const customFields = [];
 
@@ -105,7 +104,7 @@ function buildCustomFields(
   const fieldMappings = [
     {
       mappingKey: "client" as keyof CustomFieldMapping,
-      campaignValue: client,
+      campaignValue: campaign.client,
       getValue: (value: string) => value,
     },
     {
@@ -218,7 +217,6 @@ async function createClickUpTask(
   listId: string,
   apiToken: string,
   customFieldMapping: CustomFieldMapping,
-  client: string
 ) {
   const clickUpUrl = `https://api.clickup.com/api/v2/list/${listId}/task`;
 
@@ -238,7 +236,7 @@ async function createClickUpTask(
   const taskData = {
     name: campaign.campaignName,
     due_date: parseDateToUnix(campaign.date),
-    custom_fields: buildCustomFields(campaign, customFieldMapping, client),
+    custom_fields: buildCustomFields(campaign, customFieldMapping),
   };
 
   try {
@@ -363,8 +361,7 @@ export async function POST(request: NextRequest) {
           campaign,
           CLICKUP_LIST_ID,
           CLICKUP_KEY,
-          customFieldMapping,
-          client
+          customFieldMapping
         );
         createdTasks.push({
           campaignName: campaign.campaignName,
