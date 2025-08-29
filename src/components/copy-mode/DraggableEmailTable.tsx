@@ -141,6 +141,16 @@ const DraggableRow = ({
               onClick={() => onCellEdit(row.id, "section")}
               dangerouslySetInnerHTML={{
                 __html: row.section
+                  // Handle ACTION NEEDED tags first - make text yellow
+                  .replace(
+                    /&lt;ACTION NEEDED&gt;(.*?)&lt;\/ACTION NEEDED&gt;/gi,
+                    '<span class="text-yellow-400 font-medium">$1</span>'
+                  )
+                  // Also handle unescaped version in case it comes through differently
+                  .replace(
+                    /<ACTION NEEDED>(.*?)<\/ACTION NEEDED>/gi,
+                    '<span class="text-yellow-400 font-medium">$1</span>'
+                  )
                   .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
                   .replace(/\*(.+?)\*/g, "<em>$1</em>")
                   .replace(
@@ -183,6 +193,16 @@ const DraggableRow = ({
               onClick={() => onCellEdit(row.id, "content")}
               dangerouslySetInnerHTML={{
                 __html: row.content
+                  // Handle ACTION NEEDED tags first - make text yellow
+                  .replace(
+                    /&lt;ACTION NEEDED&gt;(.*?)&lt;\/ACTION NEEDED&gt;/gi,
+                    '<span class="text-yellow-400 font-medium">$1</span>'
+                  )
+                  // Also handle unescaped version in case it comes through differently
+                  .replace(
+                    /<ACTION NEEDED>(.*?)<\/ACTION NEEDED>/gi,
+                    '<span class="text-yellow-400 font-medium">$1</span>'
+                  )
                   .replace(/\*\*_(.+?)_\*\*/g, "<strong><em>$1</em></strong>")
                   .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
                   .replace(/\*(.+?)\*/g, "<em>$1</em>")

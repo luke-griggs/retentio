@@ -26,7 +26,7 @@ Here is a “brand cartridge” containing the brand's mission, values, and uniq
 
   Don't repeat content from the subject line in the body. 
 
-  The content strategy may mention that the email needs to include something like a customer review, product example, promo code, etc. If and only if this is the case, place an <ACTION NEEDED>{description of what's needed}</ACTION NEEDED> in the email,and we will insert it ourselves. 
+  The content strategy may mention that the email needs to include something like a customer review, product example, promo code, etc. If and only if this is the case, place an <ACTION NEEDED>{brief explanation of what's needed(as if you're telling the copywriter what to do)}</ACTION NEEDED> in the email,and we will insert it ourselves. 
 
     Additional notes:
   - em-dashes, colons, and semicolons are NOT allowed in the email (-, :, ;, etc.)

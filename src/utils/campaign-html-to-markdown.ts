@@ -166,11 +166,18 @@ function extractTextWithFormatting(element: Element): string {
 
   const processNode = (node: Node) => {
     if (node.nodeType === Node.TEXT_NODE) {
-      result += node.textContent || "";
+      // Check if text contains ACTION NEEDED tags and preserve them
+      let text = node.textContent || "";
+      // Preserve ACTION NEEDED tags that might come through as plain text
+      result += text;
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node as Element;
 
-      if (el.tagName === "STRONG" || el.tagName === "B") {
+      // Check for ACTION NEEDED custom tags
+      if (el.tagName === "ACTION" && el.getAttribute("NEEDED") !== null) {
+        // Preserve the ACTION NEEDED tags for display
+        result += `<ACTION NEEDED>${el.textContent || ""}</ACTION NEEDED>`;
+      } else if (el.tagName === "STRONG" || el.tagName === "B") {
         // Check if child is EM/I for combined formatting
         const hasEmChild = Array.from(el.children).some(child => 
           child.tagName === "EM" || child.tagName === "I"
@@ -235,6 +242,10 @@ function extractTextWithFormatting(element: Element): string {
   // Clean up whitespace more carefully
   // First trim the entire result
   result = result.trim();
+  
+  // Handle escaped ACTION NEEDED tags - convert them back to proper format
+  // This handles cases where the tags come through as &lt;ACTION NEEDED&gt;
+  result = result.replace(/&lt;ACTION NEEDED&gt;(.*?)&lt;\/ACTION NEEDED&gt;/gi, '<ACTION NEEDED>$1</ACTION NEEDED>');
   
   // Replace multiple spaces/tabs with single space, but keep newlines
   result = result.replace(/[^\S\n]+/g, " ");

@@ -7,126 +7,116 @@ const openai = new OpenAI({
 });
 
 function getEmailPromptHtml(
+  clientName: string,
   taskName: string,
   cartridge: string,
   links: string,
   contentStrategy: string,
-  emotionalDriver: string,
+  brandType: string,
+  brandTone: string,
+  exampleEmails: string,
   promo: string
 ) {
   return `
-  Act as an expert copywriter and produce a concise email with strict formatting and marketing frameworks below.
-  
-  The name of the email is ${taskName}
-  
-  1. REQUIRED COMPONENTS & OUTPUT FORMAT
-  Create these seven elements and FORMAT THEM AS AN HTML TABLE using this EXACT structure:
-  
-  <table>
-    <tr>
-      <td><strong>SUBJECT LINE</strong></td>
-      <td>[Subject line here]</td>
-    </tr>
-    <tr>
-      <td><strong>SUBJECT LINE</strong></td>
-      <td>[Subject line here]</td>
-    </tr>
-    <tr>
-      <td><strong>SUBJECT LINE</strong></td>
-      <td>[Subject line here]</td>
-    </tr>
-    <tr>
-      <td><strong>PREVIEW TEXT</strong></td>
-      <td>[Preview text here]</td>
-    </tr>
-    <tr>
-      <td><strong>HEADER</strong></td>
-      <td>[Header text here]</td>
-    </tr>
-    <tr>
-      <td><strong>BODY</strong></td>
-      <td>[Body text here]</td>
-    </tr>
-    <tr>
-      <td><strong>CTA</strong></td>
-      <td>[CTA with link here]</td>
-    </tr>
-  </table>
-  
-  IMPORTANT: 
-  - Use ONLY the HTML table format shown above
-  - Return ONLY the table HTML, no additional text or markdown
-  - Keep all content in a single table
-  - Each row should contain the complete content for that section
-  - Use HTML tags for formatting: <strong> for bold, <em> for italics, <strong><em> for both
-  - Use HTML links: <a href="url">link text</a>
-  
-  2. CHARACTER LIMITS (ENFORCE STRICTLY)
-  Header: ≤ 60 characters (including spaces)
-  Body: ≤ 240 characters total (including spaces & any emphasis markers)
-  CTA: ≤ 20 characters
-  Subject Line: ≤ 45 characters each
-  Preview Text: ≤ 60 characters
-  If any section goes over its limit, revise automatically until it fits.
-  
-  3. FORMAT & STYLE RULES
-  No Colons or Dashes
-  
-  Do not use colons (:) or any form of dash (-, –, —) in the Header, Subject Line, or Preview Text.
-  If absolutely necessary in the Body, keep it minimal—but ideally avoid them altogether.
-  Title Case for Subject & Preview
-  
-  Capitalize Each Word in the Subject Line and Preview Text. (Small filler words can stay lowercase if that's your house style.)
-  Emphasis
-  
-  You may apply bold + italics together on the same word or short phrase, like <strong><em>example</em></strong>.
-  Limit to 3 instances of emphasis in the Body.
-  Do not bold one word and italicize a different word; emphasis must be on the same word/phrase if used.
-  No Banned Words as Openers
-  
-  Never start any section (Header, Body, CTA, Subject, Preview) with "Transform," "Discover," "Experience," "Reimagine," or "Elevate."
-  Avoid generic marketing clichés such as "unlock," "epic," "ultimate," etc. If you catch yourself using them, pick synonyms or rephrase.
-  No Brand or Endorser/Product Names (Subject, Preview, Body)
-  
-  Subject, Preview, Body must be brand-agnostic unless the context explicitly demands naming.
+You are a copywriter for a ${brandType} brand called ${clientName}. As you will see in the examples, the brand uses a ${brandTone} tone. Do not use colons or em dashes in the email under any circumstances.
 
-  ${links ? `
-    4. LINKS USAGE
-    The following links are available for embedding in the email where appropriate:
-    ${links}` : ""}
-  
-  When using links:
-  - Embed them naturally within the content using HTML format: <a href="url">link text</a>
-  - The link text should be contextual and action-oriented (e.g., "Shop Now", "Learn More", "Get Started")
-  - You can use links in the Body or CTA sections
-  - If multiple links are provided, use them strategically based on their context
-  - Do NOT display raw URLs - always use meaningful link text
+${cartridge ? `
+Here is a "brand cartridge" containing the brand's mission, values, and unique rules:
+  ____CARTRIDGE_START____
+  ${cartridge}
+  ____CARTRIDGE_END____
+` : ""}
 
-  ${cartridge ? `
-  5. CONTENT TO BASE THE EMAIL ON
-  Here is the content to base the email on:
-  ${cartridge}` : ""}
+You are going to be provided the content strategy for an email. You will also be provided with a list of example emails that have worked well in the past. Notice the following patterns among these emails:
+- The subject line and preview text are connected. One of which is straightforward, the other is creative
+- The header and body are connected. One of which is straightforward, the other is thematic/creative
+- The CTA is short, creative, and actionable (all caps). Avoid "shop the...", "level up", "subscribe today", etc.
 
-  ${contentStrategy ? `
-  6. CONTENT STRATEGY
-  Here is the content strategy for the email:
-  ${contentStrategy}` : ""}
+Notice these patterns in the examples and use them to guide your email.
 
-  ${emotionalDriver ? `
-  7. EMOTIONAL DRIVER
-  Here is the emotional driver for the email:
-  ${emotionalDriver}` : ""}
+Don't repeat content from the subject line in the body.
 
-  ${promo ? `
-  8. PROMO
-  Here is the promo for the email:
-  ${promo}` : ""}
-  `;
+The content strategy may mention that the email needs to include something like a customer review, product example, promo code, etc. If and only if this is the case, place an <ACTION NEEDED>{brief explanation of what's needed (as if you're telling the copywriter what to do)}</ACTION NEEDED> in the email, and we will insert it ourselves.
+
+Additional notes:
+- em-dashes, colons, and semicolons are NOT allowed in the email (-, :, ;, etc.)
+- no bulleted lists in the body unless the content strategy explicitly asks for it
+
+Use the following content strategy to create the email:
+${contentStrategy}
+
+${exampleEmails ? `
+Match the tone, cadence, and sentence length of these examples:
+Additionally, ensure the length of the components are similar to the examples.
+${exampleEmails}
+` : ""}
+
+${promo ? `
+Include this promotional offer in the email:
+${promo}
+` : ""}
+
+${links ? `
+LINKS USAGE
+When using links:
+- Embed them naturally within the content using HTML format: <a href="url">link text</a>
+- The link text should be contextual and action-oriented (e.g., "Shop Now", "Learn More", "Get Started")
+- You can use links in the Body or CTA sections
+- If multiple links are provided, use them strategically based on their context
+- Do NOT display raw URLs - always use meaningful link text
+
+The following links are available for embedding in the email where appropriate:
+${links}
+` : ""}
+
+OUTPUT FORMAT:
+Create these components and format them as an HTML TABLE using this EXACT structure:
+
+<table>
+  <tr>
+    <td><strong>SUBJECT LINE</strong></td>
+    <td>[Subject line here - max 45 characters]</td>
+  </tr>
+  <tr>
+    <td><strong>SUBJECT LINE</strong></td>
+    <td>[Alternative subject line here - max 45 characters]</td>
+  </tr>
+  <tr>
+    <td><strong>SUBJECT LINE</strong></td>
+    <td>[Third subject line here - max 45 characters]</td>
+  </tr>
+  <tr>
+    <td><strong>PREVIEW TEXT</strong></td>
+    <td>[Preview text here - max 60 characters]</td>
+  </tr>
+  <tr>
+    <td><strong>HEADER</strong></td>
+    <td>[Header text here - max 60 characters]</td>
+  </tr>
+  <tr>
+    <td><strong>BODY</strong></td>
+    <td>[Body text here - max 240 characters]</td>
+  </tr>
+  <tr>
+    <td><strong>CTA</strong></td>
+    <td>[CTA with link here - max 20 characters, ALL CAPS]</td>
+  </tr>
+</table>
+
+IMPORTANT:
+- Use ONLY the HTML table format shown above
+- Return ONLY the table HTML, no additional text or markdown
+- Keep all content in a single table
+- Each row should contain the complete content for that section
+- Use HTML tags for formatting: <strong> for bold, <em> for italics, <strong><em> for both
+- Use HTML links: <a href="url">link text</a>
+- Respect the character limits strictly
+`;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { taskId, taskName, storeId, contentStrategy, emotionalDriver, promo, links } = await request.json();
+    const { taskId, taskName, storeId, contentStrategy, promo, links } = await request.json();
 
     // Validate required fields
     if (!taskId || !taskName || !storeId) {
@@ -136,17 +126,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // First, get the store's clickup_list_id
+    // Fetch store information including brand type, tone, and email examples
     const { data: store, error: storeError } = await supabaseAdmin
       .from("stores")
-      .select("clickup_list_id")
+      .select("name, clickup_list_id, brand_type, brand_tone, email_examples")
       .eq("id", storeId)
       .single();
 
     if (storeError || !store) {
       console.error("Error fetching store:", storeError);
       return NextResponse.json(
-        { error: "Failed to fetch store" },
+        { error: "Failed to fetch store information" },
         { status: 500 }
       );
     }
@@ -164,30 +154,33 @@ export async function POST(request: NextRequest) {
       brandCartridgeContent = cartridge.content || "";
     }
 
-    // Generate new email content using OpenAI
+    // Use store brand information with fallbacks
+    const clientName = store.name || "the brand";
+    const brandType = store.brand_type || "modern";
+    const brandTone = store.brand_tone || "professional yet approachable";
+    const emailExamples = store.email_examples || "";
+
+    // Generate new email content using OpenAI with the updated prompt
     const prompt = getEmailPromptHtml(
+      clientName,
       taskName,
       brandCartridgeContent,
       links || "",
       contentStrategy || "",
-      emotionalDriver || "",
+      brandType,
+      brandTone,
+      emailExamples,
       promo || ""
     );
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-2024-08-06",
       messages: [
         {
-          role: "system",
-          content: "You are an expert email copywriter. Generate email content in HTML table format as specified."
-        },
-        {
-          role: "user",
+          role: "developer",
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 1500,
     });
 
     const generatedContent = completion.choices[0]?.message?.content || "";
