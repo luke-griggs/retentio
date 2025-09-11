@@ -79,6 +79,11 @@ interface CustomFieldMapping {
   links?: string;
   flexibility?: string;
   infoComplete?: string;
+  // New fields
+  textSendTime?: string;
+  textSegment?: string;
+  plainTextSendTime?: string;
+  plainTextSegment?: string;
 }
 
 // Helper function to sanitize client name for environment variable lookup
@@ -118,6 +123,10 @@ function getCustomFieldMapping(): CustomFieldMapping {
     links: process.env.CLICKUP_FIELD_LINKS,
     flexibility: process.env.CLICKUP_FIELD_FLEXIBILITY,
     infoComplete: process.env.CLICKUP_FIELD_INFO_COMPLETE,
+    textSendTime: process.env.CLICKUP_FIELD_TEXT_SEND_TIME,
+    textSegment: process.env.CLICKUP_FIELD_TEXT_SEGMENT,
+    plainTextSendTime: process.env.CLICKUP_FIELD_PLAIN_TEXT_SEND_TIME,
+    plainTextSegment: process.env.CLICKUP_FIELD_PLAIN_TEXT_SEGMENT,
   };
 }
 
@@ -221,6 +230,27 @@ function buildCustomFields(
     {
       mappingKey: "infoComplete" as keyof CustomFieldMapping,
       campaignValue: campaign.infoComplete,
+      getValue: (value: string) => value,
+    },
+    // New fields
+    {
+      mappingKey: "textSendTime" as keyof CustomFieldMapping,
+      campaignValue: campaign.textSendTime,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "textSegment" as keyof CustomFieldMapping,
+      campaignValue: campaign.textSegment,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "plainTextSendTime" as keyof CustomFieldMapping,
+      campaignValue: campaign.plainTextSendTime,
+      getValue: (value: string) => value,
+    },
+    {
+      mappingKey: "plainTextSegment" as keyof CustomFieldMapping,
+      campaignValue: campaign.plainTextSegment,
       getValue: (value: string) => value,
     },
   ];

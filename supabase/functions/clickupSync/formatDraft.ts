@@ -3,7 +3,7 @@ declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void;
 };
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 export async function formatDraft({
   draft,
@@ -12,28 +12,41 @@ export async function formatDraft({
   draft: string;
   type: "email" | "sms" | "mms" | "plainText";
 }) {
-  console.log("FORMAT DRAFT CALLED");
+  console.log("FORMAT DRAFT CALLED WITH DRAFT:", draft);
+  console.log("Input draft length:", draft.length);
+  console.log("Draft type:", type);
+
   async function modelResponse(prompt: string) {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    console.log("Format prompt length:", prompt.length);
+    console.log("Format prompt preview:", prompt.substring(0, 200) + "...");
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY!,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "gpt-4.1-2025-04-14",
-        input: [{ role: "developer", content: prompt }],
+        model: "claude-sonnet-4-20250514",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 4000,
       }),
     });
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      console.log("Full format error response:", errorBody);
       throw new Error(
-        `OpenAI API error: ${response.status} ${response.statusText}`
+        `Anthropic API error: ${response.status} ${response.statusText} - ${errorBody}`
       );
     }
 
     const data = await response.json();
-    return data.output[0].content[0].text;
+    console.log("Full format response data:", JSON.stringify(data, null, 2));
+    const result = data.content[0].text;
+    console.log("Format result length:", result.length);
+    return result;
   }
 
   if (type === "email") {
@@ -69,7 +82,7 @@ export async function formatDraft({
 
     here is the sms:
     ${draft}
-    `
+    `;
     const formattedDraft = await modelResponse(prompt);
     return formattedDraft;
   }
@@ -87,7 +100,7 @@ export async function formatDraft({
 
     here is the sms:
     ${draft}
-    `
+    `;
     const formattedDraft = await modelResponse(prompt);
     return formattedDraft;
   }
@@ -105,7 +118,7 @@ export async function formatDraft({
 
     here is the email:
     ${draft}
-    `
+    `;
     const formattedDraft = await modelResponse(prompt);
     return formattedDraft;
   }

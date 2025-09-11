@@ -21,6 +21,10 @@ export interface Campaign {
   links: string;
   flexibility: string;
   infoComplete: string;
+  textSendTime: string;
+  textSegment: string;
+  plainTextSendTime: string;
+  plainTextSegment: string;
 }
 
 /**
@@ -50,10 +54,19 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
       // This is a date row - extract the dates and campaign data
       const dateRow = row;
 
-      // The next 15 rows contain the campaign fields
-      if (i + 18 >= rows.length) break; // Not enough rows remaining
-
-      const fieldRows = rows.slice(i + 1, i + 19);
+      // The following rows contain the campaign fields until the next date row.
+      // Historically this block had 18 rows; now it can include 22 rows.
+      // Find the start of the next date row to determine block size dynamically.
+      let nextIndex = i + 1;
+      while (
+        nextIndex < rows.length &&
+        !rows[nextIndex].some(
+          (cell: string) => cell && dateRegex.test(cell.trim())
+        )
+      ) {
+        nextIndex++;
+      }
+      const fieldRows = rows.slice(i + 1, nextIndex);
 
       // Check that we have the expected field structure
       if (
@@ -101,13 +114,17 @@ export function parseCampaignCalendarCSV(csv: string): Campaign[] {
           links: cleanString(fieldRows[15]?.[col] || ""),
           flexibility: cleanString(fieldRows[16]?.[col] || ""),
           infoComplete: cleanString(fieldRows[17]?.[col] || ""),
+          textSendTime: cleanString(fieldRows[18]?.[col] || ""),
+          textSegment: cleanString(fieldRows[19]?.[col] || ""),
+          plainTextSendTime: cleanString(fieldRows[20]?.[col] || ""),
+          plainTextSegment: cleanString(fieldRows[21]?.[col] || ""),
         };
 
         campaigns.push(campaign);
       }
 
-      // Skip the field rows we just processed
-      i += 18;
+      // Move index to the row just before the next date row (for-loop will +1)
+      i = nextIndex - 1;
     }
   }
 
@@ -145,8 +162,13 @@ export function campaignsToCSV(campaigns: Campaign[]): string {
     "Plain Text",
     "Follow Up",
     "Notes",
+    "Links",
     "Flexibility",
     "Info Complete",
+    "Text Send Time",
+    "Text Segment",
+    "Plain Text Send Time",
+    "Plain Text Segment",
   ];
 
   const csvData = [
@@ -169,8 +191,13 @@ export function campaignsToCSV(campaigns: Campaign[]): string {
       campaign.plainText,
       campaign.followUp,
       campaign.notes,
+      campaign.links,
       campaign.flexibility,
       campaign.infoComplete,
+      campaign.textSendTime,
+      campaign.textSegment,
+      campaign.plainTextSendTime,
+      campaign.plainTextSegment,
     ]),
   ];
 

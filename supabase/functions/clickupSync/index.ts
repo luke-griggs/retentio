@@ -25,6 +25,7 @@ declare const Deno: {
 // ────────────────────────────────────────────────────────────
 const CLICKUP_KEY = Deno.env.get("CLICKUP_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const GOOGLE_GENERATIVE_AI_API_KEY = Deno.env.get(
   "GOOGLE_GENERATIVE_AI_API_KEY"
 );
@@ -35,8 +36,7 @@ const CU_API = "https://api.clickup.com/api/v2";
 
 if (
   !CLICKUP_KEY ||
-  !OPENAI_API_KEY ||
-  !GOOGLE_GENERATIVE_AI_API_KEY ||
+  !ANTHROPIC_API_KEY ||
   !SUPABASE_URL ||
   !SUPABASE_SERVICE_ROLE_KEY
 ) {
@@ -215,26 +215,32 @@ async function fetchBrandCartridge(supabase: any, storeListId: string) {
   return data[0]?.content as string;
 }
 
-async function generateDraft(task: any, prompt: string) {
+async function generateDraft(prompt: string) {
+  console.log("GENERATE DRAFT CALLED WITH PROMPT:", prompt);
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      Authorization: `Bearer ${OPENAI_API_KEY!}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-2024-08-06",
-      input: [{ role: "developer", content: prompt }],
+      model: "gpt-4o",
+      input: prompt,
     }),
   });
 
+  console.log("RESPONSE RECEIVED FROM OPENAI", response);
+
   if (!response.ok) {
+    const errorBody = await response.text();
+    console.log("Full error response:", errorBody);
     throw new Error(
-      `OpenAI API error: ${response.status} ${response.statusText}`
+      `OpenAI API error: ${response.status} ${response.statusText} - ${errorBody}`
     );
   }
 
   const data = await response.json();
+  console.log("Full response data:", JSON.stringify(data, null, 2));
   const draft = data.output[0].content[0].text;
   console.log("DRAFT:", draft);
 
@@ -350,28 +356,6 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
 
   const currentStatus = task.status?.status?.toLowerCase();
 
-  const cartridge = await fetchBrandCartridge(supabase, task.list.id);
-  console.log(`Fetched cartridge for task ${task.id}`);
-
-  const clientValue = task.custom_fields?.find(
-    (field: any) => field.name === "Client"
-  )?.value;
-
-  const client =
-    typeof clientValue === "number"
-      ? getClientNameFromValue(clientValue)
-      : clientValue;
-
-  console.log("client value from ClickUp:", clientValue);
-  console.log("client name for additional client info:", client);
-
-  const clientInfo = await getAdditionalClientInfo(supabase, client);
-  const {
-    brand_type: brandType,
-    brand_tone: brandTone,
-    email_examples: emailExamples,
-  } = clientInfo || {};
-
   // Only proceed if task status is "ready for writing" and remove task from database because it's status is no longer "ready for writing"
   if (currentStatus !== "ready for writing") {
     const { data: taskData } = await supabase
@@ -402,6 +386,29 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
     return;
   }
 
+  // If task is a parent and is ready for writing, then proceed.
+  const cartridge = await fetchBrandCartridge(supabase, task.list.id);
+  console.log(`Fetched cartridge for task ${task.id}`);
+
+  const clientValue = task.custom_fields?.find(
+    (field: any) => field.name === "Client"
+  )?.value;
+
+  const client =
+    typeof clientValue === "number"
+      ? getClientNameFromValue(clientValue)
+      : clientValue;
+
+  console.log("client value from ClickUp:", clientValue);
+  console.log("client name for additional client info:", client);
+
+  const clientInfo = await getAdditionalClientInfo(supabase, client);
+  const {
+    brand_type: brandType,
+    brand_tone: brandTone,
+    email_examples: emailExamples,
+  } = clientInfo || {};
+
   try {
     if (event === "taskStatusUpdated") {
       console.log(`Processing taskStatusUpdated for taskId: ${taskId}`);
@@ -425,8 +432,13 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
           (field: any) => field.name === "isPlainText"
         );
 
+        const promoField = task.custom_fields?.find(
+          (field: any) => field.name === "Promo"
+        );
+
         const contentStrategy = contentStrategyField?.value || "";
         const links = linksField?.value || "";
+        const promo = promoField?.value || "";
         const isSMS = isSMSField?.value === "yes";
         const isMMS = isMMSField?.value === "yes";
         const isPlainText = isPlainTextField?.value === "yes";
@@ -444,10 +456,8 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
               brandType,
               brandTone
             );
-            console.log("SMS PROMPT:", smsPrompt);
-            console.log("GENERATING SMS DRAFT");
 
-            const smsDraft = await generateDraft(task, smsPrompt);
+            const smsDraft = await generateDraft(smsPrompt);
             const formattedSmsDraft = await formatDraft({
               draft: smsDraft,
               type: "sms",
@@ -468,7 +478,7 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
               brandTone
             );
 
-            const mmsDraft = await generateDraft(task, mmsPrompt);
+            const mmsDraft = await generateDraft(mmsPrompt);
             const formattedMmsDraft = await formatDraft({
               draft: mmsDraft,
               type: "mms",
@@ -489,7 +499,7 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
               brandTone
             );
 
-            const plainTextDraft = await generateDraft(task, plainTextPrompt);
+            const plainTextDraft = await generateDraft(plainTextPrompt);
             const formattedPlainTextDraft = await formatDraft({
               draft: plainTextDraft,
               type: "plainText",
@@ -507,7 +517,8 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
             contentStrategy,
             brandType,
             brandTone,
-            emailExamples
+            emailExamples,
+            promo        
           );
 
           const isSupplementalTask =
@@ -522,15 +533,12 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
             return;
           }
 
-          console.log(`Generating Google draft for task ${taskId}`);
-          const emailDraft = await generateDraft(task, emailPrompt);
-          const formattedEmailDraft = await formatDraft({
-            draft: emailDraft,
-            type: "email",
-          });
+          console.log(`Generating draft for task ${taskId}`);
+          const emailDraft = await generateDraft(emailPrompt);
+          const formattedEmailDraft = await formatDraft({ draft: emailDraft, type: "email" });
           await updateTaskDescription(taskId, formattedEmailDraft);
-          console.log(`Updated task ${taskId} with Google draft`);
-
+          console.log(`Updated task ${taskId} with draft`);
+          
           const dueDate = task.due_date;
           const listId = task.list.id;
 

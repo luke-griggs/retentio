@@ -139,6 +139,10 @@ export function CampaignUploadModal({
     links: "",
     flexibility: "",
     infoComplete: "",
+    textSendTime: "",
+    textSegment: "",
+    plainTextSendTime: "",
+    plainTextSegment: "",
   });
 
   const campaignTypes = [
@@ -255,6 +259,10 @@ export function CampaignUploadModal({
           links: "",
           flexibility: "",
           infoComplete: "",
+          textSendTime: "",
+          textSegment: "",
+          plainTextSendTime: "",
+          plainTextSegment: "",
         });
 
         onClose();
@@ -297,6 +305,10 @@ export function CampaignUploadModal({
       ["Links", campaign.links],
       ["Flexibility", campaign.flexibility],
       ["Info Complete", campaign.infoComplete],
+      ["Text Send Time", campaign.textSendTime],
+      ["Text Segment", campaign.textSegment],
+      ["Plain Text Send Time", campaign.plainTextSendTime],
+      ["Plain Text Segment", campaign.plainTextSegment],
     ];
 
     return rows
@@ -556,6 +568,43 @@ export function CampaignUploadModal({
             type="textarea"
             placeholder="Relevant links..."
           />
+
+          {/* New fields - appended at the bottom */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              label="Text Send Time"
+              name="textSendTime"
+              value={formData.textSendTime}
+              onChange={handleFieldChange}
+              placeholder="e.g., 10:00 AM EST"
+            />
+
+            <FormField
+              label="Text Segment"
+              name="textSegment"
+              value={formData.textSegment}
+              onChange={handleFieldChange}
+              placeholder="e.g., VIP, Active Customers"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              label="Plain Text Send Time"
+              name="plainTextSendTime"
+              value={formData.plainTextSendTime}
+              onChange={handleFieldChange}
+              placeholder="e.g., 10:00 AM EST"
+            />
+
+            <FormField
+              label="Plain Text Segment"
+              name="plainTextSegment"
+              value={formData.plainTextSegment}
+              onChange={handleFieldChange}
+              placeholder="e.g., VIP, Active Customers"
+            />
+          </div>
 
           <div className="flex gap-3 pt-4">
             <button
