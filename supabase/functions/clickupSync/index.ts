@@ -12,6 +12,7 @@ import { getSMSPrompt } from "./getSmsPrompt.ts";
 import { getMMSPrompt } from "./getMMSPrompt.ts";
 import { getPlainTextPrompt } from "./getPlainTextPrompt.ts";
 import { formatDraft } from "./formatDraft.ts";
+import { refineContentStrategy } from "./refineContentStrategy.ts";
 
 // Make sure Deno env types are available
 // deno-lint-ignore no-explicit-any
@@ -224,8 +225,14 @@ async function generateDraft(prompt: string) {
       Authorization: `Bearer ${OPENAI_API_KEY!}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o",
+      model: "gpt-5",
       input: prompt,
+      reasoning: {
+        effort: "low",
+      },
+      text: {
+        verbosity: "low",
+      },
     }),
   });
 
@@ -241,7 +248,7 @@ async function generateDraft(prompt: string) {
 
   const data = await response.json();
   console.log("Full response data:", JSON.stringify(data, null, 2));
-  const draft = data.output[0].content[0].text;
+  const draft = data.output[1].content[0].text;
   console.log("DRAFT:", draft);
 
   return draft;
@@ -403,6 +410,7 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
   console.log("client name for additional client info:", client);
 
   const clientInfo = await getAdditionalClientInfo(supabase, client);
+
   const {
     brand_type: brandType,
     brand_tone: brandTone,
@@ -436,12 +444,19 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
           (field: any) => field.name === "Promo"
         );
 
-        const contentStrategy = contentStrategyField?.value || "";
+        let contentStrategy = contentStrategyField?.value || "";
         const links = linksField?.value || "";
         const promo = promoField?.value || "";
         const isSMS = isSMSField?.value === "yes";
         const isMMS = isMMSField?.value === "yes";
         const isPlainText = isPlainTextField?.value === "yes";
+
+        // refine content strategy
+        if (contentStrategy) {
+          contentStrategy = await refineContentStrategy({
+            contentStrategy: contentStrategy,
+          });
+        }
 
         try {
           // Check if task is SMS, MMS, or Plain Text else generate normal email draft
@@ -518,7 +533,7 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
             brandType,
             brandTone,
             emailExamples,
-            promo        
+            promo
           );
 
           const isSupplementalTask =
@@ -535,10 +550,13 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
 
           console.log(`Generating draft for task ${taskId}`);
           const emailDraft = await generateDraft(emailPrompt);
-          const formattedEmailDraft = await formatDraft({ draft: emailDraft, type: "email" });
+          const formattedEmailDraft = await formatDraft({
+            draft: emailDraft,
+            type: "email",
+          });
           await updateTaskDescription(taskId, formattedEmailDraft);
           console.log(`Updated task ${taskId} with draft`);
-          
+
           const dueDate = task.due_date;
           const listId = task.list.id;
 
