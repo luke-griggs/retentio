@@ -415,6 +415,7 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
     brand_type: brandType,
     brand_tone: brandTone,
     email_examples: emailExamples,
+    
   } = clientInfo || {};
 
   try {

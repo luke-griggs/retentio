@@ -80,7 +80,6 @@ ${contentStrategy}
 
   const data = await response.json();
   const refinedContentStrategy = data.output[1].content[0].text;
-  console.log("REFINED CONTENT STRATEGY:", refinedContentStrategy);
   return refinedContentStrategy;
 }
 
