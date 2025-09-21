@@ -161,7 +161,7 @@ export function AddStoreModal({
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-slate-900 rounded-xl w-full max-w-xl my-8 border border-slate-700">
         <div className="flex justify-between items-center p-6 border-b border-slate-700">
-          <h3 className="text-xl font-semibold text-white">Add Store</h3>
+          <h3 className="text-xl font-semibold text-white">Add Client</h3>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-white transition-colors"
@@ -195,7 +195,7 @@ export function AddStoreModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField
-              label="Store Name"
+              label="Client Name"
               name="name"
               value={formData.name}
               onChange={handleFieldChange}
@@ -226,7 +226,7 @@ export function AddStoreModal({
             name="brand_tone"
             value={formData.brand_tone}
             onChange={handleFieldChange}
-            placeholder="e.g., Bold yet friendly"
+            placeholder="e.g., Bold and friendly"
             required
           />
 
@@ -244,7 +244,7 @@ export function AddStoreModal({
               disabled={isSubmitting}
               className="flex-1 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-300 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              {isSubmitting ? "Adding..." : "Add Store"}
+              {isSubmitting ? "Adding..." : "Add Client"}
             </button>
           </div>
         </form>
