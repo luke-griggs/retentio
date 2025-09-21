@@ -27,11 +27,14 @@ import { toast } from "sonner"; // TODO: set up toast instead of alert
 import { sanitizeMarkdownForClickUp, reconstructMarkdownTable } from "@/utils/sanitize-markdown-for-clickup";
 import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
 import { parseMarkdownTable, serializeToMarkdown } from "@/utils/email-table-parser";
+import { AddStoreModal } from "@/components/AddStoreModal";
 
 interface Store {
   id: string;
   name: string;
   clickup_list_id: string;
+  brand_type?: string | null;
+  brand_tone?: string | null;
 }
 
 interface Campaign {
@@ -51,6 +54,7 @@ export default function CopyModeInterface() {
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoadingStores, setIsLoadingStores] = useState(true);
   const [storeError, setStoreError] = useState<string | null>(null);
+  const [isAddStoreModalOpen, setIsAddStoreModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [selectedClientName, setSelectedClientName] = useState<string>("");
   const [tasks, setTasks] = useState<Campaign[]>([]);
@@ -124,6 +128,18 @@ export default function CopyModeInterface() {
     } finally {
       setIsLoadingStores(false);
     }
+  };
+
+  const handleStoreCreated = (store: Store) => {
+    setStores((previous) => {
+      const next = previous.filter((existing) => existing.id !== store.id);
+      next.push(store);
+      next.sort((a, b) => a.name.localeCompare(b.name));
+      return next;
+    });
+    setSelectedStore(store);
+    setSelectedTask(null);
+    toast.success(`${store.name} added`);
   };
 
   const fetchTasks = async (storeId: string) => {
@@ -449,6 +465,16 @@ export default function CopyModeInterface() {
             <div className="flex-1 overflow-y-auto flex flex-col">
               {/* Store Folders */}
               <div className="flex-1 py-2">
+                <div className="px-3 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddStoreModalOpen(true)}
+                    className="w-full px-3 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-300 transition-colors"
+                  >
+                    Add Client
+                  </button>
+                </div>
+
                 {isLoadingStores && (
                   <div className="px-3 py-2 text-gray-400 text-sm">
                     Loading stores...
@@ -839,6 +865,11 @@ export default function CopyModeInterface() {
           )}
         </div>
       </div>
+      <AddStoreModal
+        isOpen={isAddStoreModalOpen}
+        onClose={() => setIsAddStoreModalOpen(false)}
+        onSuccess={handleStoreCreated}
+      />
     </div>
   );
 }

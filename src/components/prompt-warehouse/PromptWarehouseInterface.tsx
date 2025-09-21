@@ -20,11 +20,14 @@ import {
   XMarkIcon,
   HomeIcon,
 } from "@heroicons/react/24/outline";
+import { AddStoreModal } from "@/components/AddStoreModal";
 
 interface Store {
   id: string;
   name: string;
   clickup_list_id: string;
+  brand_type?: string | null;
+  brand_tone?: string | null;
 }
 
 interface GlobalPromptType {
@@ -50,6 +53,7 @@ export default function PromptWarehouseInterface() {
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoadingStores, setIsLoadingStores] = useState(true);
   const [storeError, setStoreError] = useState<string | null>(null);
+  const [isAddStoreModalOpen, setIsAddStoreModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [selectedGlobalPrompt, setSelectedGlobalPrompt] =
     useState<GlobalPromptType | null>(null);
@@ -126,6 +130,21 @@ export default function PromptWarehouseInterface() {
     } finally {
       setIsLoadingStores(false);
     }
+  };
+
+  const handleStoreCreated = (store: Store) => {
+    setStores((previous) => {
+      const next = previous.filter((existing) => existing.id !== store.id);
+      next.push(store);
+      next.sort((a, b) => a.name.localeCompare(b.name));
+      return next;
+    });
+    setSelectedStore(store);
+    setSelectedStoreContentType(null);
+    setStoreContent("");
+    setStoreContentError(null);
+    setIsEditing(false);
+    setEditContent("");
   };
 
   const fetchStoreContent = async (
@@ -395,65 +414,6 @@ export default function PromptWarehouseInterface() {
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto flex flex-col">
               <div className="flex-1">
-                {/* GLOBAL PROMPTING Section */}
-                <div className="py-2">
-                  <motion.button
-                    onClick={() =>
-                      setIsGlobalPromptingExpanded(!isGlobalPromptingExpanded)
-                    }
-                    className="w-full flex items-center space-x-2 px-3 py-2 -mb-2text-left transition-colors hover:bg-gray-800"
-                    whileHover={{ backgroundColor: "rgba(31, 41, 55, 0.8)" }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {isGlobalPromptingExpanded ? (
-                      <ChevronDownIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
-                    ) : (
-                      <ChevronRightIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
-                    )}
-                    <GlobeAltIcon className="w-5 h-5 flex-shrink-0 text-gray-300" />
-                    <span className="text-gray-300 font-medium text-base">
-                      GLOBAL PROMPTING
-                    </span>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {isGlobalPromptingExpanded && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="ml-6 border-l border-gray-700 pl-3 overflow-hidden"
-                      >
-                        {globalPromptTypes.map((prompt, index) => {
-                          const IconComponent = prompt.icon;
-                          return (
-                            <motion.button
-                              key={prompt.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.02 }}
-                              onClick={() => handleGlobalPromptClick(prompt)}
-                              className={`w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 ${
-                                selectedGlobalPrompt?.id === prompt.id
-                                  ? "bg-gray-800 text-white"
-                                  : "text-gray-400"
-                              }`}
-                              whileHover={{
-                                backgroundColor: "rgba(31, 41, 55, 0.8)",
-                              }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              <IconComponent className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">{prompt.name}</span>
-                            </motion.button>
-                          );
-                        })}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
                 {/* Clients Header */}
                 <div className="px-3 pt-4 border-t border-gray-700">
                   <h3 className="text-gray-300 font-medium text-base">
@@ -463,6 +423,16 @@ export default function PromptWarehouseInterface() {
 
                 {/* List all brands (stores) in the root, no PER BRAND folder */}
                 <div className="py-2">
+                  <div className="px-3 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddStoreModalOpen(true)}
+                      className="w-full px-3 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-300 transition-colors"
+                    >
+                      Add Client
+                    </button>
+                  </div>
+
                   {isLoadingStores && (
                     <div className="px-3 py-2 text-gray-400 text-sm">
                       Loading stores...
@@ -836,6 +806,11 @@ export default function PromptWarehouseInterface() {
           )}
         </div>
       </div>
+      <AddStoreModal
+        isOpen={isAddStoreModalOpen}
+        onClose={() => setIsAddStoreModalOpen(false)}
+        onSuccess={handleStoreCreated}
+      />
     </div>
   );
 }

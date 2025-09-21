@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { parseCampaignCalendarCSV, Campaign } from "@/app/utils/csvParse";
+import { supabaseAdmin } from "@/utils/supabase/supabaseAdmin";
 
 enum CampaignType {
   "Bundle / Collection Highlight" = 0,
@@ -86,22 +87,6 @@ interface CustomFieldMapping {
   plainTextSegment?: string;
 }
 
-// Helper function to sanitize client name for environment variable lookup
-function sanitizeClientName(clientName: string): string {
-  return clientName
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-// Helper function to get ClickUp list ID for a client
-function getClickUpListId(clientName: string): string | null {
-  const sanitizedName = sanitizeClientName(clientName);
-  const envVarName = `CLICKUP_LIST_ID_${sanitizedName}`;
-  return process.env[envVarName] || null;
-}
-
 // Helper function to get Space-level custom field mapping from environment variables
 function getCustomFieldMapping(): CustomFieldMapping {
   return {
@@ -128,6 +113,50 @@ function getCustomFieldMapping(): CustomFieldMapping {
     plainTextSendTime: process.env.CLICKUP_FIELD_PLAIN_TEXT_SEND_TIME,
     plainTextSegment: process.env.CLICKUP_FIELD_PLAIN_TEXT_SEGMENT,
   };
+}
+
+type StoreRecord = {
+  id: string;
+  name: string;
+  clickup_list_id: string | null;
+};
+
+async function getStoreForClient(clientName: string): Promise<StoreRecord | null> {
+  const normalized = clientName?.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const exactMatch = await supabaseAdmin
+    .from("stores")
+    .select("id, name, clickup_list_id")
+    .eq("name", normalized)
+    .maybeSingle();
+
+  if (exactMatch.error) {
+    console.error("Error fetching store by exact name match:", exactMatch.error);
+    throw exactMatch.error;
+  }
+
+  if (exactMatch.data) {
+    return exactMatch.data as StoreRecord;
+  }
+
+  const caseInsensitiveMatch = await supabaseAdmin
+    .from("stores")
+    .select("id, name, clickup_list_id")
+    .ilike("name", normalized)
+    .maybeSingle();
+
+  if (caseInsensitiveMatch.error) {
+    console.error(
+      "Error fetching store by case-insensitive name match:",
+      caseInsensitiveMatch.error
+    );
+    throw caseInsensitiveMatch.error;
+  }
+
+  return (caseInsensitiveMatch.data as StoreRecord) ?? null;
 }
 
 // Helper function to build custom fields array
@@ -364,9 +393,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get configuration from environment variables
+    // Get ClickUp configuration and store details
     const CLICKUP_KEY = process.env.CLICKUP_KEY;
-    const CLICKUP_LIST_ID = getClickUpListId(client);
+    const storeRecord = await getStoreForClient(client);
+    const CLICKUP_LIST_ID = storeRecord?.clickup_list_id ?? null;
 
     if (!CLICKUP_KEY) {
       return NextResponse.json(
@@ -379,11 +409,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (!CLICKUP_LIST_ID) {
+      console.error(
+        `ClickUp list ID missing for client ${client}. Store record:`,
+        storeRecord
+      );
       return NextResponse.json(
         {
-          error: `ClickUp List ID not configured for client`,
+          error: `ClickUp List ID not found for client ${client}. Please add the store in Retentio before uploading campaigns.`,
         },
-        { status: 500 }
+        { status: 400 }
       );
     }
 
