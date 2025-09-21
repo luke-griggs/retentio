@@ -15,23 +15,42 @@ export async function GET(
       );
     }
 
+    const typeParam = request.nextUrl.searchParams.get("type") ?? "email";
+    const columnMap = {
+      email: "email_examples",
+      plain_text: "plain_text_examples",
+      sms: "sms_examples",
+      mms: "mms_examples",
+    } as const;
+
+    if (!Object.prototype.hasOwnProperty.call(columnMap, typeParam)) {
+      return NextResponse.json(
+        { error: "Invalid examples type" },
+        { status: 400 }
+      );
+    }
+
+    const column = columnMap[typeParam as keyof typeof columnMap];
+
     const { data: store, error: fetchError } = await supabaseAdmin
       .from("stores")
-      .select("email_examples")
+      .select(column)
       .eq("id", storeId)
       .single();
 
     if (fetchError) {
-      console.error("Error fetching store email examples:", fetchError);
+      console.error(`Error fetching store ${column}:`, fetchError);
       return NextResponse.json(
-        { error: "Failed to fetch email examples" },
+        { error: "Failed to fetch examples" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ emailExamples: store?.email_examples ?? "" });
+    const content = store?.[column as keyof typeof store] ?? "";
+
+    return NextResponse.json({ content: content ?? "" });
   } catch (error) {
-    console.error("Unexpected error fetching email examples:", error);
+    console.error("Unexpected error fetching examples:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 }
@@ -63,22 +82,39 @@ export async function PUT(
       );
     }
 
+    const typeParam = request.nextUrl.searchParams.get("type") ?? "email";
+    const columnMap = {
+      email: "email_examples",
+      plain_text: "plain_text_examples",
+      sms: "sms_examples",
+      mms: "mms_examples",
+    } as const;
+
+    if (!Object.prototype.hasOwnProperty.call(columnMap, typeParam)) {
+      return NextResponse.json(
+        { error: "Invalid examples type" },
+        { status: 400 }
+      );
+    }
+
+    const column = columnMap[typeParam as keyof typeof columnMap];
+
     const { error: updateError } = await supabaseAdmin
       .from("stores")
-      .update({ email_examples: content })
+      .update({ [column]: content })
       .eq("id", storeId);
 
     if (updateError) {
-      console.error("Error saving email examples:", updateError);
+      console.error(`Error saving store ${column}:`, updateError);
       return NextResponse.json(
-        { error: "Failed to save email examples" },
+        { error: "Failed to save examples" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ success: true, content });
   } catch (error) {
-    console.error("Unexpected error saving email examples:", error);
+    console.error("Unexpected error saving examples:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 }

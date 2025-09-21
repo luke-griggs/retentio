@@ -20,13 +20,21 @@ import {
   ChevronDoubleLeftIcon,
 } from "@heroicons/react/24/outline";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-import DraggableEmailTable, { DraggableEmailTableRef } from "./DraggableEmailTable";
+import DraggableEmailTable, {
+  DraggableEmailTableRef,
+} from "./DraggableEmailTable";
 import EmailEditChat from "./EmailEditChat";
 import { useEmailVersions } from "@/hooks/use-email-versions";
 import { toast } from "sonner"; // TODO: set up toast instead of alert
-import { sanitizeMarkdownForClickUp, reconstructMarkdownTable } from "@/utils/sanitize-markdown-for-clickup";
+import {
+  sanitizeMarkdownForClickUp,
+  reconstructMarkdownTable,
+} from "@/utils/sanitize-markdown-for-clickup";
 import { campaignHtmlToMarkdown } from "@/utils/campaign-html-to-markdown";
-import { parseMarkdownTable, serializeToMarkdown } from "@/utils/email-table-parser";
+import {
+  parseMarkdownTable,
+  serializeToMarkdown,
+} from "@/utils/email-table-parser";
 import { AddStoreModal } from "@/components/AddStoreModal";
 
 interface Store {
@@ -186,7 +194,11 @@ export default function CopyModeInterface() {
     try {
       // Sanitize markdown content for ClickUp
       const markdownContent = sanitizeMarkdownForClickUp(emailContent);
-      console.log("Updating task with markdown:", markdownContent.length, "characters");
+      console.log(
+        "Updating task with markdown:",
+        markdownContent.length,
+        "characters"
+      );
 
       const response = await fetch(
         `/api/clickup/update-task/${selectedTask.id}`,
@@ -303,7 +315,7 @@ export default function CopyModeInterface() {
 
     setIsRefreshing(true);
     setSaveError(null);
-    
+
     try {
       const response = await fetch("/api/chat/copy-mode/refresh", {
         method: "POST",
@@ -326,78 +338,98 @@ export default function CopyModeInterface() {
       }
 
       const data = await response.json();
-      
+
       if (data.content) {
         console.log("Refresh API returned HTML content:", data.content);
         // Convert HTML to markdown format
         const newMarkdownContent = campaignHtmlToMarkdown(data.content);
         console.log("New markdown content:", newMarkdownContent);
-        
+
         const existingParsed = parseMarkdownTable(emailContent);
         const newParsed = parseMarkdownTable(newMarkdownContent);
-        
-        const refreshableSections = ['SUBJECT LINE', 'PREVIEW TEXT', 'HEADER', 'CTA', 'BODY'];
-        
+
+        const refreshableSections = [
+          "SUBJECT LINE",
+          "PREVIEW TEXT",
+          "HEADER",
+          "CTA",
+          "BODY",
+        ];
+
         // Track subject line usage to handle multiple subject lines
         let subjectLineIndex = 0;
-        const newSubjectLines = newParsed.rows.filter(r => 
-          r.section.replace(/\*/g, '').trim().toUpperCase() === 'SUBJECT LINE'
+        const newSubjectLines = newParsed.rows.filter(
+          (r) =>
+            r.section.replace(/\*/g, "").trim().toUpperCase() === "SUBJECT LINE"
         );
-        
+
         // Merge the content: keep existing non-refreshable sections, update refreshable ones
-        const mergedRows = existingParsed.rows.map(existingRow => {
-          const sectionName = existingRow.section.replace(/\*/g, '').trim().toUpperCase();
-          
+        const mergedRows = existingParsed.rows.map((existingRow) => {
+          const sectionName = existingRow.section
+            .replace(/\*/g, "")
+            .trim()
+            .toUpperCase();
+
           // Check if this section should be refreshed
           if (refreshableSections.includes(sectionName)) {
             // Special handling for SUBJECT LINE to support multiple variants
-            if (sectionName === 'SUBJECT LINE') {
+            if (sectionName === "SUBJECT LINE") {
               if (subjectLineIndex < newSubjectLines.length) {
                 const newContent = newSubjectLines[subjectLineIndex].content;
                 subjectLineIndex++;
                 return {
                   ...existingRow,
-                  content: newContent
+                  content: newContent,
                 };
               }
               // If we run out of new subject lines, keep the existing one
               return existingRow;
             } else {
               // For other refreshable sections, find the first matching row
-              const newRow = newParsed.rows.find(r => 
-                r.section.replace(/\*/g, '').trim().toUpperCase() === sectionName
+              const newRow = newParsed.rows.find(
+                (r) =>
+                  r.section.replace(/\*/g, "").trim().toUpperCase() ===
+                  sectionName
               );
-              
+
               if (newRow) {
                 // Use the new content for this section
                 return {
                   ...existingRow,
-                  content: newRow.content
+                  content: newRow.content,
                 };
               }
             }
           }
-          
+
           return existingRow;
         });
-        
+
         // Add any new refreshable sections that didn't exist before (except SUBJECT LINE which was handled above)
-        newParsed.rows.forEach(newRow => {
-          const sectionName = newRow.section.replace(/\*/g, '').trim().toUpperCase();
-          if (refreshableSections.includes(sectionName) && sectionName !== 'SUBJECT LINE') {
-            const exists = mergedRows.some(r => 
-              r.section.replace(/\*/g, '').trim().toUpperCase() === sectionName
+        newParsed.rows.forEach((newRow) => {
+          const sectionName = newRow.section
+            .replace(/\*/g, "")
+            .trim()
+            .toUpperCase();
+          if (
+            refreshableSections.includes(sectionName) &&
+            sectionName !== "SUBJECT LINE"
+          ) {
+            const exists = mergedRows.some(
+              (r) =>
+                r.section.replace(/\*/g, "").trim().toUpperCase() ===
+                sectionName
             );
             if (!exists) {
               mergedRows.push(newRow);
             }
           }
         });
-        
+
         // Convert back to markdown
         const mergedMarkdown = serializeToMarkdown({ rows: mergedRows });
         console.log("Merged markdown:", mergedMarkdown);
-        
+
         // Add the new content as a version
         addVersion(mergedMarkdown, "ai", "Refreshed campaign sections");
         setEmailContent(mergedMarkdown);
@@ -787,68 +819,72 @@ export default function CopyModeInterface() {
           ) : selectedStore ? (
             <>
               {/* Store Overview - Centered Layout */}
-              <div className="flex-1 flex flex-col items-center justify-start pt-16 px-6">
-                <div className="max-w-2xl w-full">
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-shrink-0 pt-16 pb-8 px-6 text-center">
                   {/* client - Large Centered Title */}
-                  <div className="flex items-center justify-center mb-2">
-                    <h1 className="text-4xl font-semibold text-white text-center">
-                      {selectedStore.name}
-                    </h1>
-                  </div>
+                  <h1 className="text-4xl font-semibold text-white mb-2">
+                    {selectedStore.name}
+                  </h1>
 
                   {/* Campaign Count */}
-                  <p className="text-gray-400 text-center mb-10">
+                  <p className="text-gray-400">
                     {filteredTasks.length} task
                     {filteredTasks.length !== 1 ? "s" : ""} available
                   </p>
+                </div>
 
-                  {/* Campaigns List */}
-                  {isLoadingTasks ? (
-                    <div className="flex items-center justify-center py-8">
-                      <p className="text-gray-400">Loading campaigns...</p>
-                    </div>
-                  ) : taskError ? (
-                    <div className="flex items-center justify-center py-8">
-                      <p className="text-red-400">{taskError}</p>
-                    </div>
-                  ) : filteredTasks.length === 0 ? (
-                    <div className="flex items-center justify-center py-8">
-                      <p className="text-gray-400">No campaigns available</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {filteredTasks.map((task) => (
-                        <button
-                          key={task.id}
-                          onClick={() => setSelectedTask(task)}
-                          className="w-full px-6 py-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors duration-200 text-left group cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-white font-medium text-lg mb-1 truncate">
-                                {task.name}
-                              </h3>
-                              <p className="text-gray-400 text-sm">
-                                Last updated:{" "}
-                                {new Date(task.updated_at).toLocaleDateString()}{" "}
-                                at{" "}
-                                {new Date(task.updated_at).toLocaleTimeString(
-                                  [],
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  }
-                                )}
-                              </p>
+                {/* Campaigns List - Scrollable */}
+                <div className="flex-1 overflow-y-auto px-6 pb-6">
+                  <div className="max-w-2xl mx-auto">
+                    {isLoadingTasks ? (
+                      <div className="flex items-center justify-center py-8">
+                        <p className="text-gray-400">Loading campaigns...</p>
+                      </div>
+                    ) : taskError ? (
+                      <div className="flex items-center justify-center py-8">
+                        <p className="text-red-400">{taskError}</p>
+                      </div>
+                    ) : filteredTasks.length === 0 ? (
+                      <div className="flex items-center justify-center py-8">
+                        <p className="text-gray-400">No campaigns available</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredTasks.map((task) => (
+                          <button
+                            key={task.id}
+                            onClick={() => setSelectedTask(task)}
+                            className="w-full px-6 py-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors duration-200 text-left group cursor-pointer"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-white font-medium text-lg mb-1 truncate">
+                                  {task.name}
+                                </h3>
+                                <p className="text-gray-400 text-sm">
+                                  Last updated:{" "}
+                                  {new Date(
+                                    task.updated_at
+                                  ).toLocaleDateString()}{" "}
+                                  at{" "}
+                                  {new Date(task.updated_at).toLocaleTimeString(
+                                    [],
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }
+                                  )}
+                                </p>
+                              </div>
+                              <div className="ml-4 flex-shrink-0">
+                                <ChevronRightIcon className="w-5 h-5 text-gray-500 group-hover:text-gray-300 transition-colors" />
+                              </div>
                             </div>
-                            <div className="ml-4 flex-shrink-0">
-                              <ChevronRightIcon className="w-5 h-5 text-gray-500 group-hover:text-gray-300 transition-colors" />
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </>

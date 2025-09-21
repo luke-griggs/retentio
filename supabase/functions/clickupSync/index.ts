@@ -109,13 +109,24 @@ async function getTask(taskId: string) {
   }
 }
 
-async function getAdditionalClientInfo(supabase: any, client: string) {
+async function getAdditionalClientInfo(
+  supabase: any,
+  client: string | null
+) {
+  if (!client) {
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("stores")
-    .select("brand_type, brand_tone, email_examples")
-    .eq("name", client);
+    .select(
+      "brand_type, brand_tone, email_examples, sms_examples, mms_examples, plain_text_examples"
+    )
+    .eq("name", client)
+    .maybeSingle();
+
   if (error) throw error;
-  return data[0];
+  return data ?? null;
 }
 
 async function upsertClickupTaskRecord(supabase: any, task: any) {
@@ -411,12 +422,13 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
 
   const clientInfo = await getAdditionalClientInfo(supabase, client);
 
-  const {
-    brand_type: brandType,
-    brand_tone: brandTone,
-    email_examples: emailExamples,
-    
-  } = clientInfo || {};
+  const brandType = clientInfo?.brand_type ?? "";
+  const brandTone = clientInfo?.brand_tone ?? "";
+  const emailExamples = clientInfo?.email_examples ?? "";
+  const smsExamples = clientInfo?.sms_examples ?? "";
+  const mmsExamples = clientInfo?.mms_examples ?? "";
+  const plainTextExamples = clientInfo?.plain_text_examples ?? "";
+  const brandName = client ?? "the brand";
 
   try {
     if (event === "taskStatusUpdated") {
@@ -463,15 +475,16 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
           // Check if task is SMS, MMS, or Plain Text else generate normal email draft
           // Note: We check both field naming conventions (e.g., "isSMS" and "SMS") for compatibility
           if (isSMS) {
-            const smsPrompt = await getSMSPrompt(
-              client,
-              cartridge ?? "",
-              task.name,
+            const smsPrompt = await getSMSPrompt({
+              brandName,
+              taskName: task.name ?? "",
+              cartridge: cartridge ?? "",
               links,
               contentStrategy,
               brandType,
-              brandTone
-            );
+              brandTone,
+              examples: smsExamples,
+            });
 
             const smsDraft = await generateDraft(smsPrompt);
             const formattedSmsDraft = await formatDraft({
@@ -484,15 +497,16 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
           }
 
           if (isMMS) {
-            const mmsPrompt = await getMMSPrompt(
-              client,
-              cartridge ?? "",
-              task.name,
+            const mmsPrompt = await getMMSPrompt({
+              brandName,
+              taskName: task.name ?? "",
+              cartridge: cartridge ?? "",
               links,
               contentStrategy,
               brandType,
-              brandTone
-            );
+              brandTone,
+              examples: mmsExamples,
+            });
 
             const mmsDraft = await generateDraft(mmsPrompt);
             const formattedMmsDraft = await formatDraft({
@@ -505,15 +519,16 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
           }
 
           if (isPlainText) {
-            const plainTextPrompt = await getPlainTextPrompt(
-              client,
-              cartridge ?? "",
-              task.name,
+            const plainTextPrompt = await getPlainTextPrompt({
+              brandName,
+              taskName: task.name ?? "",
+              cartridge: cartridge ?? "",
               links,
               contentStrategy,
               brandType,
-              brandTone
-            );
+              brandTone,
+              examples: plainTextExamples,
+            });
 
             const plainTextDraft = await generateDraft(plainTextPrompt);
             const formattedPlainTextDraft = await formatDraft({
@@ -526,10 +541,10 @@ async function handleAsync(event: string, taskId: string, supabase: any) {
           }
 
           const emailPrompt = await getEmailPrompt(
-            client,
+            brandName,
             task.name,
             cartridge ?? "",
-            task.links,
+            links,
             contentStrategy,
             brandType,
             brandTone,

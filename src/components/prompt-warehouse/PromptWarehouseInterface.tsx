@@ -36,7 +36,100 @@ interface GlobalPromptType {
   icon: any;
 }
 
-type StoreContentType = "cartridge" | "examples";
+type StoreContentType =
+  | "cartridge"
+  | "emailExamples"
+  | "plainTextExamples"
+  | "smsExamples"
+  | "mmsExamples";
+
+type IconComponent = typeof DocumentTextIcon;
+
+const storeContentConfig: Record<StoreContentType, {
+  icon: IconComponent;
+  navLabel: string;
+  titleSuffix: string;
+  subtitle: string;
+  placeholder: string;
+  emptyMessage: string;
+  successMessage: string;
+  loadingMessage: string;
+  resourceName: string;
+}> = {
+  cartridge: {
+    icon: DocumentTextIcon,
+    navLabel: "Brand Cartridge",
+    titleSuffix: "Brand Cartridge",
+    subtitle: "Brand-specific content and guidelines",
+    placeholder: "Enter your brand cartridge content here...",
+    emptyMessage: "No cartridge content available for this brand.",
+    successMessage: "Cartridge saved successfully!",
+    loadingMessage: "Loading cartridge...",
+    resourceName: "brand cartridge",
+  },
+  emailExamples: {
+    icon: ChatBubbleBottomCenterTextIcon,
+    navLabel: "Email Examples",
+    titleSuffix: "Email Examples",
+    subtitle: "Example emails used to guide copywriting",
+    placeholder: "Enter example emails here...",
+    emptyMessage: "No email examples available for this brand.",
+    successMessage: "Email examples saved successfully!",
+    loadingMessage: "Loading email examples...",
+    resourceName: "email examples",
+  },
+  plainTextExamples: {
+    icon: ChatBubbleBottomCenterTextIcon,
+    navLabel: "Plain Text Examples",
+    titleSuffix: "Plain Text Examples",
+    subtitle: "Plain text email examples used to guide copywriting",
+    placeholder: "Enter plain text examples here...",
+    emptyMessage: "No plain text examples available for this brand.",
+    successMessage: "Plain text examples saved successfully!",
+    loadingMessage: "Loading plain text examples...",
+    resourceName: "plain text examples",
+  },
+  smsExamples: {
+    icon: PhoneIcon,
+    navLabel: "SMS Examples",
+    titleSuffix: "SMS Examples",
+    subtitle: "SMS examples used to guide copywriting",
+    placeholder: "Enter SMS examples here...",
+    emptyMessage: "No SMS examples available for this brand.",
+    successMessage: "SMS examples saved successfully!",
+    loadingMessage: "Loading SMS examples...",
+    resourceName: "sms examples",
+  },
+  mmsExamples: {
+    icon: PhotoIcon,
+    navLabel: "MMS Examples",
+    titleSuffix: "MMS Examples",
+    subtitle: "MMS examples used to guide copywriting",
+    placeholder: "Enter MMS examples here...",
+    emptyMessage: "No MMS examples available for this brand.",
+    successMessage: "MMS examples saved successfully!",
+    loadingMessage: "Loading MMS examples...",
+    resourceName: "mms examples",
+  },
+};
+
+const storeContentOrder: StoreContentType[] = [
+  "cartridge",
+  "emailExamples",
+  "plainTextExamples",
+  "smsExamples",
+  "mmsExamples",
+];
+
+const exampleTypeParamMap: Record<
+  Exclude<StoreContentType, "cartridge">,
+  "email" | "plain_text" | "sms" | "mms"
+> = {
+  emailExamples: "email",
+  plainTextExamples: "plain_text",
+  smsExamples: "sms",
+  mmsExamples: "mms",
+};
 
 const globalPromptTypes: GlobalPromptType[] = [
   { id: "designed-email", name: "Designed Email", icon: DocumentTextIcon },
@@ -80,25 +173,26 @@ export default function PromptWarehouseInterface() {
 
   const isStoreContentSelected =
     selectedStore !== null && selectedStoreContentType !== null;
-  const isCartridgeView = selectedStoreContentType !== "examples";
-  const StoreContentIcon = isCartridgeView
-    ? DocumentTextIcon
-    : ChatBubbleBottomCenterTextIcon;
-  const storeContentTitleSuffix = isCartridgeView
-    ? "Brand Cartridge"
-    : "Email Examples";
-  const storeContentSubtitle = isCartridgeView
-    ? "Brand-specific content and guidelines"
-    : "Example emails used to guide copywriting";
+  const currentStoreContentConfig = selectedStoreContentType
+    ? storeContentConfig[selectedStoreContentType]
+    : null;
+  const StoreContentIcon =
+    currentStoreContentConfig?.icon ?? DocumentTextIcon;
+  const storeContentTitleSuffix =
+    currentStoreContentConfig?.titleSuffix ?? "Select Content Type";
+  const storeContentSubtitle =
+    currentStoreContentConfig?.subtitle ??
+    "Choose a content item to view or edit.";
   const storeContentTitle = selectedStore
     ? `${selectedStore.name} - ${storeContentTitleSuffix}`
     : storeContentTitleSuffix;
-  const storeContentPlaceholder = isCartridgeView
-    ? "Enter your brand cartridge content here..."
-    : "Enter example emails here...";
-  const emptyStoreContentMessage = isCartridgeView
-    ? "No cartridge content available for this brand."
-    : "No email examples available for this brand.";
+  const storeContentPlaceholder =
+    currentStoreContentConfig?.placeholder ?? "Enter content here...";
+  const emptyStoreContentMessage =
+    currentStoreContentConfig?.emptyMessage ??
+    "Select a content type to view examples.";
+  const loadingMessage =
+    currentStoreContentConfig?.loadingMessage ?? "Loading...";
 
   // Fetch stores
   useEffect(() => {
@@ -151,6 +245,7 @@ export default function PromptWarehouseInterface() {
     storeId: string,
     contentType: StoreContentType
   ) => {
+    const config = storeContentConfig[contentType];
     try {
       setIsLoadingStoreContent(true);
       setStoreContentError(null);
@@ -160,15 +255,11 @@ export default function PromptWarehouseInterface() {
       const endpoint =
         contentType === "cartridge"
           ? `/api/clickup/fetch-cartridges/${storeId}`
-          : `/api/prompt-warehouse/store-examples/${storeId}`;
+          : `/api/prompt-warehouse/store-examples/${storeId}?type=${exampleTypeParamMap[contentType]}`;
 
       const response = await fetch(endpoint);
       if (!response.ok) {
-        throw new Error(
-          `Failed to fetch ${
-            contentType === "cartridge" ? "cartridge" : "email examples"
-          }`
-        );
+        throw new Error(`Failed to fetch ${config.resourceName}`);
       }
 
       const data = await response.json();
@@ -176,16 +267,12 @@ export default function PromptWarehouseInterface() {
       if (contentType === "cartridge") {
         setStoreContent(data.cartridge?.content || "");
       } else {
-        setStoreContent(data.emailExamples || "");
+        setStoreContent(data.content || "");
       }
     } catch (err) {
       console.error(`Error fetching ${contentType}:`, err);
       setStoreContent("");
-      setStoreContentError(
-        `Failed to load ${
-          contentType === "cartridge" ? "cartridge" : "email examples"
-        }`
-      );
+      setStoreContentError(`Failed to load ${config.resourceName}.`);
     } finally {
       setIsLoadingStoreContent(false);
     }
@@ -233,19 +320,12 @@ export default function PromptWarehouseInterface() {
     setSaveError(null);
   };
 
-  const handleCartridgeClick = (store: Store) => {
+  const handleStoreContentSelection = (
+    store: Store,
+    contentType: StoreContentType
+  ) => {
     setSelectedGlobalPrompt(null);
-    fetchStoreContent(store.id, "cartridge");
-    // Reset editing state when switching
-    setIsEditing(false);
-    setEditContent("");
-    setSaveSuccess(null);
-    setSaveError(null);
-  };
-
-  const handleExamplesClick = (store: Store) => {
-    setSelectedGlobalPrompt(null);
-    fetchStoreContent(store.id, "examples");
+    fetchStoreContent(store.id, contentType);
     setIsEditing(false);
     setEditContent("");
     setSaveSuccess(null);
@@ -314,10 +394,11 @@ export default function PromptWarehouseInterface() {
         setGlobalPromptContent(editContent);
         setSaveSuccess("Global prompt saved successfully!");
       } else if (selectedStore && selectedStoreContentType) {
+        const config = storeContentConfig[selectedStoreContentType];
         const endpoint =
           selectedStoreContentType === "cartridge"
             ? `/api/prompt-warehouse/brand-cartridges/${selectedStore.id}`
-            : `/api/prompt-warehouse/store-examples/${selectedStore.id}`;
+            : `/api/prompt-warehouse/store-examples/${selectedStore.id}?type=${exampleTypeParamMap[selectedStoreContentType]}`;
 
         const response = await fetch(endpoint, {
           method: "PUT",
@@ -328,22 +409,12 @@ export default function PromptWarehouseInterface() {
         });
 
         if (!response.ok) {
-          throw new Error(
-            `Failed to save ${
-              selectedStoreContentType === "cartridge"
-                ? "brand cartridge"
-                : "email examples"
-            }`
-          );
+          throw new Error(`Failed to save ${config.resourceName}`);
         }
 
         setStoreContent(editContent);
         setStoreContentError(null);
-        setSaveSuccess(
-          selectedStoreContentType === "cartridge"
-            ? "Cartridge saved successfully!"
-            : "Email examples saved successfully!"
-        );
+        setSaveSuccess(config.successMessage);
       }
 
       setIsEditing(false);
@@ -355,7 +426,12 @@ export default function PromptWarehouseInterface() {
       }, 3000);
     } catch (err) {
       console.error("Error saving content:", err);
-      setSaveError("Failed to save content. Please try again.");
+      if (selectedStoreContentType) {
+        const config = storeContentConfig[selectedStoreContentType];
+        setSaveError(`Failed to save ${config.resourceName}. Please try again.`);
+      } else {
+        setSaveError("Failed to save content. Please try again.");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -498,42 +574,39 @@ export default function PromptWarehouseInterface() {
                                 transition={{ delay: 0.1 }}
                                 className="py-1 space-y-1"
                               >
-                                <button
-                                  className={`w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 ${
+                                {storeContentOrder.map((contentType) => {
+                                  const config = storeContentConfig[contentType];
+                                  const Icon = config.icon;
+                                  const isActive =
                                     selectedStore?.id === store.id &&
-                                    selectedStoreContentType === "cartridge"
-                                      ? "bg-gray-800 text-white"
-                                      : "text-gray-400"
-                                  }`}
-                                  onClick={() => handleCartridgeClick(store)}
-                                >
-                                  <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">
-                                    {isLoadingStoreContent &&
-                                    selectedStore?.id === store.id &&
-                                    selectedStoreContentType === "cartridge"
-                                      ? "Loading..."
-                                      : "CARTRIDGE"}
-                                  </span>
-                                </button>
-                                <button
-                                  className={`w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 ${
-                                    selectedStore?.id === store.id &&
-                                    selectedStoreContentType === "examples"
-                                      ? "bg-gray-800 text-white"
-                                      : "text-gray-400"
-                                  }`}
-                                  onClick={() => handleExamplesClick(store)}
-                                >
-                                  <ChatBubbleBottomCenterTextIcon className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">
-                                    {isLoadingStoreContent &&
-                                    selectedStore?.id === store.id &&
-                                    selectedStoreContentType === "examples"
-                                      ? "Loading..."
-                                      : "EMAIL EXAMPLES"}
-                                  </span>
-                                </button>
+                                    selectedStoreContentType === contentType;
+                                  const isLoadingCurrent =
+                                    isLoadingStoreContent && isActive;
+
+                                  return (
+                                    <button
+                                      key={contentType}
+                                      className={`w-full flex items-center space-x-2 px-2 py-1.5 text-xs text-left transition-colors hover:bg-gray-800 ${
+                                        isActive
+                                          ? "bg-gray-800 text-white"
+                                          : "text-gray-400"
+                                      }`}
+                                      onClick={() =>
+                                        handleStoreContentSelection(
+                                          store,
+                                          contentType
+                                        )
+                                      }
+                                    >
+                                      <Icon className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate">
+                                        {isLoadingCurrent
+                                          ? "Loading..."
+                                          : config.navLabel.toUpperCase()}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
                               </motion.div>
                             </motion.div>
                           )}
@@ -755,9 +828,7 @@ export default function PromptWarehouseInterface() {
                 {isLoadingStoreContent ? (
                   <div className="flex items-center justify-center h-full">
                     <p className="text-gray-400">
-                      {selectedStoreContentType === "cartridge"
-                        ? "Loading cartridge..."
-                        : "Loading email examples..."}
+                      {loadingMessage}
                     </p>
                   </div>
                 ) : isEditing ? (
