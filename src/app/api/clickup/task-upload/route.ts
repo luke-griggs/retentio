@@ -45,19 +45,16 @@ enum Client {
   "Luke Test" = 9,
   "Mett Naturals" = 10,
   "Monsterbass" = 11,
-  "Seatopia" = 12,
-  "Procare" = 13,
-  "Twelve South" = 14,
-  "EMF Harmony" = 15,
-  "Portal Sphere" = 16,
-  "IV His Glory" = 17,
-  "Retentio Internal" = 18,
-  "Barebones" = 19,
-  "Dilettoso" = 20,
-  "DrinkinBuds" = 21,
-  "Lucent" = 22,
-  "Velora" = 23,
-  "BPP/EMFH/LHE" = 24,
+  "Velora" = 12,
+  "Seatopia" = 13,
+  "Procare" = 14,
+  "Twelve South" = 15,
+  "EMF Harmony" = 16,
+  "Barebones" = 17,
+  "Dilettoso" = 18,
+  "DrinkinBuds" = 19,
+  "Lucent" = 20,
+  "Retentio Internal" = 21,
 }
 
 // Custom field mapping interface
@@ -438,7 +435,7 @@ export async function POST(request: NextRequest) {
 
     console.log(
       `Using ${configuredFields} configured custom fields for client: ${client}`
-    );
+    ); 
 
     const createdTasks = [];
     const failedTasks = [];
